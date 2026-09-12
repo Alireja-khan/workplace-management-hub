@@ -44,7 +44,9 @@ import {
   Activity,
   ArrowUpRight,
   Users,
-  Percent
+  Percent,
+  Terminal,
+  Code2
 } from 'lucide-react';
 
 export default function VercelDashboard() {
@@ -713,8 +715,47 @@ export default function VercelDashboard() {
           </div>
         </header>
 
-        {/* Dynamic Main View: Stats & Analytics OR Orders (Table / Kanban) */}
-        {currentTab === 'stats' ? (
+        {/* Dynamic Main View: Developer Loader OR Stats & Analytics OR Orders (Table / Kanban) */}
+        {loading ? (
+          <div className="dev-loader-container">
+            <div className="dev-loader-card">
+              <div className="dev-loader-topbar">
+                <div className="dev-loader-dots">
+                  <div className="dev-loader-dot red"></div>
+                  <div className="dev-loader-dot yellow"></div>
+                  <div className="dev-loader-dot green"></div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', color: 'var(--accents-5)', fontFamily: 'var(--font-mono)' }}>
+                  <Terminal size={12} /> db-cluster-0.workplace.mongodb.net
+                </div>
+              </div>
+
+              <div className="dev-loader-body">
+                <div className="dev-orbit-spinner">
+                  <div className="dev-ring-outer"></div>
+                  <div className="dev-ring-inner"></div>
+                  <div className="dev-icon-core">
+                    <Code2 size={20} color="var(--geist-foreground)" />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <div className="dev-loader-title">
+                    <span className="dev-pulse-live"></span>
+                    <span>Syncing Workplace Hub</span>
+                  </div>
+                  <p className="dev-loader-subtitle">
+                    Establishing secure connection • Fetching orders, staging subdomains & real-time revenue metrics...
+                  </p>
+                </div>
+              </div>
+
+              <div className="dev-shimmer-track">
+                <div className="dev-shimmer-bar"></div>
+              </div>
+            </div>
+          </div>
+        ) : currentTab === 'stats' ? (
           /* Dedicated Stats & Analytics Page */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {/* Primary KPI Cards */}
@@ -940,12 +981,7 @@ export default function VercelDashboard() {
         </section>
 
         {/* Content Display: Table or Kanban */}
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '5rem 1rem', color: 'var(--accents-5)' }}>
-            <div style={{ display: 'inline-block', width: 28, height: 28, border: '2px solid var(--border-default)', borderTopColor: 'var(--geist-foreground)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-            <p style={{ marginTop: '1rem', fontSize: '0.85rem' }}>Loading from MongoDB Atlas...</p>
-          </div>
-        ) : currentView === 'table' ? (
+        {currentView === 'table' ? (
           /* Table View with Sticky Header & Subtle Scroll Controls */
           <div className="table-smart-wrapper">
             <div className="table-sub-bar">
