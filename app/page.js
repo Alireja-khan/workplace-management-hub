@@ -56,6 +56,8 @@ import {
 } from 'lucide-react';
 import { MONTH_LIST, getMonthFromDate } from '@/lib/dateUtils';
 import LandingPage from '@/components/LandingPage';
+import TeamWorkspaceView from '@/components/TeamWorkspaceView';
+import TeamOrderModal from '@/components/TeamOrderModal';
 
 const GoogleIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24">
@@ -105,6 +107,42 @@ export default function VercelDashboard() {
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [showAuthPassword, setShowAuthPassword] = useState(false);
+
+  // Workspace Mode: 'personal' (my-work-place) | 'team' (EleSquad SMT 2025-2026)
+  const [workspaceMode, setWorkspaceMode] = useState('personal');
+  const [teamProjects, setTeamProjects] = useState([]);
+  const [teamLoading, setTeamLoading] = useState(false);
+  const [teamSearchQuery, setTeamSearchQuery] = useState('');
+  const [teamStatusFilter, setTeamStatusFilter] = useState('All');
+  const [teamMemberFilter, setTeamMemberFilter] = useState('All');
+  const [teamSalesFilter, setTeamSalesFilter] = useState('All');
+  const [teamMonthFilter, setTeamMonthFilter] = useState('All');
+  const [teamViewMode, setTeamViewMode] = useState('table');
+  const [teamMembersExpanded, setTeamMembersExpanded] = useState(true);
+
+  // Team Modal States
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
+  const [activeTeamProject, setActiveTeamProject] = useState(null);
+  const [teamIsSubmitting, setTeamIsSubmitting] = useState(false);
+
+  const [teamFormData, setTeamFormData] = useState({
+    salesPerson: 'Shuvo',
+    assignDate: new Date().toISOString().split('T')[0],
+    month: MONTH_LIST[new Date().getMonth()],
+    profileName: '',
+    clientUserId: '',
+    orderNumber: '',
+    amount: '',
+    assignedMembers: ['Alireja'],
+    estimatedDeliveryDate: '',
+    deliveryDate: '',
+    remark: '',
+    orderStatus: 'Wip',
+    sheetLink: '',
+    teamName: 'EleSquad',
+    percentage: '',
+    note: '',
+  });
 
   // Form State
   const [formData, setFormData] = useState({
@@ -160,9 +198,27 @@ export default function VercelDashboard() {
     }
   };
 
+  const fetchTeamProjects = async () => {
+    try {
+      setTeamLoading(true);
+      await fetch('/api/team-projects/seed', { method: 'POST' });
+      const res = await fetch('/api/team-projects');
+      const data = await res.json();
+      if (data.success) {
+        setTeamProjects(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch team projects', err);
+      showToast('Error connecting to team projects', 'error');
+    } finally {
+      setTeamLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (session?.user) {
       fetchProjects();
+      fetchTeamProjects();
     }
   }, [session]);
 
@@ -264,6 +320,36 @@ export default function VercelDashboard() {
       return { month: m, count: mProjects.length, gross, net, completed };
     });
   }, [projects, availableMonths, currentCalendarMonth]);
+
+  // Team Member Counts
+  const teamMemberCounts = useMemo(() => {
+    const counts = {};
+    teamProjects.forEach((p) => {
+      if (Array.isArray(p.assignedMembers)) {
+        p.assignedMembers.forEach((m) => {
+          if (m) counts[m] = (counts[m] || 0) + 1;
+        });
+      }
+    });
+    return counts;
+  }, [teamProjects]);
+
+  const teamMemberList = useMemo(() => {
+    return Object.keys(teamMemberCounts).sort((a, b) => teamMemberCounts[b] - teamMemberCounts[a]);
+  }, [teamMemberCounts]);
+
+  // Team Sales Person Counts
+  const teamSalesCounts = useMemo(() => {
+    const counts = {};
+    teamProjects.forEach((p) => {
+      if (p.salesPerson) counts[p.salesPerson] = (counts[p.salesPerson] || 0) + 1;
+    });
+    return counts;
+  }, [teamProjects]);
+
+  const teamSalesList = useMemo(() => {
+    return Object.keys(teamSalesCounts).sort((a, b) => teamSalesCounts[b] - teamSalesCounts[a]);
+  }, [teamSalesCounts]);
 
   // Status Distribution
   const statusStats = useMemo(() => {
@@ -542,6 +628,142 @@ export default function VercelDashboard() {
       showToast('Failed to save project', 'error');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Team Project Handlers
+  const openNewTeamModal = () => {
+    setActiveTeamProject(null);
+    setTeamFormData({
+      salesPerson: 'Shuvo',
+      assignDate: new Date().toISOString().split('T')[0],
+      month: MONTH_LIST[new Date().getMonth()],
+      profileName: '',
+      clientUserId: '',
+      orderNumber: '',
+      amount: '',
+      assignedMembers: ['Alireja'],
+      estimatedDeliveryDate: '',
+      deliveryDate: '',
+      remark: '',
+      orderStatus: 'Wip',
+      sheetLink: '',
+      teamName: 'EleSquad',
+      percentage: '',
+      note: '',
+    });
+    setIsTeamModalOpen(true);
+  };
+
+  const openEditTeamModal = (p) => {
+    setActiveTeamProject(p);
+    setTeamFormData({
+      salesPerson: p.salesPerson || 'Shuvo',
+      assignDate: p.assignDate || new Date().toISOString().split('T')[0],
+      month: p.month || MONTH_LIST[new Date().getMonth()],
+      profileName: p.profileName || '',
+      clientUserId: p.clientUserId || '',
+      orderNumber: p.orderNumber || '',
+      amount: p.amount !== undefined && p.amount !== null ? String(p.amount) : '',
+      assignedMembers: Array.isArray(p.assignedMembers) ? [...p.assignedMembers] : [],
+      estimatedDeliveryDate: p.estimatedDeliveryDate || '',
+      deliveryDate: p.deliveryDate || '',
+      remark: p.remark || '',
+      orderStatus: p.status || 'Wip',
+      sheetLink: p.sheetLink || '',
+      teamName: p.teamName || 'EleSquad',
+      percentage: p.percentage || '',
+      note: p.notes || p.note || '',
+    });
+    setIsTeamModalOpen(true);
+  };
+
+  const handleTeamSubmit = async (e) => {
+    e.preventDefault();
+    if (teamIsSubmitting) return;
+    try {
+      setTeamIsSubmitting(true);
+      const autoMonth = getMonthFromDate(teamFormData.assignDate, teamFormData.month);
+      const gross = parseFloat(teamFormData.amount) || 0;
+      const net = gross * 0.8;
+      const payload = {
+        ...teamFormData,
+        month: autoMonth,
+        amount: gross,
+        netAmount: net,
+        status: teamFormData.orderStatus,
+        notes: teamFormData.note,
+      };
+
+      if (activeTeamProject) {
+        const res = await fetch(`/api/team-projects/${activeTeamProject._id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setTeamProjects((prev) =>
+            prev.map((item) => (item._id === activeTeamProject._id ? data.data : item))
+          );
+          showToast(`Updated team order: ${payload.orderNumber || payload.clientUserId}`);
+          setIsTeamModalOpen(false);
+        } else {
+          showToast(data.error || 'Failed to update team order', 'error');
+        }
+      } else {
+        const res = await fetch('/api/team-projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setTeamProjects((prev) => [data.data, ...prev]);
+          showToast(`Created team order: ${payload.orderNumber || payload.clientUserId}`);
+          setIsTeamModalOpen(false);
+        } else {
+          showToast(data.error || 'Failed to create team order', 'error');
+        }
+      }
+    } catch (err) {
+      console.error('Error saving team project', err);
+      showToast('Error saving team project', 'error');
+    } finally {
+      setTeamIsSubmitting(false);
+    }
+  };
+
+  const handleTeamDelete = async (id) => {
+    if (!confirm('Are you sure you want to delete this team order?')) return;
+    try {
+      const res = await fetch(`/api/team-projects/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        setTeamProjects((prev) => prev.filter((p) => p._id !== id));
+        showToast('Team order deleted successfully');
+      }
+    } catch (err) {
+      showToast('Delete failed', 'error');
+    }
+  };
+
+  const handleQuickUpdateTeamStatus = async (id, newStatus) => {
+    try {
+      setTeamProjects((prev) =>
+        prev.map((p) => (p._id === id ? { ...p, status: newStatus } : p))
+      );
+      const res = await fetch(`/api/team-projects/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Status updated to ${newStatus}`);
+      }
+    } catch (err) {
+      showToast('Status update failed', 'error');
     }
   };
 
@@ -839,170 +1061,320 @@ export default function VercelDashboard() {
           </div>
         </div>
 
-        {/* Action Button inside Sidebar with comfortable eye contrast */}
-        <div style={{ padding: '0.85rem 0.85rem 0.25rem 0.85rem' }}>
-          <button className="sidebar-new-order-btn" onClick={openNewModal}>
-            <Plus size={14} /> New Order
-          </button>
-        </div>
-
-        {/* Navigation Content */}
-        <div className="sidebar-content">
-          {/* Main Navigation */}
-          <div className="sidebar-section">
-            <div className="sidebar-section-title">Views</div>
+        {/* Workspace Switcher */}
+        <div style={{ padding: '0.75rem 0.85rem 0.25rem 0.85rem' }}>
+          <div className="workspace-switcher">
             <button
-              className={`sidebar-nav-item ${currentTab === 'all' && profileFilter === 'all' && statusFilter === 'all' ? 'active' : ''}`}
-              onClick={() => {
-                setCurrentTab('all');
-                setProfileFilter('all');
-                setStatusFilter('all');
-                setScheduleFilter('all');
-              }}
+              className={`workspace-tab ${workspaceMode === 'personal' ? 'active' : ''}`}
+              onClick={() => setWorkspaceMode('personal')}
             >
-              <div className="sidebar-nav-left">
-                <LayoutDashboard size={14} />
-                <span>All Orders</span>
-              </div>
-              <span className="sidebar-count-badge">{projects.length}</span>
+              <Briefcase size={12} />
+              <span>Personal</span>
             </button>
-
             <button
-              className={`sidebar-nav-item ${currentTab === 'running' ? 'active' : ''}`}
-              onClick={() => {
-                setCurrentTab('running');
-                setProfileFilter('all');
-                setStatusFilter('all');
-              }}
+              className={`workspace-tab ${workspaceMode === 'team' ? 'active' : ''}`}
+              onClick={() => setWorkspaceMode('team')}
             >
-              <div className="sidebar-nav-left">
-                <Zap size={14} color="#38bdf8" />
-                <span>Running Orders</span>
-              </div>
-              <span className="sidebar-count-badge" style={{ color: '#38bdf8', borderColor: 'rgba(56,189,248,0.3)' }}>
-                {runningCount}
-              </span>
-            </button>
-
-            <button
-              className={`sidebar-nav-item ${currentTab === 'stats' ? 'active' : ''}`}
-              onClick={() => {
-                setCurrentTab('stats');
-                setProfileFilter('all');
-                setStatusFilter('all');
-              }}
-            >
-              <div className="sidebar-nav-left">
-                <BarChart3 size={14} color="#10b981" />
-                <span>Stats & Analytics</span>
-              </div>
-              <span className="sidebar-count-badge" style={{ color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }}>
-                Live
-              </span>
+              <Users size={12} />
+              <span>EleSquad</span>
             </button>
           </div>
+        </div>
 
-          {/* Month Section with Arrow Toggle (Current month ALWAYS visible by default) */}
-          <div className="sidebar-section">
-            <div className="sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Months</span>
-              <button
-                className="sidebar-expand-btn"
-                onClick={() => setMonthsExpanded(!monthsExpanded)}
-                title={monthsExpanded ? "Show less" : `Show all months (${availableMonths.length})`}
-              >
-                <ChevronDown size={14} style={{ transform: monthsExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+        {workspaceMode === 'personal' ? (
+          <>
+            {/* Action Button inside Sidebar with comfortable eye contrast */}
+            <div style={{ padding: '0.85rem 0.85rem 0.25rem 0.85rem' }}>
+              <button className="sidebar-new-order-btn" onClick={openNewModal}>
+                <Plus size={14} /> New Order
               </button>
             </div>
-            {displayedMonths.map((m) => {
-              const isCurrentMonth = m.toLowerCase() === currentCalendarMonth.toLowerCase();
-              const count = projects.filter((p) => {
-                const pMonth = getMonthFromDate(p.assignDate, p.month);
-                if (isCurrentMonth) {
-                  return pMonth.toLowerCase() === m.toLowerCase() || (p.orderStatus !== 'Done' && p.orderStatus !== 'Delivered' && p.orderStatus !== 'Cancel');
-                }
-                return pMonth.toLowerCase() === m.toLowerCase();
-              }).length;
-              return (
+
+            {/* Navigation Content */}
+            <div className="sidebar-content">
+              {/* Main Navigation */}
+              <div className="sidebar-section">
+                <div className="sidebar-section-title">Views</div>
                 <button
-                  key={m}
-                  className={`sidebar-nav-item ${currentTab.toLowerCase() === m.toLowerCase() ? 'active' : ''}`}
+                  className={`sidebar-nav-item ${currentTab === 'all' && profileFilter === 'all' && statusFilter === 'all' ? 'active' : ''}`}
                   onClick={() => {
-                    setCurrentTab(m);
+                    setCurrentTab('all');
                     setProfileFilter('all');
+                    setStatusFilter('all');
+                    setScheduleFilter('all');
                   }}
                 >
                   <div className="sidebar-nav-left">
-                    <Calendar size={14} />
-                    <span>{m}</span>
-                    {isCurrentMonth && (
-                      <span style={{ fontSize: '0.62rem', padding: '0.08rem 0.32rem', borderRadius: '3px', background: 'rgba(56,189,248,0.15)', color: '#38bdf8', fontWeight: 600, letterSpacing: '0.02em' }}>
-                        Current
-                      </span>
-                    )}
+                    <LayoutDashboard size={14} />
+                    <span>All Orders</span>
                   </div>
-                  <span className="sidebar-count-badge">{count}</span>
+                  <span className="sidebar-count-badge">{projects.length}</span>
                 </button>
-              );
-            })}
-          </div>
 
-          {/* Marketplace Profiles Section with Arrow Toggle (2 visible by default) */}
-          <div className="sidebar-section">
-            <div className="sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Marketplace Profiles</span>
-              <button
-                className="sidebar-expand-btn"
-                onClick={() => setProfilesExpanded(!profilesExpanded)}
-                title={profilesExpanded ? "Show less" : `Show all profiles (${uniqueProfiles.length})`}
-              >
-                <ChevronDown size={14} style={{ transform: profilesExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+                <button
+                  className={`sidebar-nav-item ${currentTab === 'running' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('running');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <Zap size={14} color="#38bdf8" />
+                    <span>Running Orders</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#38bdf8', borderColor: 'rgba(56,189,248,0.3)' }}>
+                    {runningCount}
+                  </span>
+                </button>
+
+                <button
+                  className={`sidebar-nav-item ${currentTab === 'stats' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('stats');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <BarChart3 size={14} color="#10b981" />
+                    <span>Stats & Analytics</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }}>
+                    Live
+                  </span>
+                </button>
+              </div>
+
+              {/* Month Section with Arrow Toggle (Current month ALWAYS visible by default) */}
+              <div className="sidebar-section">
+                <div className="sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Months</span>
+                  <button
+                    className="sidebar-expand-btn"
+                    onClick={() => setMonthsExpanded(!monthsExpanded)}
+                    title={monthsExpanded ? "Show less" : `Show all months (${availableMonths.length})`}
+                  >
+                    <ChevronDown size={14} style={{ transform: monthsExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+                  </button>
+                </div>
+                {displayedMonths.map((m) => {
+                  const isCurrentMonth = m.toLowerCase() === currentCalendarMonth.toLowerCase();
+                  const count = projects.filter((p) => {
+                    const pMonth = getMonthFromDate(p.assignDate, p.month);
+                    if (isCurrentMonth) {
+                      return pMonth.toLowerCase() === m.toLowerCase() || (p.orderStatus !== 'Done' && p.orderStatus !== 'Delivered' && p.orderStatus !== 'Cancel');
+                    }
+                    return pMonth.toLowerCase() === m.toLowerCase();
+                  }).length;
+                  return (
+                    <button
+                      key={m}
+                      className={`sidebar-nav-item ${currentTab.toLowerCase() === m.toLowerCase() ? 'active' : ''}`}
+                      onClick={() => {
+                        setCurrentTab(m);
+                        setProfileFilter('all');
+                      }}
+                    >
+                      <div className="sidebar-nav-left">
+                        <Calendar size={14} />
+                        <span>{m}</span>
+                        {isCurrentMonth && (
+                          <span style={{ fontSize: '0.62rem', padding: '0.08rem 0.32rem', borderRadius: '3px', background: 'rgba(56,189,248,0.15)', color: '#38bdf8', fontWeight: 600, letterSpacing: '0.02em' }}>
+                            Current
+                          </span>
+                        )}
+                      </div>
+                      <span className="sidebar-count-badge">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Marketplace Profiles Section with Arrow Toggle (2 visible by default) */}
+              <div className="sidebar-section">
+                <div className="sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Marketplace Profiles</span>
+                  <button
+                    className="sidebar-expand-btn"
+                    onClick={() => setProfilesExpanded(!profilesExpanded)}
+                    title={profilesExpanded ? "Show less" : `Show all profiles (${uniqueProfiles.length})`}
+                  >
+                    <ChevronDown size={14} style={{ transform: profilesExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+                  </button>
+                </div>
+                {(profilesExpanded ? uniqueProfiles : uniqueProfiles.slice(0, 2)).map((prof) => (
+                  <button
+                    key={prof}
+                    className={`sidebar-nav-item ${profileFilter === prof ? 'active' : ''}`}
+                    onClick={() => {
+                      setProfileFilter(prof);
+                      setCurrentTab('all');
+                    }}
+                  >
+                    <div className="sidebar-nav-left">
+                      <Briefcase size={14} />
+                      <span style={{ maxWidth: 125, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prof}</span>
+                    </div>
+                    <span className="sidebar-count-badge">{profileCounts[prof] || 0}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Quick Status Filter */}
+              <div className="sidebar-section">
+                <div className="sidebar-section-title">Quick Status</div>
+                <button
+                  className={`sidebar-nav-item ${statusFilter === 'Wip' ? 'active' : ''}`}
+                  onClick={() => setStatusFilter(statusFilter === 'Wip' ? 'all' : 'Wip')}
+                >
+                  <div className="sidebar-nav-left">
+                    <span className="v-status-dot" style={{ background: '#0284c7' }}></span>
+                    <span>Work In Progress</span>
+                  </div>
+                  <span className="sidebar-count-badge">{kpis.activeWip}</span>
+                </button>
+
+                <button
+                  className={`sidebar-nav-item ${statusFilter === 'Done' ? 'active' : ''}`}
+                  onClick={() => setStatusFilter(statusFilter === 'Done' ? 'all' : 'Done')}
+                >
+                  <div className="sidebar-nav-left">
+                    <span className="v-status-dot" style={{ background: '#10b981' }}></span>
+                    <span>Completed</span>
+                  </div>
+                  <span className="sidebar-count-badge">{kpis.deliveredDone}</span>
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Action Button inside Sidebar for Team */}
+            <div style={{ padding: '0.85rem 0.85rem 0.25rem 0.85rem' }}>
+              <button className="sidebar-new-order-btn" onClick={openNewTeamModal}>
+                <Plus size={14} /> Add Team Order
               </button>
             </div>
-            {(profilesExpanded ? uniqueProfiles : uniqueProfiles.slice(0, 2)).map((prof) => (
-              <button
-                key={prof}
-                className={`sidebar-nav-item ${profileFilter === prof ? 'active' : ''}`}
-                onClick={() => {
-                  setProfileFilter(prof);
-                  setCurrentTab('all');
-                }}
-              >
-                <div className="sidebar-nav-left">
-                  <Briefcase size={14} />
-                  <span style={{ maxWidth: 125, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prof}</span>
+
+            {/* Team Navigation Content */}
+            <div className="sidebar-content">
+              {/* Team Views */}
+              <div className="sidebar-section">
+                <div className="sidebar-section-title">Team Views</div>
+                <button
+                  className={`sidebar-nav-item ${teamMemberFilter === 'All' && teamStatusFilter === 'All' && teamSalesFilter === 'All' && teamMonthFilter === 'All' ? 'active' : ''}`}
+                  onClick={() => {
+                    setTeamMemberFilter('All');
+                    setTeamStatusFilter('All');
+                    setTeamSalesFilter('All');
+                    setTeamMonthFilter('All');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <LayoutDashboard size={14} />
+                    <span>All Team Orders</span>
+                  </div>
+                  <span className="sidebar-count-badge">{teamProjects.length}</span>
+                </button>
+
+                <button
+                  className={`sidebar-nav-item ${teamStatusFilter === 'Wip' ? 'active' : ''}`}
+                  onClick={() => setTeamStatusFilter(teamStatusFilter === 'Wip' ? 'All' : 'Wip')}
+                >
+                  <div className="sidebar-nav-left">
+                    <Zap size={14} color="#38bdf8" />
+                    <span>WIP Queue</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#38bdf8', borderColor: 'rgba(56,189,248,0.3)' }}>
+                    {teamProjects.filter((p) => (p.status || '').toLowerCase() === 'wip').length}
+                  </span>
+                </button>
+              </div>
+
+              {/* Team Members Filter Section */}
+              <div className="sidebar-section">
+                <div className="sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Assigned Members</span>
+                  <button
+                    className="sidebar-expand-btn"
+                    onClick={() => setTeamMembersExpanded(!teamMembersExpanded)}
+                    title="Toggle Member list"
+                  >
+                    <ChevronDown size={14} style={{ transform: teamMembersExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+                  </button>
                 </div>
-                <span className="sidebar-count-badge">{profileCounts[prof] || 0}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Quick Status Filter */}
-          <div className="sidebar-section">
-            <div className="sidebar-section-title">Quick Status</div>
-            <button
-              className={`sidebar-nav-item ${statusFilter === 'Wip' ? 'active' : ''}`}
-              onClick={() => setStatusFilter(statusFilter === 'Wip' ? 'all' : 'Wip')}
-            >
-              <div className="sidebar-nav-left">
-                <span className="v-status-dot" style={{ background: '#0284c7' }}></span>
-                <span>Work In Progress</span>
+                {(teamMembersExpanded ? teamMemberList : teamMemberList.slice(0, 4)).map((m) => (
+                  <button
+                    key={m}
+                    className={`sidebar-nav-item ${teamMemberFilter.toLowerCase() === m.toLowerCase() ? 'active' : ''}`}
+                    onClick={() => setTeamMemberFilter(teamMemberFilter.toLowerCase() === m.toLowerCase() ? 'All' : m)}
+                  >
+                    <div className="sidebar-nav-left">
+                      <Users size={14} />
+                      <span style={{ maxWidth: 125, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m}</span>
+                    </div>
+                    <span className="sidebar-count-badge">{teamMemberCounts[m] || 0}</span>
+                  </button>
+                ))}
               </div>
-              <span className="sidebar-count-badge">{kpis.activeWip}</span>
-            </button>
 
-            <button
-              className={`sidebar-nav-item ${statusFilter === 'Done' ? 'active' : ''}`}
-              onClick={() => setStatusFilter(statusFilter === 'Done' ? 'all' : 'Done')}
-            >
-              <div className="sidebar-nav-left">
-                <span className="v-status-dot" style={{ background: '#10b981' }}></span>
-                <span>Completed</span>
+              {/* Sales Persons Filter Section */}
+              <div className="sidebar-section">
+                <div className="sidebar-section-title">Sales Persons</div>
+                {teamSalesList.map((sp) => (
+                  <button
+                    key={sp}
+                    className={`sidebar-nav-item ${teamSalesFilter.toLowerCase() === sp.toLowerCase() ? 'active' : ''}`}
+                    onClick={() => setTeamSalesFilter(teamSalesFilter.toLowerCase() === sp.toLowerCase() ? 'All' : sp)}
+                  >
+                    <div className="sidebar-nav-left">
+                      <Briefcase size={14} />
+                      <span style={{ maxWidth: 125, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sp}</span>
+                    </div>
+                    <span className="sidebar-count-badge">{teamSalesCounts[sp] || 0}</span>
+                  </button>
+                ))}
               </div>
-              <span className="sidebar-count-badge">{kpis.deliveredDone}</span>
-            </button>
-          </div>
-        </div>
+
+              {/* Team Status Filter Section */}
+              <div className="sidebar-section">
+                <div className="sidebar-section-title">Team Status</div>
+                {['Wip', 'Delivered', 'Done', 'NRA', 'Need Requirements', 'Cancel'].map((st) => {
+                  const count = teamProjects.filter((p) => (p.status || '').toLowerCase() === st.toLowerCase()).length;
+                  if (count === 0 && st !== 'Wip' && st !== 'Done') return null;
+                  return (
+                    <button
+                      key={st}
+                      className={`sidebar-nav-item ${teamStatusFilter.toLowerCase() === st.toLowerCase() ? 'active' : ''}`}
+                      onClick={() => setTeamStatusFilter(teamStatusFilter.toLowerCase() === st.toLowerCase() ? 'All' : st)}
+                    >
+                      <div className="sidebar-nav-left">
+                        <span
+                          className="v-status-dot"
+                          style={{
+                            background:
+                              st === 'Wip'
+                                ? '#0284c7'
+                                : st === 'Done' || st === 'Delivered'
+                                ? '#10b981'
+                                : st === 'Cancel'
+                                ? '#ef4444'
+                                : st === 'NRA'
+                                ? '#a855f7'
+                                : '#eab308',
+                          }}
+                        ></span>
+                        <span>{st}</span>
+                      </div>
+                      <span className="sidebar-count-badge">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Sidebar Footer (Clean without database branding) */}
         <div className="sidebar-footer">
@@ -1040,45 +1412,75 @@ export default function VercelDashboard() {
                 className="brand-logo-dark"
                 style={{ width: 18, height: 18, objectFit: 'contain' }}
               />
-              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Alireja-khan</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                {workspaceMode === 'personal' ? 'Alireja-khan' : 'EleSquad'}
+              </span>
               <span className="breadcrumb-divider">/</span>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accents-5)' }}>my-work-place</span>
-              <span className="project-pill">{currentTab === 'stats' ? 'Analytics' : 'Production'}</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accents-5)' }}>
+                {workspaceMode === 'personal' ? 'my-work-place' : 'SMT 2025-2026'}
+              </span>
+              <span className="project-pill">
+                {workspaceMode === 'personal'
+                  ? currentTab === 'stats'
+                    ? 'Analytics'
+                    : 'Personal Hub'
+                  : 'Team Workspace'}
+              </span>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {/* View Switcher: Table / Kanban / Stats */}
-            <div className="segmented-nav">
+            {/* Workspace Toggle Pill */}
+            <div className="workspace-switcher" style={{ marginRight: '0.25rem' }}>
               <button
-                className={`segmented-item ${currentTab !== 'stats' && currentView === 'table' ? 'active' : ''}`}
-                onClick={() => {
-                  if (currentTab === 'stats') setCurrentTab('all');
-                  setCurrentView('table');
-                }}
+                className={`workspace-tab ${workspaceMode === 'personal' ? 'active' : ''}`}
+                onClick={() => setWorkspaceMode('personal')}
               >
-                <TableIcon size={13} style={{ marginRight: 4 }} /> Table
+                Personal
               </button>
               <button
-                className={`segmented-item ${currentTab !== 'stats' && currentView === 'kanban' ? 'active' : ''}`}
-                onClick={() => {
-                  if (currentTab === 'stats') setCurrentTab('all');
-                  setCurrentView('kanban');
-                }}
+                className={`workspace-tab ${workspaceMode === 'team' ? 'active' : ''}`}
+                onClick={() => setWorkspaceMode('team')}
               >
-                <Columns size={13} style={{ marginRight: 4 }} /> Kanban
-              </button>
-              <button
-                className={`segmented-item ${currentTab === 'stats' ? 'active' : ''}`}
-                onClick={() => setCurrentTab('stats')}
-              >
-                <BarChart3 size={13} style={{ marginRight: 4 }} /> Analytics
+                EleSquad
               </button>
             </div>
 
-            <button className="btn-v btn-v-secondary" onClick={exportCSV} title="Export CSV">
-              <Download size={13} /> Export
-            </button>
+            {/* View Switcher: Table / Kanban / Stats (Personal Mode) */}
+            {workspaceMode === 'personal' && (
+              <div className="segmented-nav">
+                <button
+                  className={`segmented-item ${currentTab !== 'stats' && currentView === 'table' ? 'active' : ''}`}
+                  onClick={() => {
+                    if (currentTab === 'stats') setCurrentTab('all');
+                    setCurrentView('table');
+                  }}
+                >
+                  <TableIcon size={13} style={{ marginRight: 4 }} /> Table
+                </button>
+                <button
+                  className={`segmented-item ${currentTab !== 'stats' && currentView === 'kanban' ? 'active' : ''}`}
+                  onClick={() => {
+                    if (currentTab === 'stats') setCurrentTab('all');
+                    setCurrentView('kanban');
+                  }}
+                >
+                  <Columns size={13} style={{ marginRight: 4 }} /> Kanban
+                </button>
+                <button
+                  className={`segmented-item ${currentTab === 'stats' ? 'active' : ''}`}
+                  onClick={() => setCurrentTab('stats')}
+                >
+                  <BarChart3 size={13} style={{ marginRight: 4 }} /> Analytics
+                </button>
+              </div>
+            )}
+
+            {workspaceMode === 'personal' && (
+              <button className="btn-v btn-v-secondary" onClick={exportCSV} title="Export CSV">
+                <Download size={13} /> Export
+              </button>
+            )}
 
             {/* Auth Session */}
             {session?.user ? (
@@ -1125,8 +1527,32 @@ export default function VercelDashboard() {
           </div>
         </header>
 
-        {/* Dynamic Main View: Skeleton Loading OR Stats & Analytics OR Orders (Table / Kanban) */}
-        {loading ? (
+        {/* Workspace Mode: Team (EleSquad) vs Personal (my-work-place) */}
+        {workspaceMode === 'team' ? (
+          <TeamWorkspaceView
+            projects={teamProjects}
+            isLoading={teamLoading}
+            searchTerm={teamSearchQuery}
+            setSearchTerm={setTeamSearchQuery}
+            statusFilter={teamStatusFilter}
+            setStatusFilter={setTeamStatusFilter}
+            selectedMember={teamMemberFilter}
+            setSelectedMember={setTeamMemberFilter}
+            selectedSalesPerson={teamSalesFilter}
+            setSelectedSalesPerson={setTeamSalesFilter}
+            selectedMonth={teamMonthFilter}
+            setSelectedMonth={setTeamMonthFilter}
+            viewMode={teamViewMode}
+            setViewMode={setTeamViewMode}
+            onOpenAddModal={openNewTeamModal}
+            onEditProject={openEditTeamModal}
+            onDeleteProject={handleTeamDelete}
+            onQuickUpdateStatus={handleQuickUpdateTeamStatus}
+          />
+        ) : (
+          <>
+            {/* Dynamic Main View: Skeleton Loading OR Stats & Analytics OR Orders (Table / Kanban) */}
+            {loading ? (
           currentTab === 'stats' ? (
             /* Stats & Analytics Skeleton */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -1752,6 +2178,8 @@ export default function VercelDashboard() {
         )}
       </>
     )}
+    </>
+  )}
 
         {/* Modal: Add/Edit Order */}
         {isModalOpen && (
@@ -1943,6 +2371,17 @@ export default function VercelDashboard() {
             </div>
           </div>
         )}
+
+        {/* Team Order Modal */}
+        <TeamOrderModal
+          isOpen={isTeamModalOpen}
+          onClose={() => setIsTeamModalOpen(false)}
+          onSubmit={handleTeamSubmit}
+          isSubmitting={teamIsSubmitting}
+          formData={teamFormData}
+          setFormData={setTeamFormData}
+          isEdit={!!activeTeamProject}
+        />
 
         {/* Shared Auth Modal */}
         {renderAuthModal()}

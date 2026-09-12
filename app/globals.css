@@ -1770,5 +1770,152 @@ body {
   color: var(--foreground);
 }
 
+/* ==========================================================================
+   Workspace Mode Switcher (Personal ↔ Team EleSquad)
+   ========================================================================== */
+.workspace-switcher {
+  display: flex;
+  background: var(--input-bg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 3px;
+  margin-bottom: 0.65rem;
+}
+
+.workspace-switcher-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: var(--accents-5);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.workspace-switcher-btn:hover:not(.active) {
+  color: var(--geist-foreground);
+}
+
+.workspace-switcher-btn.active {
+  background: var(--geist-background);
+  color: var(--geist-foreground);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-subtle);
+}
+
+/* ==========================================================================
+   Multi-Member Selector & Chip Badges
+   ========================================================================== */
+.member-chip-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.member-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--accents-1);
+  border: 1px solid var(--border-default);
+  color: var(--geist-foreground);
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.member-chip-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--accents-5);
+  cursor: pointer;
+  padding: 0;
+  margin-left: 2px;
+}
+
+.member-chip-remove:hover {
+  color: #ff4d4f;
+}
+
+.member-picker-container {
+  background: var(--input-bg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.member-quick-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.member-tag-btn {
+  background: var(--geist-background);
+  border: 1px solid var(--border-subtle);
+  color: var(--accents-5);
+  padding: 0.18rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.member-tag-btn:hover {
+  background: var(--accents-2);
+  color: var(--geist-foreground);
+  border-color: var(--border-default);
+}
+
+.member-tag-btn.selected {
+  background: var(--foreground);
+  color: var(--background);
+  border-color: var(--foreground);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Order Status Badges: NRA, Cancel, Need Requirements
+   ========================================================================== */
+.v-status-badge.v-status-nra,
+.v-status-nra {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.v-status-badge.v-status-cancel,
+.v-status-cancel {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.v-status-badge.v-status-need,
+.v-status-need {
+  background: rgba(236, 72, 153, 0.12);
+  color: #db2777;
+  border: 1px solid rgba(236, 72, 153, 0.3);
+}
+
+
 
 
