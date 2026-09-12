@@ -229,13 +229,19 @@ export default function VercelDashboard() {
   // Detailed Monthly Performance Stats
   const monthStats = useMemo(() => {
     return availableMonths.map((m) => {
-      const mProjects = projects.filter((p) => (p.month || '').toLowerCase() === m.toLowerCase());
+      const isCurrent = m.toLowerCase() === currentCalendarMonth.toLowerCase();
+      const mProjects = projects.filter((p) => {
+        if (isCurrent) {
+          return (p.month || '').toLowerCase() === m.toLowerCase() || (p.orderStatus !== 'Done' && p.orderStatus !== 'Delivered' && p.orderStatus !== 'Cancel');
+        }
+        return (p.month || '').toLowerCase() === m.toLowerCase();
+      });
       const gross = mProjects.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
       const net = gross * 0.8;
       const completed = mProjects.filter((p) => (p.orderStatus || '').toLowerCase() === 'done' || (p.orderStatus || '').toLowerCase() === 'delivered').length;
       return { month: m, count: mProjects.length, gross, net, completed };
     });
-  }, [projects, availableMonths]);
+  }, [projects, availableMonths, currentCalendarMonth]);
 
   // Status Distribution
   const statusStats = useMemo(() => {
@@ -256,7 +262,16 @@ export default function VercelDashboard() {
         const sch = (p.timeSchedule || '').toLowerCase();
         if (s !== 'wip' && s !== 'issue' && sch !== 'late') return false;
       } else if (currentTab !== 'all') {
-        if ((p.month || '').toLowerCase() !== currentTab.toLowerCase()) return false;
+        const isCurrentCalendarMonthTab = currentTab.toLowerCase() === currentCalendarMonth.toLowerCase();
+        const isAssignedInThisMonth = (p.month || '').toLowerCase() === currentTab.toLowerCase();
+
+        if (isCurrentCalendarMonthTab) {
+          // In Current Month view: show if assigned in current month OR if running/undelivered from previous months
+          const isRunningUndelivered = p.orderStatus !== 'Done' && p.orderStatus !== 'Delivered' && p.orderStatus !== 'Cancel';
+          if (!isAssignedInThisMonth && !isRunningUndelivered) return false;
+        } else {
+          if (!isAssignedInThisMonth) return false;
+        }
       }
 
       if (profileFilter !== 'all' && p.profileName !== profileFilter) return false;
@@ -609,8 +624,13 @@ export default function VercelDashboard() {
               </button>
             </div>
             {displayedMonths.map((m) => {
-              const count = projects.filter((p) => (p.month || '').toLowerCase() === m.toLowerCase()).length;
               const isCurrentMonth = m.toLowerCase() === currentCalendarMonth.toLowerCase();
+              const count = projects.filter((p) => {
+                if (isCurrentMonth) {
+                  return (p.month || '').toLowerCase() === m.toLowerCase() || (p.orderStatus !== 'Done' && p.orderStatus !== 'Delivered' && p.orderStatus !== 'Cancel');
+                }
+                return (p.month || '').toLowerCase() === m.toLowerCase();
+              }).length;
               return (
                 <button
                   key={m}
@@ -1230,7 +1250,14 @@ export default function VercelDashboard() {
                         <tr key={p._id}>
                           <td className="mono-text" style={{ color: 'var(--accents-5)' }}>{p.assignDate || '-'}</td>
                           <td>
-                            <span style={{ fontWeight: 600 }}>{p.clientUsername}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 600 }}>{p.clientUsername}</span>
+                              {currentTab.toLowerCase() === currentCalendarMonth.toLowerCase() && p.month && p.month.toLowerCase() !== currentCalendarMonth.toLowerCase() && (
+                                <span style={{ fontSize: '0.65rem', padding: '0.06rem 0.35rem', borderRadius: 3, background: 'rgba(56,189,248,0.12)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.25)', fontWeight: 500 }} title={`Assigned in ${p.month} • Running project`}>
+                                  from {p.month}
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td>
                             <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)' }}>{p.profileName}</span>
@@ -1367,7 +1394,14 @@ export default function VercelDashboard() {
                         onDragStart={(e) => e.dataTransfer.setData('text/plain', p._id)}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{p.clientUsername}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{p.clientUsername}</span>
+                            {currentTab.toLowerCase() === currentCalendarMonth.toLowerCase() && p.month && p.month.toLowerCase() !== currentCalendarMonth.toLowerCase() && (
+                              <span style={{ fontSize: '0.62rem', padding: '0.05rem 0.3rem', borderRadius: 3, background: 'rgba(56,189,248,0.12)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.25)', fontWeight: 500 }} title={`Assigned in ${p.month}`}>
+                                {p.month}
+                              </span>
+                            )}
+                          </div>
                           <span className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>
                             ${((p.amount || 0) * 0.8).toFixed(0)}
                           </span>
