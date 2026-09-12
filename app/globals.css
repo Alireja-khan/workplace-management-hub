@@ -846,12 +846,31 @@ body {
   font-weight: 500;
   border: 1px solid var(--border-default);
   background: var(--input-bg);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.v-status-badge.saving {
+  opacity: 0.85;
+  border-color: var(--border-highlight);
+  background: var(--accents-1);
+}
+
+.status-saving-spinner {
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid rgba(128, 128, 128, 0.3);
+  border-top-color: var(--geist-foreground);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  flex-shrink: 0;
 }
 
 .v-status-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
 .v-status-done .v-status-dot { background: var(--vercel-emerald); box-shadow: 0 0 6px rgba(16, 185, 129, 0.4); }

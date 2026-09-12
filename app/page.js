@@ -75,6 +75,8 @@ export default function VercelDashboard() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [activeProject, setActiveProject] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
+  const [savingStatusId, setSavingStatusId] = useState(null);
+  const [savedStatusSuccessId, setSavedStatusSuccessId] = useState(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -277,6 +279,15 @@ export default function VercelDashboard() {
   };
 
   const handleQuickStatusChange = async (projectId, newStatus) => {
+    const prevProject = projects.find((p) => p._id === projectId);
+    const prevStatus = prevProject ? prevProject.orderStatus : 'Wip';
+
+    // Optimistic UI update
+    setProjects((prev) =>
+      prev.map((p) => (p._id === projectId ? { ...p, orderStatus: newStatus } : p))
+    );
+    setSavingStatusId(projectId);
+
     try {
       const res = await fetch(`/api/projects/${projectId}`, {
         method: 'PUT',
@@ -289,10 +300,20 @@ export default function VercelDashboard() {
       const data = await res.json();
       if (data.success) {
         setProjects((prev) => prev.map((p) => (p._id === projectId ? data.data : p)));
+        setSavingStatusId(null);
+        setSavedStatusSuccessId(projectId);
         showToast(`Status updated to ${newStatus}`);
+        setTimeout(() => setSavedStatusSuccessId(null), 1800);
+      } else {
+        throw new Error(data.error || 'Update failed');
       }
     } catch (e) {
-      showToast('Update failed', 'error');
+      // Rollback
+      setProjects((prev) =>
+        prev.map((p) => (p._id === projectId ? { ...p, orderStatus: prevStatus } : p))
+      );
+      setSavingStatusId(null);
+      showToast('Failed to update status', 'error');
     }
   };
 
@@ -1178,10 +1199,26 @@ export default function VercelDashboard() {
                           <td className="mono-text" style={{ fontWeight: 600 }}>${gross.toFixed(2)}</td>
                           <td className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>${net.toFixed(2)}</td>
                           <td>
-                            <div className={`v-status-badge ${statusClass}`}>
-                              <span className="v-status-dot"></span>
+                            <div className={`v-status-badge ${statusClass} ${savingStatusId === p._id ? 'saving' : ''}`}>
+                              {savingStatusId === p._id ? (
+                                <div className="status-saving-spinner"></div>
+                              ) : savedStatusSuccessId === p._id ? (
+                                <Check size={11} color="#10b981" />
+                              ) : (
+                                <span className="v-status-dot"></span>
+                              )}
                               <select
-                                style={{ background: 'transparent', border: 'none', color: 'inherit', outline: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.73rem', fontWeight: 600 }}
+                                disabled={savingStatusId === p._id}
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: 'inherit',
+                                  outline: 'none',
+                                  cursor: savingStatusId === p._id ? 'wait' : 'pointer',
+                                  fontFamily: 'inherit',
+                                  fontSize: '0.73rem',
+                                  fontWeight: 600,
+                                }}
                                 value={p.orderStatus || 'Wip'}
                                 onChange={(e) => handleQuickStatusChange(p._id, e.target.value)}
                               >
