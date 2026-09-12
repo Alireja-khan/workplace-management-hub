@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Eye,
+  EyeOff,
   Edit2,
   Trash2,
   Github,
@@ -103,6 +104,7 @@ export default function VercelDashboard() {
   const [authForm, setAuthForm] = useState({ name: '', email: '', password: '' });
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
+  const [showAuthPassword, setShowAuthPassword] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -690,14 +692,36 @@ export default function VercelDashboard() {
 
               <div className="v-form-group">
                 <label>Password</label>
-                <input
-                  type="password"
-                  className="v-input"
-                  placeholder="••••••••••••"
-                  value={authForm.password}
-                  onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
-                  required
-                />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type={showAuthPassword ? 'text' : 'password'}
+                    className="v-input"
+                    style={{ paddingRight: '2.5rem' }}
+                    placeholder="••••••••••••"
+                    value={authForm.password}
+                    onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAuthPassword(!showAuthPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '0.65rem',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--accents-5)',
+                      cursor: 'pointer',
+                      padding: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    title={showAuthPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showAuthPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
 
               <button
@@ -717,8 +741,8 @@ export default function VercelDashboard() {
                   Don't have an account?{' '}
                   <button
                     type="button"
-                    onClick={() => { setAuthTab('signup'); setAuthError(''); }}
-                    style={{ color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0 }}
+                    onClick={() => { setAuthTab('signup'); setAuthError(''); setShowAuthPassword(false); }}
+                    style={{ color: 'var(--foreground)', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0 }}
                   >
                     Sign Up
                   </button>
@@ -728,8 +752,8 @@ export default function VercelDashboard() {
                   Already have an account?{' '}
                   <button
                     type="button"
-                    onClick={() => { setAuthTab('signin'); setAuthError(''); }}
-                    style={{ color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0 }}
+                    onClick={() => { setAuthTab('signin'); setAuthError(''); setShowAuthPassword(false); }}
+                    style={{ color: 'var(--foreground)', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0 }}
                   >
                     Sign In
                   </button>
