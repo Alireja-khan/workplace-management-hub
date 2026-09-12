@@ -351,6 +351,147 @@ export default function VercelDashboard() {
     return Object.keys(teamSalesCounts).sort((a, b) => teamSalesCounts[b] - teamSalesCounts[a]);
   }, [teamSalesCounts]);
 
+  const teamUniqueProfiles = useMemo(() => {
+    return Array.from(new Set(teamProjects.map((p) => p.profileName).filter(Boolean))).sort();
+  }, [teamProjects]);
+
+  const teamUniqueSales = useMemo(() => {
+    return Array.from(new Set(teamProjects.map((p) => p.salesPerson).filter(Boolean))).sort();
+  }, [teamProjects]);
+
+  const teamUniqueMembers = useMemo(() => {
+    const set = new Set();
+    teamProjects.forEach((p) => {
+      if (Array.isArray(p.assignedMembers)) {
+        p.assignedMembers.forEach((m) => {
+          if (m) set.add(m);
+        });
+      }
+    });
+    return Array.from(set).sort();
+  }, [teamProjects]);
+
+  // Team KPIs
+  const teamKpis = useMemo(() => {
+    let totalGross = 0;
+    let activeWip = 0;
+    let wipVal = 0;
+    let deliveredDone = 0;
+
+    teamProjects.forEach((p) => {
+      const amt = parseFloat(p.amount) || 0;
+      totalGross += amt;
+      const s = (p.status || '').toLowerCase();
+      if (s === 'wip') {
+        activeWip++;
+        wipVal += amt;
+      }
+      if (s === 'done' || s === 'delivered') {
+        deliveredDone++;
+      }
+    });
+
+    const netAmount = totalGross * 0.8;
+    const rate = teamProjects.length > 0 ? Math.round((deliveredDone / teamProjects.length) * 100) : 0;
+    const avgOrderValue = teamProjects.length > 0 ? totalGross / teamProjects.length : 0;
+    const platformFee = totalGross * 0.2;
+
+    return { totalGross, netAmount, platformFee, activeWip, wipVal, deliveredDone, rate, avgOrderValue };
+  }, [teamProjects]);
+
+  // Team Running Count
+  const teamRunningCount = useMemo(() => {
+    return teamProjects.filter((p) => (p.status || '').toLowerCase() === 'wip').length;
+  }, [teamProjects]);
+
+  // Team Monthly Stats for Analytics Page
+  const teamMonthStats = useMemo(() => {
+    return availableMonths.map((m) => {
+      const isCurrent = m.toLowerCase() === currentCalendarMonth.toLowerCase();
+      const mProjects = teamProjects.filter((p) => {
+        const pMonth = getMonthFromDate(p.assignDate, p.month);
+        if (isCurrent) {
+          return pMonth.toLowerCase() === m.toLowerCase() || (p.status !== 'Done' && p.status !== 'Delivered' && p.status !== 'Cancel');
+        }
+        return pMonth.toLowerCase() === m.toLowerCase();
+      });
+      const gross = mProjects.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      const net = gross * 0.8;
+      const completed = mProjects.filter((p) => (p.status || '').toLowerCase() === 'done' || (p.status || '').toLowerCase() === 'delivered').length;
+      return { month: m, count: mProjects.length, gross, net, completed };
+    });
+  }, [teamProjects, availableMonths, currentCalendarMonth]);
+
+  // Team Filtered & Sorted Projects
+  const filteredTeamProjects = useMemo(() => {
+    let res = teamProjects.filter((p) => {
+      if (currentTab === 'running') {
+        const s = (p.status || '').toLowerCase();
+        if (s !== 'wip') return false;
+      } else if (currentTab !== 'all') {
+        const isCurrentCalendarMonthTab = currentTab.toLowerCase() === currentCalendarMonth.toLowerCase();
+        const pMonth = getMonthFromDate(p.assignDate, p.month);
+        const isAssignedInThisMonth = pMonth.toLowerCase() === currentTab.toLowerCase();
+
+        if (isCurrentCalendarMonthTab) {
+          const isRunning = p.status !== 'Done' && p.status !== 'Delivered' && p.status !== 'Cancel';
+          if (!isAssignedInThisMonth && !isRunning) return false;
+        } else {
+          if (!isAssignedInThisMonth) return false;
+        }
+      }
+
+      if (teamMemberFilter !== 'all') {
+        if (!Array.isArray(p.assignedMembers) || !p.assignedMembers.some((m) => m.toLowerCase() === teamMemberFilter.toLowerCase())) {
+          return false;
+        }
+      }
+
+      if (teamSalesFilter !== 'all' && (p.salesPerson || '').toLowerCase() !== teamSalesFilter.toLowerCase()) {
+        return false;
+      }
+
+      if (profileFilter !== 'all' && (p.profileName || '').toLowerCase() !== profileFilter.toLowerCase()) {
+        return false;
+      }
+
+      if (statusFilter !== 'all' && (p.status || '').toLowerCase() !== statusFilter.toLowerCase()) {
+        return false;
+      }
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchClient = (p.clientUserId || '').toLowerCase().includes(q);
+        const matchOrder = (p.orderNumber || '').toLowerCase().includes(q);
+        const matchProfile = (p.profileName || '').toLowerCase().includes(q);
+        const matchSales = (p.salesPerson || '').toLowerCase().includes(q);
+        const matchRemark = (p.remark || '').toLowerCase().includes(q);
+        const matchNotes = (p.notes || '').toLowerCase().includes(q);
+        const matchMembers = Array.isArray(p.assignedMembers) && p.assignedMembers.some((m) => m.toLowerCase().includes(q));
+        if (!matchClient && !matchOrder && !matchProfile && !matchSales && !matchRemark && !matchNotes && !matchMembers) return false;
+      }
+
+      return true;
+    });
+
+    res.sort((a, b) => {
+      let vA = a[sortConfig.key];
+      let vB = b[sortConfig.key];
+      if (sortConfig.key === 'amount' || sortConfig.key === 'netAmount') {
+        vA = parseFloat(vA) || 0;
+        vB = parseFloat(vB) || 0;
+      } else {
+        vA = (vA || '').toString().toLowerCase();
+        vB = (vB || '').toString().toLowerCase();
+      }
+      if (vA < vB) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (vA > vB) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return res;
+  }, [teamProjects, currentTab, teamMemberFilter, teamSalesFilter, profileFilter, statusFilter, searchQuery, sortConfig, currentCalendarMonth]);
+
   // Status Distribution
   const statusStats = useMemo(() => {
     const counts = { Done: 0, Wip: 0, Delivered: 0, Issue: 0, Cancel: 0 };
@@ -1527,32 +1668,8 @@ export default function VercelDashboard() {
           </div>
         </header>
 
-        {/* Workspace Mode: Team (EleSquad) vs Personal (my-work-place) */}
-        {workspaceMode === 'team' ? (
-          <TeamWorkspaceView
-            projects={teamProjects}
-            isLoading={teamLoading}
-            searchTerm={teamSearchQuery}
-            setSearchTerm={setTeamSearchQuery}
-            statusFilter={teamStatusFilter}
-            setStatusFilter={setTeamStatusFilter}
-            selectedMember={teamMemberFilter}
-            setSelectedMember={setTeamMemberFilter}
-            selectedSalesPerson={teamSalesFilter}
-            setSelectedSalesPerson={setTeamSalesFilter}
-            selectedMonth={teamMonthFilter}
-            setSelectedMonth={setTeamMonthFilter}
-            viewMode={teamViewMode}
-            setViewMode={setTeamViewMode}
-            onOpenAddModal={openNewTeamModal}
-            onEditProject={openEditTeamModal}
-            onDeleteProject={handleTeamDelete}
-            onQuickUpdateStatus={handleQuickUpdateTeamStatus}
-          />
-        ) : (
-          <>
-            {/* Dynamic Main View: Skeleton Loading OR Stats & Analytics OR Orders (Table / Kanban) */}
-            {loading ? (
+        {/* Dynamic Main View: Skeleton Loading OR Stats & Analytics OR Orders (Table / Kanban) */}
+        {(workspaceMode === 'team' ? teamLoading : loading) ? (
           currentTab === 'stats' ? (
             /* Stats & Analytics Skeleton */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -1630,18 +1747,18 @@ export default function VercelDashboard() {
                     <thead>
                       <tr>
                         <th>Assign Date</th>
-                        <th>Client Username</th>
+                        <th>{workspaceMode === 'team' ? 'Sales Person' : 'Client Username'}</th>
                         <th>Profile</th>
-                        <th>Brief Doc</th>
-                        <th>Gross</th>
-                        <th>Net (80%)</th>
-                        <th>Order Status</th>
-                        <th>Staging Subdomain</th>
-                        <th>Deadline</th>
-                        <th>Schedule</th>
-                        <th>Live Domain</th>
-                        <th>Daily Update</th>
-                        <th>Review</th>
+                        <th>{workspaceMode === 'team' ? 'Client ID' : 'Brief Doc'}</th>
+                        <th>{workspaceMode === 'team' ? 'Order #' : 'Gross'}</th>
+                        <th>{workspaceMode === 'team' ? 'Gross' : 'Net (80%)'}</th>
+                        <th>{workspaceMode === 'team' ? 'Net (80%)' : 'Order Status'}</th>
+                        <th>{workspaceMode === 'team' ? 'Assigned Member(s)' : 'Staging Subdomain'}</th>
+                        <th>{workspaceMode === 'team' ? 'Est. Deli' : 'Deadline'}</th>
+                        <th>{workspaceMode === 'team' ? 'Deli Date' : 'Schedule'}</th>
+                        <th>{workspaceMode === 'team' ? 'Status' : 'Live Domain'}</th>
+                        <th>{workspaceMode === 'team' ? 'Sheet / Payout' : 'Daily Update'}</th>
+                        <th>{workspaceMode === 'team' ? 'Remark' : 'Review'}</th>
                         <th style={{ textAlign: 'center' }}>Actions</th>
                       </tr>
                     </thead>
@@ -1671,18 +1788,22 @@ export default function VercelDashboard() {
             </div>
           )
         ) : currentTab === 'stats' ? (
-          /* Dedicated Stats & Analytics Page */
+          /* Dedicated Stats & Analytics Page (Personal vs Team) */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {/* Primary KPI Cards */}
             <section className="metrics-row">
               <div className="metric-card">
                 <div className="metric-header">
-                  <span className="metric-title">Total Gross Volume</span>
+                  <span className="metric-title">{workspaceMode === 'team' ? 'Total Team Gross' : 'Total Gross Volume'}</span>
                   <Wallet size={15} color="var(--accents-5)" />
                 </div>
-                <div className="metric-value">${kpis.totalGross.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                <div className="metric-value">
+                  ${(workspaceMode === 'team' ? teamKpis.totalGross : kpis.totalGross).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </div>
                 <div className="metric-footer">
-                  <span className="metric-badge">{projects.length} Total Orders</span> Across all profiles
+                  <span className="metric-badge">
+                    {workspaceMode === 'team' ? teamProjects.length : projects.length} Total Orders
+                  </span> {workspaceMode === 'team' ? 'EleSquad pipeline' : 'Across all profiles'}
                 </div>
               </div>
 
@@ -1692,10 +1813,10 @@ export default function VercelDashboard() {
                   <TrendingUp size={15} color="#10b981" />
                 </div>
                 <div className="metric-value" style={{ color: 'var(--geist-foreground)' }}>
-                  ${kpis.netAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  ${(workspaceMode === 'team' ? teamKpis.netAmount : kpis.netAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </div>
                 <div className="metric-footer">
-                  <span className="metric-badge green">-20% Fee (${kpis.platformFee.toFixed(2)})</span> 80% Net profit
+                  <span className="metric-badge green">-20% Fee (${(workspaceMode === 'team' ? teamKpis.platformFee : kpis.platformFee).toFixed(2)})</span> 80% Net profit
                 </div>
               </div>
 
@@ -1704,9 +1825,13 @@ export default function VercelDashboard() {
                   <span className="metric-title">Work In Progress</span>
                   <Clock size={15} color="#0284c7" />
                 </div>
-                <div className="metric-value">{kpis.activeWip}</div>
+                <div className="metric-value">
+                  {workspaceMode === 'team' ? teamKpis.activeWip : kpis.activeWip}
+                </div>
                 <div className="metric-footer">
-                  <span className="metric-badge blue">${kpis.wipVal.toFixed(0)} In Queue</span> Active development
+                  <span className="metric-badge blue">
+                    ${(workspaceMode === 'team' ? teamKpis.wipVal : kpis.wipVal).toFixed(0)} In Queue
+                  </span> Active development
                 </div>
               </div>
 
@@ -1715,9 +1840,13 @@ export default function VercelDashboard() {
                   <span className="metric-title">Delivery Success Rate</span>
                   <CheckCircle2 size={15} color="#10b981" />
                 </div>
-                <div className="metric-value">{kpis.rate}%</div>
+                <div className="metric-value">
+                  {workspaceMode === 'team' ? teamKpis.rate : kpis.rate}%
+                </div>
                 <div className="metric-footer">
-                  <span className="metric-badge green">{kpis.deliveredDone} Delivered</span> Successfully completed
+                  <span className="metric-badge green">
+                    {workspaceMode === 'team' ? teamKpis.deliveredDone : kpis.deliveredDone} Delivered
+                  </span> Successfully completed
                 </div>
               </div>
             </section>
@@ -1727,459 +1856,837 @@ export default function VercelDashboard() {
               <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '0.85rem 1rem' }}>
                 <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)', textTransform: 'uppercase', fontWeight: 600 }}>Average Order Value</span>
                 <div className="mono-text" style={{ fontSize: '1.2rem', fontWeight: 700, marginTop: 4 }}>
-                  ${kpis.avgOrderValue.toFixed(2)}
+                  ${(workspaceMode === 'team' ? teamKpis.avgOrderValue : kpis.avgOrderValue).toFixed(2)}
                 </div>
               </div>
 
               <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '0.85rem 1rem' }}>
-                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)', textTransform: 'uppercase', fontWeight: 600 }}>Marketplace Profiles</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)', textTransform: 'uppercase', fontWeight: 600 }}>
+                  {workspaceMode === 'team' ? 'Active Team Members' : 'Marketplace Profiles'}
+                </span>
                 <div className="mono-text" style={{ fontSize: '1.2rem', fontWeight: 700, marginTop: 4 }}>
-                  {uniqueProfiles.length} Profiles
+                  {workspaceMode === 'team' ? `${teamMemberList.length} Members` : `${uniqueProfiles.length} Profiles`}
                 </div>
               </div>
 
               <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '0.85rem 1rem' }}>
                 <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)', textTransform: 'uppercase', fontWeight: 600 }}>Total Completed / Done</span>
                 <div className="mono-text" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#10b981', marginTop: 4 }}>
-                  {kpis.deliveredDone} Orders
+                  {workspaceMode === 'team' ? teamKpis.deliveredDone : kpis.deliveredDone} Orders
                 </div>
               </div>
 
               <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '0.85rem 1rem' }}>
-                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)', textTransform: 'uppercase', fontWeight: 600 }}>5-Star Reviews</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)', textTransform: 'uppercase', fontWeight: 600 }}>
+                  {workspaceMode === 'team' ? 'Sales Pipeline' : '5-Star Reviews'}
+                </span>
                 <div className="mono-text" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f5a623', marginTop: 4 }}>
-                  {projects.filter((p) => (p.review || 0) === 5).length} / {projects.length}
+                  {workspaceMode === 'team' ? `${teamSalesList.length} Sales Persons` : '100% Top Rated'}
                 </div>
               </div>
             </div>
 
-            {/* Analytics Breakdown Grid */}
+            {/* Analytics Grid: Breakdowns */}
             <div className="analytics-grid">
-              {/* Profile Revenue Performance Breakdown */}
-              <div className="analytics-card">
-                <div className="analytics-header">
-                  <span className="analytics-title">
-                    <Briefcase size={16} /> Revenue by Marketplace Profile
-                  </span>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--accents-5)' }}>Gross & Net</span>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                  {profileStats.map((prof) => {
-                    const percent = kpis.totalGross > 0 ? (prof.gross / kpis.totalGross) * 100 : 0;
-                    return (
-                      <div key={prof.name} className="breakdown-row">
-                        <div className="breakdown-info">
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ fontWeight: 600 }}>{prof.name}</span>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)' }}>({prof.count} orders)</span>
+              {workspaceMode === 'team' ? (
+                <>
+                  {/* Team Member Workload Breakdown */}
+                  <div className="analytics-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                        Member Workload & Order Volume
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--accents-5)' }}>
+                        {teamMemberList.length} Assigned Members
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      {teamMemberList.map((member) => {
+                        const count = teamMemberCounts[member] || 0;
+                        const pct = Math.round((count / (teamProjects.length || 1)) * 100);
+                        const memberGross = teamProjects
+                          .filter((p) => Array.isArray(p.assignedMembers) && p.assignedMembers.includes(member))
+                          .reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
+                        return (
+                          <div key={member} className="breakdown-row">
+                            <div className="breakdown-info">
+                              <span style={{ fontWeight: 600 }}>{member}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <span className="mono-text" style={{ fontWeight: 600 }}>${memberGross.toFixed(2)}</span>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)' }}>({count} orders • {pct}%)</span>
+                              </div>
+                            </div>
+                            <div className="progress-bar-bg">
+                              <div className="progress-bar-fill green" style={{ width: `${Math.min(pct * 2, 100)}%` }}></div>
+                            </div>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <span className="mono-text" style={{ fontWeight: 600 }}>${prof.gross.toFixed(2)}</span>
-                            <span className="mono-text" style={{ color: '#10b981', fontSize: '0.74rem' }}>Net: ${prof.net.toFixed(2)}</span>
-                          </div>
-                        </div>
-                        <div className="progress-bar-bg">
-                          <div className="progress-bar-fill green" style={{ width: `${percent}%` }}></div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Monthly Volume Breakdown */}
-              <div className="analytics-card">
-                <div className="analytics-header">
-                  <span className="analytics-title">
-                    <Calendar size={16} /> Monthly Performance Breakdown
-                  </span>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--accents-5)' }}>Revenue / Orders</span>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                  {monthStats.map((m) => {
-                    const percent = kpis.totalGross > 0 ? (m.gross / kpis.totalGross) * 100 : 0;
-                    return (
-                      <div key={m.month} className="breakdown-row">
-                        <div className="breakdown-info">
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ fontWeight: 600 }}>{m.month}</span>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)' }}>
-                              ({m.count} orders • {m.completed} completed)
-                            </span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <span className="mono-text" style={{ fontWeight: 600 }}>${m.gross.toFixed(2)}</span>
-                            <span className="mono-text" style={{ color: '#10b981', fontSize: '0.74rem' }}>Net: ${m.net.toFixed(2)}</span>
-                          </div>
-                        </div>
-                        <div className="progress-bar-bg">
-                          <div className="progress-bar-fill blue" style={{ width: `${percent}%` }}></div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Status Distribution Summary */}
-                <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)' }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--accents-5)', textTransform: 'uppercase' }}>
-                    Order Status Distribution
-                  </span>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', marginTop: '0.5rem' }}>
-                    {Object.entries(statusStats).map(([status, count]) => (
-                      <div key={status} style={{ background: 'var(--input-bg)', border: '1px solid var(--border-default)', padding: '0.25rem 0.55rem', borderRadius: 4, fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <span style={{ fontWeight: 500 }}>{status}:</span>
-                        <span className="mono-text" style={{ fontWeight: 700 }}>{count}</span>
-                      </div>
-                    ))}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              </div>
+
+                  {/* Team Sales Person Breakdown */}
+                  <div className="analytics-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                        Sales Person Pipeline Share
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--accents-5)' }}>
+                        {teamSalesList.length} Sales Persons
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      {teamSalesList.map((sp) => {
+                        const count = teamSalesCounts[sp] || 0;
+                        const pct = Math.round((count / (teamProjects.length || 1)) * 100);
+                        const spGross = teamProjects
+                          .filter((p) => p.salesPerson === sp)
+                          .reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
+                        return (
+                          <div key={sp} className="breakdown-row">
+                            <div className="breakdown-info">
+                              <span style={{ fontWeight: 600 }}>{sp}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <span className="mono-text" style={{ fontWeight: 600 }}>${spGross.toFixed(2)}</span>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)' }}>({count} orders • {pct}%)</span>
+                              </div>
+                            </div>
+                            <div className="progress-bar-bg">
+                              <div className="progress-bar-fill blue" style={{ width: `${pct}%` }}></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Personal Profiles Breakdown */}
+                  <div className="analytics-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                        Revenue by Marketplace Profile
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--accents-5)' }}>
+                        {profileStats.length} Profiles
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      {profileStats.map((p) => {
+                        const percent = kpis.totalGross > 0 ? (p.gross / kpis.totalGross) * 100 : 0;
+                        return (
+                          <div key={p.name} className="breakdown-row">
+                            <div className="breakdown-info">
+                              <span style={{ fontWeight: 600 }}>{p.name}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <span className="mono-text" style={{ fontWeight: 600 }}>${p.gross.toFixed(2)}</span>
+                                <span className="mono-text" style={{ color: '#10b981', fontSize: '0.74rem' }}>Net: ${p.net.toFixed(2)}</span>
+                              </div>
+                            </div>
+                            <div className="progress-bar-bg">
+                              <div className="progress-bar-fill" style={{ width: `${percent}%` }}></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Personal Monthly Performance */}
+                  <div className="analytics-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                        Monthly Performance Breakdown
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--accents-5)' }}>
+                        {monthStats.length} Recorded Months
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      {monthStats.map((m) => {
+                        const percent = kpis.totalGross > 0 ? (m.gross / kpis.totalGross) * 100 : 0;
+                        return (
+                          <div key={m.month} className="breakdown-row">
+                            <div className="breakdown-info">
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontWeight: 600 }}>{m.month}</span>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)' }}>
+                                  ({m.count} orders • {m.completed} completed)
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <span className="mono-text" style={{ fontWeight: 600 }}>${m.gross.toFixed(2)}</span>
+                                <span className="mono-text" style={{ color: '#10b981', fontSize: '0.74rem' }}>Net: ${m.net.toFixed(2)}</span>
+                              </div>
+                            </div>
+                            <div className="progress-bar-bg">
+                              <div className="progress-bar-fill blue" style={{ width: `${percent}%` }}></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         ) : (
-          /* Table / Kanban View */
+          /* Table / Kanban View (Personal vs Team) */
           <>
             {/* Filter & Search Bar */}
             <section className="control-bar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-            <div className="v-input-wrapper">
-              <input
-                type="text"
-                className="v-input"
-                placeholder="Search orders, clients, subdomains, notes..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                <div className="v-input-wrapper">
+                  <input
+                    type="text"
+                    className="v-input"
+                    placeholder={
+                      workspaceMode === 'team'
+                        ? 'Search orders, client ID, order #, member, remark...'
+                        : 'Search orders, clients, subdomains, notes...'
+                    }
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
 
-            <select className="v-select" value={profileFilter} onChange={(e) => setProfileFilter(e.target.value)}>
-              <option value="all">All Profiles ({uniqueProfiles.length})</option>
-              {uniqueProfiles.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
+                {workspaceMode === 'team' ? (
+                  <>
+                    {/* Team Member Filter */}
+                    <select
+                      className="v-select"
+                      value={teamMemberFilter}
+                      onChange={(e) => setTeamMemberFilter(e.target.value)}
+                    >
+                      <option value="all">All Members ({teamMemberList.length})</option>
+                      {teamMemberList.map((m) => (
+                        <option key={m} value={m}>{m} ({teamMemberCounts[m] || 0})</option>
+                      ))}
+                    </select>
 
-            <select className="v-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="all">All Statuses</option>
-              <option value="Done">Done</option>
-              <option value="Wip">Wip</option>
-              <option value="Delivered">Delivered</option>
-              <option value="Issue">Issue</option>
-              <option value="Cancel">Cancel</option>
-            </select>
+                    {/* Sales Person Filter */}
+                    <select
+                      className="v-select"
+                      value={teamSalesFilter}
+                      onChange={(e) => setTeamSalesFilter(e.target.value)}
+                    >
+                      <option value="all">All Sales ({teamSalesList.length})</option>
+                      {teamSalesList.map((sp) => (
+                        <option key={sp} value={sp}>{sp} ({teamSalesCounts[sp] || 0})</option>
+                      ))}
+                    </select>
 
-            <select className="v-select" value={scheduleFilter} onChange={(e) => setScheduleFilter(e.target.value)}>
-              <option value="all">All Schedules</option>
-              <option value="Complete">Complete</option>
-              <option value="Late">Late</option>
-              <option value="Repeat Order">Repeat Order</option>
-              <option value="Add-on">Add-on</option>
-            </select>
+                    {/* Profile Filter */}
+                    <select
+                      className="v-select"
+                      value={profileFilter}
+                      onChange={(e) => setProfileFilter(e.target.value)}
+                    >
+                      <option value="all">All Profiles ({teamUniqueProfiles.length})</option>
+                      {teamUniqueProfiles.map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
 
-            <button
-              className="btn-v btn-v-secondary"
-              onClick={() => {
-                setSearchQuery('');
-                setProfileFilter('all');
-                setStatusFilter('all');
-                setScheduleFilter('all');
-                setCurrentTab('all');
-              }}
-              title="Reset Filters"
-            >
-              <RotateCcw size={13} /> Reset
-            </button>
-          </div>
-        </section>
+                    {/* Status Filter */}
+                    <select
+                      className="v-select"
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                      <option value="all">All Statuses</option>
+                      <option value="Wip">Wip</option>
+                      <option value="Delivered">Delivered</option>
+                      <option value="Done">Done</option>
+                      <option value="NRA">NRA</option>
+                      <option value="Need Requirements">Need Requirements</option>
+                      <option value="Cancel">Cancel</option>
+                    </select>
+                  </>
+                ) : (
+                  <>
+                    <select
+                      className="v-select"
+                      value={profileFilter}
+                      onChange={(e) => setProfileFilter(e.target.value)}
+                    >
+                      <option value="all">All Profiles ({uniqueProfiles.length})</option>
+                      {uniqueProfiles.map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
 
-        {/* Content Display: Table or Kanban */}
-        {currentView === 'table' ? (
-          /* Table View with Sticky Header & Subtle Scroll Controls */
-          <div className="table-smart-wrapper">
-            <div className="table-sub-bar">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <span className="table-nav-pill">
-                  <SlidersHorizontal size={12} /> {currentTab === 'all' ? 'All Orders' : currentTab === 'running' ? 'Running Orders' : `${currentTab} Orders`}: {filteredProjects.length} Records
-                </span>
-                <span style={{ fontSize: '0.74rem', color: 'var(--accents-5)' }}>
-                  Scroll down to view orders • Table header stays pinned
-                </span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <span style={{ fontSize: '0.7rem', color: 'var(--accents-4)', marginRight: 4 }}>
-                  Columns:
-                </span>
+                    <select
+                      className="v-select"
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                      <option value="all">All Statuses</option>
+                      <option value="Done">Done</option>
+                      <option value="Wip">Wip</option>
+                      <option value="Delivered">Delivered</option>
+                      <option value="Issue">Issue</option>
+                      <option value="Cancel">Cancel</option>
+                    </select>
+
+                    <select
+                      className="v-select"
+                      value={scheduleFilter}
+                      onChange={(e) => setScheduleFilter(e.target.value)}
+                    >
+                      <option value="all">All Schedules</option>
+                      <option value="Complete">Complete</option>
+                      <option value="Late">Late</option>
+                      <option value="Repeat Order">Repeat Order</option>
+                      <option value="Add-on">Add-on</option>
+                    </select>
+                  </>
+                )}
+
                 <button
-                  type="button"
                   className="btn-v btn-v-secondary"
-                  style={{ padding: '0.22rem 0.6rem', fontSize: '0.72rem', gap: 4 }}
-                  onClick={() => scrollTable('left')}
-                  title="Scroll Left"
-                >
-                  <ChevronLeft size={13} /> Left
-                </button>
-                <button
-                  type="button"
-                  className="btn-v btn-v-secondary"
-                  style={{ padding: '0.22rem 0.6rem', fontSize: '0.72rem', gap: 4 }}
-                  onClick={() => scrollTable('right')}
-                  title="Scroll Right"
-                >
-                  Right <ChevronRight size={13} />
-                </button>
-              </div>
-            </div>
-
-            <div className="v-table-container" ref={tableContainerRef}>
-              <table className="v-table">
-                <thead>
-                  <tr>
-                    <th className="sortable" onClick={() => handleSort('assignDate')}>Assign Date</th>
-                    <th className="sortable" onClick={() => handleSort('clientUsername')}>Client Username</th>
-                    <th className="sortable" onClick={() => handleSort('profileName')}>Profile</th>
-                    <th>Brief Doc</th>
-                    <th className="sortable" onClick={() => handleSort('amount')}>Gross</th>
-                    <th>Net (80%)</th>
-                    <th>Order Status</th>
-                    <th>Staging Subdomain</th>
-                    <th className="sortable" onClick={() => handleSort('deadline')}>Deadline</th>
-                    <th>Schedule</th>
-                    <th>Live Domain</th>
-                    <th>Daily Update</th>
-                    <th>Review</th>
-                    <th style={{ textAlign: 'center' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProjects.length === 0 ? (
-                    <tr>
-                      <td colSpan={14} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--foreground)' }}>
-                            {currentTab === 'all'
-                              ? 'No orders found matching your filters.'
-                              : `No orders recorded for ${currentTab} yet.`}
-                          </span>
-                          <span style={{ fontSize: '0.78rem', color: 'var(--accents-4)' }}>
-                            {currentTab !== 'all' ? (
-                              <>
-                                View <button type="button" onClick={() => setCurrentTab('all')} style={{ color: 'var(--foreground)', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>All Orders</button> or click <button type="button" onClick={() => openNewModal(currentTab)} style={{ color: '#38bdf8', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>+ New Order</button> to add one for {currentTab}.
-                              </>
-                            ) : (
-                              'Try clearing filters or search terms.'
-                            )}
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredProjects.map((p) => {
-                      const gross = parseFloat(p.amount) || 0;
-                      const net = gross * 0.8;
-                      const statusClass =
-                        p.orderStatus === 'Done'
-                          ? 'v-status-done'
-                          : p.orderStatus === 'Delivered'
-                          ? 'v-status-delivered'
-                          : p.orderStatus === 'Issue' || p.orderStatus === 'Cancel'
-                          ? 'v-status-issue'
-                          : 'v-status-wip';
-
-                      return (
-                        <tr key={p._id}>
-                          <td className="mono-text" style={{ color: 'var(--accents-5)' }}>{p.assignDate || '-'}</td>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
-                              <span style={{ fontWeight: 600 }}>{p.clientUsername}</span>
-                              {currentTab.toLowerCase() === currentCalendarMonth.toLowerCase() && p.month && p.month.toLowerCase() !== currentCalendarMonth.toLowerCase() && (
-                                <span style={{ fontSize: '0.65rem', padding: '0.06rem 0.35rem', borderRadius: 3, background: 'rgba(56,189,248,0.12)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.25)', fontWeight: 500 }} title={`Assigned in ${p.month} • Running project`}>
-                                  from {p.month}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)' }}>{p.profileName}</span>
-                          </td>
-                          <td>
-                            {p.instructionSheet ? (
-                              <a href={p.instructionSheet} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}>
-                                <ExternalLink size={11} /> Brief
-                              </a>
-                            ) : '-'}
-                          </td>
-                          <td className="mono-text" style={{ fontWeight: 600 }}>${gross.toFixed(2)}</td>
-                          <td className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>${net.toFixed(2)}</td>
-                          <td>
-                            <div className={`v-status-badge ${statusClass} ${savingStatusId === p._id ? 'saving' : ''}`}>
-                              {savingStatusId === p._id ? (
-                                <div className="status-saving-spinner"></div>
-                              ) : savedStatusSuccessId === p._id ? (
-                                <Check size={11} color="#10b981" />
-                              ) : (
-                                <span className="v-status-dot"></span>
-                              )}
-                              <select
-                                disabled={savingStatusId === p._id}
-                                style={{
-                                  background: 'transparent',
-                                  border: 'none',
-                                  color: 'inherit',
-                                  outline: 'none',
-                                  cursor: savingStatusId === p._id ? 'wait' : 'pointer',
-                                  fontFamily: 'inherit',
-                                  fontSize: '0.73rem',
-                                  fontWeight: 600,
-                                }}
-                                value={p.orderStatus || 'Wip'}
-                                onChange={(e) => handleQuickStatusChange(p._id, e.target.value)}
-                              >
-                                <option value="Done">Done</option>
-                                <option value="Wip">Wip</option>
-                                <option value="Delivered">Delivered</option>
-                                <option value="Issue">Issue</option>
-                                <option value="Cancel">Cancel</option>
-                              </select>
-                            </div>
-                          </td>
-                          <td>
-                            {p.ourSubdomain ? (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <a href={p.ourSubdomain} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}>
-                                  <Globe size={11} /> Staging
-                                </a>
-                                <button className="btn-v-ghost" style={{ padding: 2, cursor: 'pointer' }} onClick={() => copyToClipboard(p.ourSubdomain)} title="Copy URL">
-                                  <Copy size={11} />
-                                </button>
-                              </div>
-                            ) : '-'}
-                          </td>
-                          <td className="mono-text" style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : 'var(--accents-5)' }}>
-                            {p.deadline || '-'}
-                          </td>
-                          <td>
-                            <span style={{ fontSize: '0.75rem', color: p.timeSchedule === 'Late' ? '#f5a623' : 'var(--accents-5)' }}>
-                              {p.timeSchedule || 'Complete'}
-                            </span>
-                          </td>
-                          <td>
-                            {p.clientDomain ? (
-                              <a href={p.clientDomain} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}>
-                                <ExternalLink size={11} /> Live
-                              </a>
-                            ) : '-'}
-                          </td>
-                          <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--accents-5)' }} title={p.dailyUpdate}>
-                            {p.dailyUpdate || '-'}
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', gap: 2, color: '#f5a623' }}>
-                              {[1, 2, 3, 4, 5].map((s) => (
-                                <Star key={s} size={11} fill={s <= (p.review || 0) ? '#f5a623' : 'none'} color={s <= (p.review || 0) ? '#f5a623' : 'var(--border-default)'} />
-                              ))}
-                            </div>
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                              <button className="btn-v-ghost" style={{ padding: 3 }} onClick={() => { setActiveProject(p); setIsDetailOpen(true); }} title="View">
-                                <Eye size={13} />
-                              </button>
-                              <button className="btn-v-ghost" style={{ padding: 3 }} onClick={() => openEditModal(p)} title="Edit">
-                                <Edit2 size={13} />
-                              </button>
-                              <button className="btn-v-ghost" style={{ padding: 3, color: '#ee0000' }} onClick={() => handleDelete(p._id, p.clientUsername)} title="Delete">
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ) : (
-          /* Kanban View */
-          <div className="v-kanban-board">
-            {['Assigned', 'Wip', 'Issue', 'Delivered', 'Done'].map((colStatus) => {
-              const colItems = filteredProjects.filter((p) => (p.orderStatus || 'Assigned') === colStatus);
-              return (
-                <div
-                  key={colStatus}
-                  className="v-kanban-col"
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    const pId = e.dataTransfer.getData('text/plain');
-                    if (pId) handleQuickStatusChange(pId, colStatus);
+                  onClick={() => {
+                    setSearchQuery('');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                    setScheduleFilter('all');
+                    setTeamMemberFilter('all');
+                    setTeamSalesFilter('all');
+                    setCurrentTab('all');
                   }}
+                  title="Reset Filters"
                 >
-                  <div className="v-kanban-header">
-                    <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>
-                      {colStatus === 'Wip' ? 'In Progress' : colStatus}
+                  <RotateCcw size={13} /> Reset
+                </button>
+              </div>
+            </section>
+
+            {/* Content Display: Table or Kanban */}
+            {currentView === 'table' ? (
+              /* Table View with Sticky Header & Subtle Scroll Controls */
+              <div className="table-smart-wrapper">
+                <div className="table-sub-bar">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <span className="table-nav-pill">
+                      <SlidersHorizontal size={12} /> {workspaceMode === 'team'
+                        ? `${currentTab === 'all' ? 'All Team Orders' : currentTab === 'running' ? 'Running Team Orders' : `${currentTab} Orders`}: ${filteredTeamProjects.length} Records`
+                        : `${currentTab === 'all' ? 'All Orders' : currentTab === 'running' ? 'Running Orders' : `${currentTab} Orders`}: ${filteredProjects.length} Records`}
                     </span>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--accents-5)', background: 'var(--accents-1)', padding: '0.1rem 0.4rem', borderRadius: 4, border: '1px solid var(--border-default)' }}>
-                      {colItems.length}
+                    <span style={{ fontSize: '0.74rem', color: 'var(--accents-5)' }}>
+                      Scroll down to view orders • Table header stays pinned
                     </span>
                   </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {colItems.map((p) => (
-                      <div
-                        key={p._id}
-                        className="v-kanban-card"
-                        draggable
-                        onDragStart={(e) => e.dataTransfer.setData('text/plain', p._id)}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{p.clientUsername}</span>
-                            {currentTab.toLowerCase() === currentCalendarMonth.toLowerCase() && p.month && p.month.toLowerCase() !== currentCalendarMonth.toLowerCase() && (
-                              <span style={{ fontSize: '0.62rem', padding: '0.05rem 0.3rem', borderRadius: 3, background: 'rgba(56,189,248,0.12)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.25)', fontWeight: 500 }} title={`Assigned in ${p.month}`}>
-                                {p.month}
-                              </span>
-                            )}
-                          </div>
-                          <span className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>
-                            ${((p.amount || 0) * 0.8).toFixed(0)}
-                          </span>
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--accents-5)' }}>
-                          <span>{p.profileName}</span>
-                          <span className="mono-text">Gross: ${p.amount}</span>
-                        </div>
-
-                        {p.dailyUpdate && (
-                          <div style={{ fontSize: '0.75rem', color: 'var(--accents-6)', background: 'var(--accents-1)', padding: '0.4rem 0.5rem', borderRadius: 4, borderLeft: '2px solid var(--border-highlight)' }}>
-                            {p.dailyUpdate}
-                          </div>
-                        )}
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.4rem', borderTop: '1px solid var(--border-subtle)', fontSize: '0.72rem' }}>
-                          <span style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : 'var(--accents-5)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <Clock size={11} /> {p.deadline || 'No deadline'}
-                          </span>
-                          <button className="btn-v-ghost" style={{ padding: 2 }} onClick={() => openEditModal(p)}>
-                            <Edit2 size={12} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--accents-4)', marginRight: 4 }}>
+                      Columns:
+                    </span>
+                    <button
+                      type="button"
+                      className="btn-v btn-v-secondary"
+                      style={{ padding: '0.22rem 0.6rem', fontSize: '0.72rem', gap: 4 }}
+                      onClick={() => scrollTable('left')}
+                      title="Scroll Left"
+                    >
+                      <ChevronLeft size={13} /> Left
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-v btn-v-secondary"
+                      style={{ padding: '0.22rem 0.6rem', fontSize: '0.72rem', gap: 4 }}
+                      onClick={() => scrollTable('right')}
+                      title="Scroll Right"
+                    >
+                      Right <ChevronRight size={13} />
+                    </button>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+
+                <div className="v-table-container" ref={tableContainerRef}>
+                  <table className="v-table">
+                    {workspaceMode === 'team' ? (
+                      /* TEAM TABLE HEADERS (Google Sheet Columns) */
+                      <thead>
+                        <tr>
+                          <th className="sortable" onClick={() => handleSort('assignDate')}>Assign Date</th>
+                          <th className="sortable" onClick={() => handleSort('salesPerson')}>Sales Person</th>
+                          <th className="sortable" onClick={() => handleSort('profileName')}>Profile</th>
+                          <th className="sortable" onClick={() => handleSort('clientUserId')}>Client User ID</th>
+                          <th className="sortable" onClick={() => handleSort('orderNumber')}>Order #</th>
+                          <th className="sortable" onClick={() => handleSort('amount')}>Gross</th>
+                          <th>Net (80%)</th>
+                          <th>Assigned Member(s)</th>
+                          <th className="sortable" onClick={() => handleSort('estimatedDeliveryDate')}>Est. Deli</th>
+                          <th>Deli Date</th>
+                          <th>Order Status</th>
+                          <th>Sheet / Payout</th>
+                          <th>Remark</th>
+                          <th style={{ textAlign: 'center' }}>Actions</th>
+                        </tr>
+                      </thead>
+                    ) : (
+                      /* PERSONAL TABLE HEADERS */
+                      <thead>
+                        <tr>
+                          <th className="sortable" onClick={() => handleSort('assignDate')}>Assign Date</th>
+                          <th className="sortable" onClick={() => handleSort('clientUsername')}>Client Username</th>
+                          <th className="sortable" onClick={() => handleSort('profileName')}>Profile</th>
+                          <th>Brief Doc</th>
+                          <th className="sortable" onClick={() => handleSort('amount')}>Gross</th>
+                          <th>Net (80%)</th>
+                          <th>Order Status</th>
+                          <th>Staging Subdomain</th>
+                          <th className="sortable" onClick={() => handleSort('deadline')}>Deadline</th>
+                          <th>Schedule</th>
+                          <th>Live Domain</th>
+                          <th>Daily Update</th>
+                          <th>Review</th>
+                          <th style={{ textAlign: 'center' }}>Actions</th>
+                        </tr>
+                      </thead>
+                    )}
+                    <tbody>
+                      {workspaceMode === 'team' ? (
+                        /* TEAM TABLE ROWS */
+                        filteredTeamProjects.length === 0 ? (
+                          <tr>
+                            <td colSpan={14} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
+                                <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--foreground)' }}>
+                                  No team orders found matching your filters.
+                                </span>
+                                <span style={{ fontSize: '0.78rem', color: 'var(--accents-4)' }}>
+                                  Click <button type="button" onClick={openNewTeamModal} style={{ color: '#38bdf8', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>+ Add Team Order</button> to create one.
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredTeamProjects.map((p) => {
+                            const gross = parseFloat(p.amount) || 0;
+                            const net = parseFloat(p.netAmount) || gross * 0.8;
+                            const members = Array.isArray(p.assignedMembers) ? p.assignedMembers : [];
+                            const statusLower = (p.status || 'Wip').toLowerCase();
+                            const statusClass =
+                              statusLower === 'done'
+                                ? 'v-status-done'
+                                : statusLower === 'delivered'
+                                ? 'v-status-delivered'
+                                : statusLower === 'cancel'
+                                ? 'v-status-cancel'
+                                : statusLower === 'nra'
+                                ? 'v-status-nra'
+                                : statusLower.includes('need')
+                                ? 'v-status-need'
+                                : 'v-status-wip';
+
+                            return (
+                              <tr key={p._id}>
+                                <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
+                                  <div>{p.assignDate || '-'}</div>
+                                  <div style={{ fontSize: '0.65rem', color: 'var(--accents-4)' }}>{p.month || ''}</div>
+                                </td>
+                                <td>
+                                  <span style={{ fontWeight: 600 }}>{p.salesPerson || '-'}</span>
+                                </td>
+                                <td>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)' }}>{p.profileName || '-'}</span>
+                                </td>
+                                <td>
+                                  <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>{p.clientUserId || '-'}</span>
+                                </td>
+                                <td className="mono-text" style={{ fontWeight: 600 }}>
+                                  {p.orderNumber || '-'}
+                                </td>
+                                <td className="mono-text" style={{ fontWeight: 600 }}>${gross.toFixed(2)}</td>
+                                <td className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>${net.toFixed(2)}</td>
+                                <td>
+                                  <div className="member-chip-wrapper">
+                                    {members.length > 0 ? (
+                                      members.map((m, idx) => (
+                                        <span key={idx} className="member-chip">
+                                          {m}
+                                        </span>
+                                      ))
+                                    ) : (
+                                      <span style={{ color: 'var(--accents-4)', fontStyle: 'italic', fontSize: '0.72rem' }}>
+                                        Unassigned
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
+                                  {p.estimatedDeliveryDate || '-'}
+                                </td>
+                                <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
+                                  {p.deliveryDate || '-'}
+                                </td>
+                                <td>
+                                  <div className={`v-status-badge ${statusClass}`}>
+                                    <span className="v-status-dot"></span>
+                                    <select
+                                      style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: 'inherit',
+                                        outline: 'none',
+                                        cursor: 'pointer',
+                                        fontFamily: 'inherit',
+                                        fontSize: '0.73rem',
+                                        fontWeight: 600,
+                                      }}
+                                      value={p.status || 'Wip'}
+                                      onChange={(e) => handleQuickUpdateTeamStatus(p._id, e.target.value)}
+                                    >
+                                      <option value="Wip">Wip</option>
+                                      <option value="Delivered">Delivered</option>
+                                      <option value="Done">Done</option>
+                                      <option value="NRA">NRA</option>
+                                      <option value="Need Requirements">Need Requirements</option>
+                                      <option value="Cancel">Cancel</option>
+                                    </select>
+                                  </div>
+                                </td>
+                                <td>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                    {p.sheetLink ? (
+                                      <a href={p.sheetLink} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }} title="Open Sheet">
+                                        <ExternalLink size={11} /> Sheet
+                                      </a>
+                                    ) : null}
+                                    {p.percentage ? (
+                                      <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: 'var(--accents-5)' }}>
+                                        ${p.percentage}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                </td>
+                                <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.75rem', color: 'var(--accents-5)' }}>
+                                  {p.remark || '-'}
+                                </td>
+                                <td style={{ textAlign: 'center' }}>
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                    <button className="btn-v-ghost" style={{ padding: 4 }} onClick={() => openEditTeamModal(p)} title="Edit Order">
+                                      <Edit2 size={13} />
+                                    </button>
+                                    <button className="btn-v-ghost" style={{ padding: 4, color: '#ef4444' }} onClick={() => handleTeamDelete(p._id)} title="Delete Order">
+                                      <Trash2 size={13} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )
+                      ) : (
+                        /* PERSONAL TABLE ROWS */
+                        filteredProjects.length === 0 ? (
+                          <tr>
+                            <td colSpan={14} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
+                                <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--foreground)' }}>
+                                  {currentTab === 'all'
+                                    ? 'No orders found matching your filters.'
+                                    : `No orders recorded for ${currentTab} yet.`}
+                                </span>
+                                <span style={{ fontSize: '0.78rem', color: 'var(--accents-4)' }}>
+                                  {currentTab !== 'all' ? (
+                                    <>
+                                      View <button type="button" onClick={() => setCurrentTab('all')} style={{ color: 'var(--foreground)', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>All Orders</button> or click <button type="button" onClick={() => openNewModal(currentTab)} style={{ color: '#38bdf8', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>+ New Order</button> to add one for {currentTab}.
+                                    </>
+                                  ) : (
+                                    'Try clearing filters or search terms.'
+                                  )}
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredProjects.map((p) => {
+                            const gross = parseFloat(p.amount) || 0;
+                            const net = gross * 0.8;
+                            const statusClass =
+                              p.orderStatus === 'Done'
+                                ? 'v-status-done'
+                                : p.orderStatus === 'Delivered'
+                                ? 'v-status-delivered'
+                                : p.orderStatus === 'Issue' || p.orderStatus === 'Cancel'
+                                ? 'v-status-issue'
+                                : 'v-status-wip';
+
+                            return (
+                              <tr key={p._id}>
+                                <td className="mono-text" style={{ color: 'var(--accents-5)' }}>{p.assignDate || '-'}</td>
+                                <td>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                                    <span style={{ fontWeight: 600 }}>{p.clientUsername}</span>
+                                    {currentTab.toLowerCase() === currentCalendarMonth.toLowerCase() && p.month && p.month.toLowerCase() !== currentCalendarMonth.toLowerCase() && (
+                                      <span style={{ fontSize: '0.65rem', padding: '0.06rem 0.35rem', borderRadius: 3, background: 'rgba(56,189,248,0.12)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.25)', fontWeight: 500 }} title={`Assigned in ${p.month} • Running project`}>
+                                        from {p.month}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)' }}>{p.profileName}</span>
+                                </td>
+                                <td>
+                                  {p.instructionSheet ? (
+                                    <a href={p.instructionSheet} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}>
+                                      <ExternalLink size={11} /> Brief
+                                    </a>
+                                  ) : '-'}
+                                </td>
+                                <td className="mono-text" style={{ fontWeight: 600 }}>${gross.toFixed(2)}</td>
+                                <td className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>${net.toFixed(2)}</td>
+                                <td>
+                                  <div className={`v-status-badge ${statusClass} ${savingStatusId === p._id ? 'saving' : ''}`}>
+                                    {savingStatusId === p._id ? (
+                                      <div className="status-saving-spinner"></div>
+                                    ) : savedStatusSuccessId === p._id ? (
+                                      <Check size={11} color="#10b981" />
+                                    ) : (
+                                      <span className="v-status-dot"></span>
+                                    )}
+                                    <select
+                                      disabled={savingStatusId === p._id}
+                                      style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: 'inherit',
+                                        outline: 'none',
+                                        cursor: savingStatusId === p._id ? 'wait' : 'pointer',
+                                        fontFamily: 'inherit',
+                                        fontSize: '0.73rem',
+                                        fontWeight: 600,
+                                      }}
+                                      value={p.orderStatus || 'Wip'}
+                                      onChange={(e) => handleQuickStatusChange(p._id, e.target.value)}
+                                    >
+                                      <option value="Done">Done</option>
+                                      <option value="Wip">Wip</option>
+                                      <option value="Delivered">Delivered</option>
+                                      <option value="Issue">Issue</option>
+                                      <option value="Cancel">Cancel</option>
+                                    </select>
+                                  </div>
+                                </td>
+                                <td>
+                                  {p.ourSubdomain ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                      <a href={p.ourSubdomain} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}>
+                                        <Globe size={11} /> Staging
+                                      </a>
+                                      <button className="btn-v-ghost" style={{ padding: 2, cursor: 'pointer' }} onClick={() => copyToClipboard(p.ourSubdomain)} title="Copy URL">
+                                        <Copy size={11} />
+                                      </button>
+                                    </div>
+                                  ) : '-'}
+                                </td>
+                                <td className="mono-text" style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : 'var(--accents-5)' }}>
+                                  {p.deadline || '-'}
+                                </td>
+                                <td>
+                                  <span style={{ fontSize: '0.75rem', color: p.timeSchedule === 'Late' ? '#f5a623' : 'var(--accents-5)' }}>
+                                    {p.timeSchedule || 'Complete'}
+                                  </span>
+                                </td>
+                                <td>
+                                  {p.clientDomain ? (
+                                    <a href={p.clientDomain} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}>
+                                      <Globe size={11} /> Live
+                                    </a>
+                                  ) : '-'}
+                                </td>
+                                <td>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)', maxWidth: 120, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {p.dailyUpdate || '-'}
+                                  </span>
+                                </td>
+                                <td>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    {[1, 2, 3, 4, 5].map((s) => (
+                                      <Star key={s} size={11} color={s <= (p.review || 5) ? '#f5a623' : 'var(--accents-3)'} fill={s <= (p.review || 5) ? '#f5a623' : 'none'} />
+                                    ))}
+                                  </div>
+                                </td>
+                                <td style={{ textAlign: 'center' }}>
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                    <button className="btn-v-ghost" style={{ padding: 4 }} onClick={() => openDetailModal(p)} title="View Details">
+                                      <Eye size={13} />
+                                    </button>
+                                    <button className="btn-v-ghost" style={{ padding: 4 }} onClick={() => openEditModal(p)} title="Edit Order">
+                                      <Edit2 size={13} />
+                                    </button>
+                                    <button className="btn-v-ghost" style={{ padding: 4, color: '#ee0000' }} onClick={() => handleDelete(p._id, p.clientUsername)} title="Delete Order">
+                                      <Trash2 size={13} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              /* KANBAN VIEW (Personal vs Team) */
+              <div className="v-kanban-board">
+                {workspaceMode === 'team'
+                  ? ['Wip', 'Delivered', 'Done', 'NRA', 'Need Requirements', 'Cancel'].map((colStatus) => {
+                      const colItems = filteredTeamProjects.filter(
+                        (p) => (p.status || 'Wip').toLowerCase() === colStatus.toLowerCase()
+                      );
+                      const colGross = colItems.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
+
+                      return (
+                        <div key={colStatus} className="v-kanban-col">
+                          <div className="v-kanban-header">
+                            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>
+                              {colStatus}
+                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 600 }}>
+                                ${colGross.toFixed(0)}
+                              </span>
+                              <span style={{ fontSize: '0.72rem', color: 'var(--accents-5)', background: 'var(--accents-1)', padding: '0.1rem 0.4rem', borderRadius: 4, border: '1px solid var(--border-default)' }}>
+                                {colItems.length}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {colItems.map((p) => {
+                              const gross = parseFloat(p.amount) || 0;
+                              const net = parseFloat(p.netAmount) || gross * 0.8;
+                              const members = Array.isArray(p.assignedMembers) ? p.assignedMembers : [];
+
+                              return (
+                                <div key={p._id} className="v-kanban-card">
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+                                      {p.orderNumber || p.clientUserId}
+                                    </span>
+                                    <span className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>
+                                      ${gross}
+                                    </span>
+                                  </div>
+
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--accents-5)' }}>
+                                    <span>{p.salesPerson} • {p.profileName}</span>
+                                    <span className="mono-text" style={{ color: '#38bdf8' }}>Net: ${net.toFixed(0)}</span>
+                                  </div>
+
+                                  <div className="member-chip-wrapper" style={{ marginTop: 2 }}>
+                                    {members.map((m, idx) => (
+                                      <span key={idx} className="member-chip" style={{ fontSize: '0.65rem', padding: '0.08rem 0.4rem' }}>
+                                        {m}
+                                      </span>
+                                    ))}
+                                  </div>
+
+                                  {p.remark && (
+                                    <div style={{ fontSize: '0.73rem', color: 'var(--accents-6)', background: 'var(--accents-1)', padding: '0.35rem 0.5rem', borderRadius: 4, borderLeft: '2px solid var(--border-highlight)' }}>
+                                      {p.remark}
+                                    </div>
+                                  )}
+
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.4rem', borderTop: '1px solid var(--border-subtle)', fontSize: '0.72rem' }}>
+                                    <span style={{ color: 'var(--accents-5)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                      <Clock size={11} /> {p.estimatedDeliveryDate || p.assignDate || 'No date'}
+                                    </span>
+                                    <div style={{ display: 'flex', gap: 4 }}>
+                                      <button className="btn-v-ghost" style={{ padding: 2 }} onClick={() => openEditTeamModal(p)}>
+                                        <Edit2 size={12} />
+                                      </button>
+                                      <button className="btn-v-ghost" style={{ padding: 2, color: '#ef4444' }} onClick={() => handleTeamDelete(p._id)}>
+                                        <Trash2 size={12} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })
+                  : ['Assigned', 'Wip', 'Issue', 'Delivered', 'Done'].map((colStatus) => {
+                      const colItems = filteredProjects.filter((p) => (p.orderStatus || 'Assigned') === colStatus);
+                      return (
+                        <div
+                          key={colStatus}
+                          className="v-kanban-col"
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={(e) => {
+                            const pId = e.dataTransfer.getData('text/plain');
+                            if (pId) handleQuickStatusChange(pId, colStatus);
+                          }}
+                        >
+                          <div className="v-kanban-header">
+                            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>
+                              {colStatus === 'Wip' ? 'In Progress' : colStatus}
+                            </span>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--accents-5)', background: 'var(--accents-1)', padding: '0.1rem 0.4rem', borderRadius: 4, border: '1px solid var(--border-default)' }}>
+                              {colItems.length}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {colItems.map((p) => (
+                              <div
+                                key={p._id}
+                                className="v-kanban-card"
+                                draggable
+                                onDragStart={(e) => e.dataTransfer.setData('text/plain', p._id)}
+                              >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{p.clientUsername}</span>
+                                    {currentTab.toLowerCase() === currentCalendarMonth.toLowerCase() && p.month && p.month.toLowerCase() !== currentCalendarMonth.toLowerCase() && (
+                                      <span style={{ fontSize: '0.62rem', padding: '0.05rem 0.3rem', borderRadius: 3, background: 'rgba(56,189,248,0.12)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.25)', fontWeight: 500 }} title={`Assigned in ${p.month}`}>
+                                        {p.month}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>
+                                    ${((p.amount || 0) * 0.8).toFixed(0)}
+                                  </span>
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--accents-5)' }}>
+                                  <span>{p.profileName}</span>
+                                  <span className="mono-text">Gross: ${p.amount}</span>
+                                </div>
+
+                                {p.dailyUpdate && (
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--accents-6)', background: 'var(--accents-1)', padding: '0.4rem 0.5rem', borderRadius: 4, borderLeft: '2px solid var(--border-highlight)' }}>
+                                    {p.dailyUpdate}
+                                  </div>
+                                )}
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.4rem', borderTop: '1px solid var(--border-subtle)', fontSize: '0.72rem' }}>
+                                  <span style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : 'var(--accents-5)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <Clock size={11} /> {p.deadline || 'No deadline'}
+                                  </span>
+                                  <button className="btn-v-ghost" style={{ padding: 2 }} onClick={() => openEditModal(p)}>
+                                    <Edit2 size={12} />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+              </div>
+            )}
+          </>
         )}
-      </>
-    )}
-    </>
-  )}
 
         {/* Modal: Add/Edit Order */}
         {isModalOpen && (
