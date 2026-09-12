@@ -401,9 +401,18 @@ export default function VercelDashboard() {
         {/* Brand Header */}
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <svg width="20" height="20" viewBox="0 0 76 65" fill="currentColor">
-              <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" />
-            </svg>
+            <img
+              src="/logo.png"
+              alt="AK Logo"
+              style={{
+                width: 26,
+                height: 26,
+                objectFit: 'contain',
+                borderRadius: 4,
+                background: theme === 'light' ? '#000' : 'transparent',
+                padding: theme === 'light' ? '2px' : '0'
+              }}
+            />
           </div>
           <div>
             <div className="sidebar-brand-name">Workplace Hub</div>
@@ -553,6 +562,18 @@ export default function VercelDashboard() {
             </button>
 
             <div className="breadcrumb-box">
+              <img
+                src="/logo.png"
+                alt="AK"
+                style={{
+                  width: 18,
+                  height: 18,
+                  objectFit: 'contain',
+                  borderRadius: 3,
+                  background: theme === 'light' ? '#000' : 'transparent',
+                  padding: theme === 'light' ? '1px' : '0'
+                }}
+              />
               <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Alireja-khan</span>
               <span className="breadcrumb-divider">/</span>
               <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accents-5)' }}>my-work-place</span>
