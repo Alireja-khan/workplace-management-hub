@@ -22,7 +22,13 @@ export const authOptions = {
           throw new Error('Please provide both email and password');
         }
 
-        await connectToDatabase();
+        try {
+          await connectToDatabase();
+        } catch (dbErr) {
+          console.error('Database connection error in authorize:', dbErr);
+          throw new Error('Database connection failed. Please try again in a moment.');
+        }
+
         const email = credentials.email.toLowerCase().trim();
         const user = await User.findOne({ email });
 
