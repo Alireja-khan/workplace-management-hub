@@ -217,6 +217,15 @@ export default function VercelDashboard() {
     return Array.from(set).sort((a, b) => MONTH_LIST.indexOf(a) - MONTH_LIST.indexOf(b));
   }, [projects, currentCalendarMonth]);
 
+  // Sidebar displayed months (ensures current calendar month is ALWAYS visible by default)
+  const displayedMonths = useMemo(() => {
+    const others = availableMonths
+      .filter((m) => m.toLowerCase() !== currentCalendarMonth.toLowerCase())
+      .sort((a, b) => MONTH_LIST.indexOf(b) - MONTH_LIST.indexOf(a));
+    const allOrdered = [currentCalendarMonth, ...others];
+    return monthsExpanded ? allOrdered : allOrdered.slice(0, 2);
+  }, [availableMonths, currentCalendarMonth, monthsExpanded]);
+
   // Detailed Monthly Performance Stats
   const monthStats = useMemo(() => {
     return availableMonths.map((m) => {
@@ -587,7 +596,7 @@ export default function VercelDashboard() {
             </button>
           </div>
 
-          {/* Month Section with Arrow Toggle (2 visible by default) */}
+          {/* Month Section with Arrow Toggle (Current month ALWAYS visible by default) */}
           <div className="sidebar-section">
             <div className="sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>Months</span>
@@ -599,8 +608,9 @@ export default function VercelDashboard() {
                 <ChevronDown size={14} style={{ transform: monthsExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
               </button>
             </div>
-            {(monthsExpanded ? availableMonths : availableMonths.slice(0, 2)).map((m) => {
+            {displayedMonths.map((m) => {
               const count = projects.filter((p) => (p.month || '').toLowerCase() === m.toLowerCase()).length;
+              const isCurrentMonth = m.toLowerCase() === currentCalendarMonth.toLowerCase();
               return (
                 <button
                   key={m}
@@ -613,6 +623,11 @@ export default function VercelDashboard() {
                   <div className="sidebar-nav-left">
                     <Calendar size={14} />
                     <span>{m}</span>
+                    {isCurrentMonth && (
+                      <span style={{ fontSize: '0.62rem', padding: '0.08rem 0.32rem', borderRadius: '3px', background: 'rgba(56,189,248,0.15)', color: '#38bdf8', fontWeight: 600, letterSpacing: '0.02em' }}>
+                        Current
+                      </span>
+                    )}
                   </div>
                   <span className="sidebar-count-badge">{count}</span>
                 </button>
