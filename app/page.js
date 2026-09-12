@@ -82,6 +82,7 @@ export default function VercelDashboard() {
   const [toastMessage, setToastMessage] = useState(null);
   const [savingStatusId, setSavingStatusId] = useState(null);
   const [savedStatusSuccessId, setSavedStatusSuccessId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -407,7 +408,9 @@ export default function VercelDashboard() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
     try {
+      setIsSubmitting(true);
       const autoMonth = getMonthFromDate(formData.assignDate, formData.month);
       const payload = { ...formData, month: autoMonth, amount: parseFloat(formData.amount) || 0 };
       if (activeProject) {
@@ -420,6 +423,9 @@ export default function VercelDashboard() {
         if (data.success) {
           setProjects((prev) => prev.map((p) => (p._id === activeProject._id ? data.data : p)));
           showToast(`Updated order for ${payload.clientUsername}`);
+          setIsModalOpen(false);
+        } else {
+          showToast(data.error || 'Failed to update order', 'error');
         }
       } else {
         const res = await fetch('/api/projects', {
@@ -431,23 +437,27 @@ export default function VercelDashboard() {
         if (data.success) {
           setProjects((prev) => [data.data, ...prev]);
           showToast(`Created order for ${payload.clientUsername}`);
+          setIsModalOpen(false);
+        } else {
+          showToast(data.error || 'Failed to create order', 'error');
         }
       }
-      setIsModalOpen(false);
     } catch (err) {
       console.error('Save project error', err);
       showToast('Failed to save project', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (projectId, clientName) => {
-    if (!confirm(`Delete order for "${clientName}" from MongoDB?`)) return;
+    if (!confirm(`Are you sure you want to delete the order for "${clientName}"?`)) return;
     try {
       const res = await fetch(`/api/projects/${projectId}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         setProjects((prev) => prev.filter((p) => p._id !== projectId));
-        showToast('Order deleted');
+        showToast('Order deleted successfully');
         setIsDetailOpen(false);
       }
     } catch (err) {
@@ -1524,31 +1534,45 @@ export default function VercelDashboard() {
                         <option value="Cancel">Cancel</option>
                       </select>
                     </div>
-                    <div className="v-form-group full">
+                    <div className="v-form-group">
                       <label>Instruction Sheet / Brief URL</label>
                       <input type="url" className="v-input" placeholder="https://docs.google.com/..." value={formData.instructionSheet} onChange={(e) => setFormData({ ...formData, instructionSheet: e.target.value })} />
                     </div>
-                    <div className="v-form-group full">
+                    <div className="v-form-group">
                       <label>Our Staging Subdomain</label>
                       <input type="url" className="v-input" placeholder="https://client.wpcoreweb.com/" value={formData.ourSubdomain} onChange={(e) => setFormData({ ...formData, ourSubdomain: e.target.value })} />
                     </div>
-                    <div className="v-form-group full">
+                    <div className="v-form-group">
                       <label>Client Live Domain</label>
                       <input type="url" className="v-input" placeholder="https://clientdomain.com/" value={formData.clientDomain} onChange={(e) => setFormData({ ...formData, clientDomain: e.target.value })} />
                     </div>
-                    <div className="v-form-group full">
+                    <div className="v-form-group">
                       <label>Daily Update Note</label>
                       <input type="text" className="v-input" placeholder="Current progress or solved revisions..." value={formData.dailyUpdate} onChange={(e) => setFormData({ ...formData, dailyUpdate: e.target.value })} />
                     </div>
                     <div className="v-form-group full">
                       <label>Backup & Developer Notes</label>
-                      <textarea className="v-input" style={{ resize: 'vertical', minHeight: 60 }} placeholder="Backup location, assigned dev..." value={formData.backupInfo} onChange={(e) => setFormData({ ...formData, backupInfo: e.target.value })} />
+                      <input type="text" className="v-input" placeholder="Backup location, assigned dev notes..." value={formData.backupInfo} onChange={(e) => setFormData({ ...formData, backupInfo: e.target.value })} />
                     </div>
                   </div>
                 </div>
                 <div className="v-modal-footer">
-                  <button type="button" className="btn-v btn-v-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                  <button type="submit" className="btn-v btn-v-primary">Save to MongoDB</button>
+                  <button type="button" className="btn-v btn-v-secondary" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-v btn-v-primary"
+                    disabled={isSubmitting}
+                    style={{ minWidth: 140, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem' }}
+                  >
+                    {isSubmitting && <div className="status-saving-spinner" style={{ width: 13, height: 13, borderWidth: 2 }} />}
+                    <span>
+                      {isSubmitting
+                        ? (activeProject ? 'Updating Order...' : 'Creating Order...')
+                        : (activeProject ? 'Save Changes' : 'Create Order')}
+                    </span>
+                  </button>
                 </div>
               </form>
             </div>
