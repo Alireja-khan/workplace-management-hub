@@ -274,6 +274,84 @@ body {
   border-color: var(--border-default);
 }
 
+.sidebar-new-order-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.5rem 0.95rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  background: #18181b;
+  color: #f4f4f5;
+  border: 1px solid #27272a;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.sidebar-new-order-btn:hover {
+  background: #27272a;
+  border-color: #3f3f46;
+  color: #ffffff;
+}
+
+[data-theme="light"] .sidebar-new-order-btn {
+  background: #09090b;
+  color: #ffffff;
+  border: 1px solid #09090b;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .sidebar-new-order-btn:hover {
+  background: #27272a;
+  border-color: #27272a;
+}
+
+.sidebar-expand-btn {
+  background: transparent;
+  border: none;
+  color: var(--accents-4);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.sidebar-expand-btn:hover {
+  color: var(--geist-foreground);
+  background: var(--accents-1);
+}
+
+.sidebar-more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--accents-5);
+  background: transparent;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.15s ease;
+  margin-top: 0.2rem;
+}
+
+.sidebar-more-btn:hover {
+  background: var(--accents-1);
+  color: var(--geist-foreground);
+  border-color: var(--border-highlight);
+}
+
 .sidebar-footer {
   padding: 0.85rem 1rem;
   border-top: 1px solid var(--sidebar-border);

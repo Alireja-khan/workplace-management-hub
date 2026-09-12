@@ -46,7 +46,9 @@ import {
   Users,
   Percent,
   Terminal,
-  Code2
+  Code2,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 export default function VercelDashboard() {
@@ -56,6 +58,8 @@ export default function VercelDashboard() {
   const [theme, setTheme] = useState('dark');
   const [mounted, setMounted] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [monthsExpanded, setMonthsExpanded] = useState(false);
+  const [profilesExpanded, setProfilesExpanded] = useState(false);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentTab, setCurrentTab] = useState('all');
@@ -483,9 +487,9 @@ export default function VercelDashboard() {
           </div>
         </div>
 
-        {/* Action Button inside Sidebar */}
+        {/* Action Button inside Sidebar with comfortable eye contrast */}
         <div style={{ padding: '0.85rem 0.85rem 0.25rem 0.85rem' }}>
-          <button className="btn-v btn-v-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={openNewModal}>
+          <button className="sidebar-new-order-btn" onClick={openNewModal}>
             <Plus size={14} /> New Order
           </button>
         </div>
@@ -546,10 +550,19 @@ export default function VercelDashboard() {
             </button>
           </div>
 
-          {/* Month Section */}
+          {/* Month Section with Arrow Toggle (2 visible by default) */}
           <div className="sidebar-section">
-            <div className="sidebar-section-title">Months</div>
-            {['April', 'May', 'June'].map((m) => {
+            <div className="sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Months</span>
+              <button
+                className="sidebar-expand-btn"
+                onClick={() => setMonthsExpanded(!monthsExpanded)}
+                title={monthsExpanded ? "Show less" : "Show all months"}
+              >
+                <ChevronDown size={13} style={{ transform: monthsExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+              </button>
+            </div>
+            {(monthsExpanded ? ['April', 'May', 'June'] : ['April', 'May']).map((m) => {
               const count = projects.filter((p) => (p.month || '').toLowerCase() === m.toLowerCase()).length;
               return (
                 <button
@@ -568,12 +581,27 @@ export default function VercelDashboard() {
                 </button>
               );
             })}
+            {!monthsExpanded && (
+              <button className="sidebar-more-btn" onClick={() => setMonthsExpanded(true)}>
+                <span>+1 more month (June)</span>
+                <ChevronDown size={12} />
+              </button>
+            )}
           </div>
 
-          {/* Marketplace Profiles Section */}
+          {/* Marketplace Profiles Section with Arrow Toggle (2 visible by default) */}
           <div className="sidebar-section">
-            <div className="sidebar-section-title">Marketplace Profiles</div>
-            {uniqueProfiles.map((prof) => (
+            <div className="sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Marketplace Profiles</span>
+              <button
+                className="sidebar-expand-btn"
+                onClick={() => setProfilesExpanded(!profilesExpanded)}
+                title={profilesExpanded ? "Show less" : `Show all profiles (${uniqueProfiles.length})`}
+              >
+                <ChevronDown size={13} style={{ transform: profilesExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+              </button>
+            </div>
+            {(profilesExpanded ? uniqueProfiles : uniqueProfiles.slice(0, 2)).map((prof) => (
               <button
                 key={prof}
                 className={`sidebar-nav-item ${profileFilter === prof ? 'active' : ''}`}
@@ -589,6 +617,12 @@ export default function VercelDashboard() {
                 <span className="sidebar-count-badge">{profileCounts[prof] || 0}</span>
               </button>
             ))}
+            {uniqueProfiles.length > 2 && (
+              <button className="sidebar-more-btn" onClick={() => setProfilesExpanded(!profilesExpanded)}>
+                <span>{profilesExpanded ? 'Show less profiles' : `+${uniqueProfiles.length - 2} more profiles`}</span>
+                <ChevronDown size={12} style={{ transform: profilesExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+              </button>
+            )}
           </div>
 
           {/* Quick Status Filter */}
@@ -618,11 +652,11 @@ export default function VercelDashboard() {
           </div>
         </div>
 
-        {/* Sidebar Footer */}
+        {/* Sidebar Footer (Clean without database branding) */}
         <div className="sidebar-footer">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.72rem', color: 'var(--accents-5)' }}>
-            <Database size={13} color="#10b981" />
-            <span>MongoDB Atlas</span>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+            <span>Connected</span>
           </div>
 
           <button className="btn-v-icon" style={{ width: 30, height: 30 }} onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}>
