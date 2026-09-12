@@ -402,15 +402,13 @@ export default function VercelDashboard() {
         <div className="sidebar-header">
           <div className="sidebar-logo">
             <img
-              src="/logo.png"
-              alt="AK Logo"
+              src={theme === 'light' ? '/logo-black.png' : '/logo-white.png'}
+              alt="Logo"
               style={{
-                width: 26,
-                height: 26,
+                width: 24,
+                height: 24,
                 objectFit: 'contain',
-                borderRadius: 4,
-                background: theme === 'light' ? '#000' : 'transparent',
-                padding: theme === 'light' ? '2px' : '0'
+                background: 'transparent'
               }}
             />
           </div>
@@ -563,15 +561,13 @@ export default function VercelDashboard() {
 
             <div className="breadcrumb-box">
               <img
-                src="/logo.png"
-                alt="AK"
+                src={theme === 'light' ? '/logo-black.png' : '/logo-white.png'}
+                alt="Logo"
                 style={{
                   width: 18,
                   height: 18,
                   objectFit: 'contain',
-                  borderRadius: 3,
-                  background: theme === 'light' ? '#000' : 'transparent',
-                  padding: theme === 'light' ? '1px' : '0'
+                  background: 'transparent'
                 }}
               />
               <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Alireja-khan</span>
