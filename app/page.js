@@ -37,7 +37,14 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
-  SlidersHorizontal
+  SlidersHorizontal,
+  BarChart3,
+  PieChart,
+  DollarSign,
+  Activity,
+  ArrowUpRight,
+  Users,
+  Percent
 } from 'lucide-react';
 
 export default function VercelDashboard() {
@@ -148,8 +155,10 @@ export default function VercelDashboard() {
 
     const netAmount = totalGross * 0.8;
     const rate = projects.length > 0 ? Math.round((deliveredDone / projects.length) * 100) : 0;
+    const avgOrderValue = projects.length > 0 ? totalGross / projects.length : 0;
+    const platformFee = totalGross * 0.2;
 
-    return { totalGross, netAmount, activeWip, wipVal, deliveredDone, rate };
+    return { totalGross, netAmount, platformFee, activeWip, wipVal, deliveredDone, rate, avgOrderValue };
   }, [projects]);
 
   // Unique Profiles
@@ -164,6 +173,45 @@ export default function VercelDashboard() {
       if (p.profileName) {
         counts[p.profileName] = (counts[p.profileName] || 0) + 1;
       }
+    });
+    return counts;
+  }, [projects]);
+
+  // Detailed Profile Stats for Analytics Page
+  const profileStats = useMemo(() => {
+    const map = {};
+    projects.forEach((p) => {
+      const name = p.profileName || 'Other';
+      if (!map[name]) {
+        map[name] = { name, count: 0, gross: 0, net: 0 };
+      }
+      const gross = parseFloat(p.amount) || 0;
+      map[name].count += 1;
+      map[name].gross += gross;
+      map[name].net += gross * 0.8;
+    });
+    return Object.values(map).sort((a, b) => b.gross - a.gross);
+  }, [projects]);
+
+  // Detailed Monthly Performance Stats
+  const monthStats = useMemo(() => {
+    const months = ['April', 'May', 'June'];
+    return months.map((m) => {
+      const mProjects = projects.filter((p) => (p.month || '').toLowerCase() === m.toLowerCase());
+      const gross = mProjects.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      const net = gross * 0.8;
+      const completed = mProjects.filter((p) => (p.orderStatus || '').toLowerCase() === 'done' || (p.orderStatus || '').toLowerCase() === 'delivered').length;
+      return { month: m, count: mProjects.length, gross, net, completed };
+    });
+  }, [projects]);
+
+  // Status Distribution
+  const statusStats = useMemo(() => {
+    const counts = { Done: 0, Wip: 0, Delivered: 0, Issue: 0, Cancel: 0 };
+    projects.forEach((p) => {
+      const s = p.orderStatus || 'Wip';
+      if (counts[s] !== undefined) counts[s]++;
+      else counts['Wip']++;
     });
     return counts;
   }, [projects]);
@@ -477,6 +525,23 @@ export default function VercelDashboard() {
                 {runningCount}
               </span>
             </button>
+
+            <button
+              className={`sidebar-nav-item ${currentTab === 'stats' ? 'active' : ''}`}
+              onClick={() => {
+                setCurrentTab('stats');
+                setProfileFilter('all');
+                setStatusFilter('all');
+              }}
+            >
+              <div className="sidebar-nav-left">
+                <BarChart3 size={14} color="#10b981" />
+                <span>Stats & Analytics</span>
+              </div>
+              <span className="sidebar-count-badge" style={{ color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }}>
+                Live
+              </span>
+            </button>
           </div>
 
           {/* Month Section */}
@@ -590,18 +655,36 @@ export default function VercelDashboard() {
               <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Alireja-khan</span>
               <span className="breadcrumb-divider">/</span>
               <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accents-5)' }}>my-work-place</span>
-              <span className="project-pill">Production</span>
+              <span className="project-pill">{currentTab === 'stats' ? 'Analytics' : 'Production'}</span>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {/* Table / Kanban View Switcher */}
+            {/* View Switcher: Table / Kanban / Stats */}
             <div className="segmented-nav">
-              <button className={`segmented-item ${currentView === 'table' ? 'active' : ''}`} onClick={() => setCurrentView('table')}>
+              <button
+                className={`segmented-item ${currentTab !== 'stats' && currentView === 'table' ? 'active' : ''}`}
+                onClick={() => {
+                  if (currentTab === 'stats') setCurrentTab('all');
+                  setCurrentView('table');
+                }}
+              >
                 <TableIcon size={13} style={{ marginRight: 4 }} /> Table
               </button>
-              <button className={`segmented-item ${currentView === 'kanban' ? 'active' : ''}`} onClick={() => setCurrentView('kanban')}>
+              <button
+                className={`segmented-item ${currentTab !== 'stats' && currentView === 'kanban' ? 'active' : ''}`}
+                onClick={() => {
+                  if (currentTab === 'stats') setCurrentTab('all');
+                  setCurrentView('kanban');
+                }}
+              >
                 <Columns size={13} style={{ marginRight: 4 }} /> Kanban
+              </button>
+              <button
+                className={`segmented-item ${currentTab === 'stats' ? 'active' : ''}`}
+                onClick={() => setCurrentTab('stats')}
+              >
+                <BarChart3 size={13} style={{ marginRight: 4 }} /> Analytics
               </button>
             </div>
 
@@ -630,57 +713,181 @@ export default function VercelDashboard() {
           </div>
         </header>
 
-        {/* KPI Metrics */}
-        <section className="metrics-row">
-          <div className="metric-card">
-            <div className="metric-header">
-              <span className="metric-title">Total Gross Volume</span>
-              <Wallet size={15} color="var(--accents-5)" />
+        {/* Dynamic Main View: Stats & Analytics OR Orders (Table / Kanban) */}
+        {currentTab === 'stats' ? (
+          /* Dedicated Stats & Analytics Page */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Primary KPI Cards */}
+            <section className="metrics-row">
+              <div className="metric-card">
+                <div className="metric-header">
+                  <span className="metric-title">Total Gross Volume</span>
+                  <Wallet size={15} color="var(--accents-5)" />
+                </div>
+                <div className="metric-value">${kpis.totalGross.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                <div className="metric-footer">
+                  <span className="metric-badge">{projects.length} Total Orders</span> Across all profiles
+                </div>
+              </div>
+
+              <div className="metric-card">
+                <div className="metric-header">
+                  <span className="metric-title">Net Revenue (Take-Home 80%)</span>
+                  <TrendingUp size={15} color="#10b981" />
+                </div>
+                <div className="metric-value" style={{ color: 'var(--geist-foreground)' }}>
+                  ${kpis.netAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </div>
+                <div className="metric-footer">
+                  <span className="metric-badge green">-20% Fee (${kpis.platformFee.toFixed(2)})</span> 80% Net profit
+                </div>
+              </div>
+
+              <div className="metric-card">
+                <div className="metric-header">
+                  <span className="metric-title">Work In Progress</span>
+                  <Clock size={15} color="#0284c7" />
+                </div>
+                <div className="metric-value">{kpis.activeWip}</div>
+                <div className="metric-footer">
+                  <span className="metric-badge blue">${kpis.wipVal.toFixed(0)} In Queue</span> Active development
+                </div>
+              </div>
+
+              <div className="metric-card">
+                <div className="metric-header">
+                  <span className="metric-title">Delivery Success Rate</span>
+                  <CheckCircle2 size={15} color="#10b981" />
+                </div>
+                <div className="metric-value">{kpis.rate}%</div>
+                <div className="metric-footer">
+                  <span className="metric-badge green">{kpis.deliveredDone} Delivered</span> Successfully completed
+                </div>
+              </div>
+            </section>
+
+            {/* Secondary KPIs Overview */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
+              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '0.85rem 1rem' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)', textTransform: 'uppercase', fontWeight: 600 }}>Average Order Value</span>
+                <div className="mono-text" style={{ fontSize: '1.2rem', fontWeight: 700, marginTop: 4 }}>
+                  ${kpis.avgOrderValue.toFixed(2)}
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '0.85rem 1rem' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)', textTransform: 'uppercase', fontWeight: 600 }}>Marketplace Profiles</span>
+                <div className="mono-text" style={{ fontSize: '1.2rem', fontWeight: 700, marginTop: 4 }}>
+                  {uniqueProfiles.length} Profiles
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '0.85rem 1rem' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)', textTransform: 'uppercase', fontWeight: 600 }}>Total Completed / Done</span>
+                <div className="mono-text" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#10b981', marginTop: 4 }}>
+                  {kpis.deliveredDone} Orders
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '0.85rem 1rem' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)', textTransform: 'uppercase', fontWeight: 600 }}>5-Star Reviews</span>
+                <div className="mono-text" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f5a623', marginTop: 4 }}>
+                  {projects.filter((p) => (p.review || 0) === 5).length} / {projects.length}
+                </div>
+              </div>
             </div>
-            <div className="metric-value">${kpis.totalGross.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-            <div className="metric-footer">
-              <span className="metric-badge">{projects.length} Orders</span> Total orders in MongoDB
+
+            {/* Analytics Breakdown Grid */}
+            <div className="analytics-grid">
+              {/* Profile Revenue Performance Breakdown */}
+              <div className="analytics-card">
+                <div className="analytics-header">
+                  <span className="analytics-title">
+                    <Briefcase size={16} /> Revenue by Marketplace Profile
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--accents-5)' }}>Gross & Net</span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  {profileStats.map((prof) => {
+                    const percent = kpis.totalGross > 0 ? (prof.gross / kpis.totalGross) * 100 : 0;
+                    return (
+                      <div key={prof.name} className="breakdown-row">
+                        <div className="breakdown-info">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ fontWeight: 600 }}>{prof.name}</span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)' }}>({prof.count} orders)</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <span className="mono-text" style={{ fontWeight: 600 }}>${prof.gross.toFixed(2)}</span>
+                            <span className="mono-text" style={{ color: '#10b981', fontSize: '0.74rem' }}>Net: ${prof.net.toFixed(2)}</span>
+                          </div>
+                        </div>
+                        <div className="progress-bar-bg">
+                          <div className="progress-bar-fill green" style={{ width: `${percent}%` }}></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Monthly Volume Breakdown */}
+              <div className="analytics-card">
+                <div className="analytics-header">
+                  <span className="analytics-title">
+                    <Calendar size={16} /> Monthly Performance Breakdown
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--accents-5)' }}>Revenue / Orders</span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  {monthStats.map((m) => {
+                    const percent = kpis.totalGross > 0 ? (m.gross / kpis.totalGross) * 100 : 0;
+                    return (
+                      <div key={m.month} className="breakdown-row">
+                        <div className="breakdown-info">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ fontWeight: 600 }}>{m.month}</span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)' }}>
+                              ({m.count} orders • {m.completed} completed)
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <span className="mono-text" style={{ fontWeight: 600 }}>${m.gross.toFixed(2)}</span>
+                            <span className="mono-text" style={{ color: '#10b981', fontSize: '0.74rem' }}>Net: ${m.net.toFixed(2)}</span>
+                          </div>
+                        </div>
+                        <div className="progress-bar-bg">
+                          <div className="progress-bar-fill blue" style={{ width: `${percent}%` }}></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Status Distribution Summary */}
+                <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--accents-5)', textTransform: 'uppercase' }}>
+                    Order Status Distribution
+                  </span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', marginTop: '0.5rem' }}>
+                    {Object.entries(statusStats).map(([status, count]) => (
+                      <div key={status} style={{ background: 'var(--input-bg)', border: '1px solid var(--border-default)', padding: '0.25rem 0.55rem', borderRadius: 4, fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span style={{ fontWeight: 500 }}>{status}:</span>
+                        <span className="mono-text" style={{ fontWeight: 700 }}>{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-
-          <div className="metric-card">
-            <div className="metric-header">
-              <span className="metric-title">Net Revenue (Take-Home 80%)</span>
-              <TrendingUp size={15} color="#10b981" />
-            </div>
-            <div className="metric-value" style={{ color: 'var(--geist-foreground)' }}>
-              ${kpis.netAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            </div>
-            <div className="metric-footer">
-              <span className="metric-badge green">-20% Fee Deducted</span> 80% Net profit
-            </div>
-          </div>
-
-          <div className="metric-card">
-            <div className="metric-header">
-              <span className="metric-title">Work In Progress</span>
-              <Clock size={15} color="#0284c7" />
-            </div>
-            <div className="metric-value">{kpis.activeWip}</div>
-            <div className="metric-footer">
-              <span className="metric-badge blue">${kpis.wipVal.toFixed(0)} WIP</span> Active development queue
-            </div>
-          </div>
-
-          <div className="metric-card">
-            <div className="metric-header">
-              <span className="metric-title">Delivery Rate</span>
-              <CheckCircle2 size={15} color="#10b981" />
-            </div>
-            <div className="metric-value">{kpis.rate}%</div>
-            <div className="metric-footer">
-              <span className="metric-badge green">{kpis.deliveredDone} Delivered</span> Successfully completed
-            </div>
-          </div>
-        </section>
-
-        {/* Filter & Search Bar */}
-        <section className="control-bar">
+        ) : (
+          /* Table / Kanban View (Clean without top KPI cards) */
+          <>
+            {/* Filter & Search Bar */}
+            <section className="control-bar">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             <div className="v-input-wrapper">
               <input
@@ -973,6 +1180,8 @@ export default function VercelDashboard() {
             })}
           </div>
         )}
+      </>
+    )}
 
         {/* Modal: Add/Edit Order */}
         {isModalOpen && (
