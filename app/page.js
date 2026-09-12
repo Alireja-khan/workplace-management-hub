@@ -51,9 +51,18 @@ import {
   ChevronUp
 } from 'lucide-react';
 
+const MONTH_LIST = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
 export default function VercelDashboard() {
   const { data: session } = useSession();
   const tableContainerRef = useRef(null);
+
+  const currentCalendarMonth = useMemo(() => {
+    return MONTH_LIST[new Date().getMonth()];
+  }, []);
 
   const [theme, setTheme] = useState('dark');
   const [mounted, setMounted] = useState(false);
@@ -62,7 +71,7 @@ export default function VercelDashboard() {
   const [profilesExpanded, setProfilesExpanded] = useState(false);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentTab, setCurrentTab] = useState('all');
+  const [currentTab, setCurrentTab] = useState(() => MONTH_LIST[new Date().getMonth()]);
   const [currentView, setCurrentView] = useState('table'); // 'table' or 'kanban'
   const [searchQuery, setSearchQuery] = useState('');
   const [profileFilter, setProfileFilter] = useState('all');
@@ -81,7 +90,7 @@ export default function VercelDashboard() {
   // Form State
   const [formData, setFormData] = useState({
     assignDate: new Date().toISOString().split('T')[0],
-    month: 'April',
+    month: MONTH_LIST[new Date().getMonth()],
     clientUsername: '',
     profileName: '',
     instructionSheet: '',
@@ -201,17 +210,23 @@ export default function VercelDashboard() {
     return Object.values(map).sort((a, b) => b.gross - a.gross);
   }, [projects]);
 
+  // Dynamic available months list
+  const availableMonths = useMemo(() => {
+    const set = new Set(projects.map((p) => p.month).filter(Boolean));
+    set.add(currentCalendarMonth);
+    return Array.from(set).sort((a, b) => MONTH_LIST.indexOf(a) - MONTH_LIST.indexOf(b));
+  }, [projects, currentCalendarMonth]);
+
   // Detailed Monthly Performance Stats
   const monthStats = useMemo(() => {
-    const months = ['April', 'May', 'June'];
-    return months.map((m) => {
+    return availableMonths.map((m) => {
       const mProjects = projects.filter((p) => (p.month || '').toLowerCase() === m.toLowerCase());
       const gross = mProjects.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
       const net = gross * 0.8;
       const completed = mProjects.filter((p) => (p.orderStatus || '').toLowerCase() === 'done' || (p.orderStatus || '').toLowerCase() === 'delivered').length;
       return { month: m, count: mProjects.length, gross, net, completed };
     });
-  }, [projects]);
+  }, [projects, availableMonths]);
 
   // Status Distribution
   const statusStats = useMemo(() => {
@@ -317,11 +332,12 @@ export default function VercelDashboard() {
     }
   };
 
-  const openNewModal = () => {
+  const openNewModal = (overrideMonth = null) => {
+    const defaultMonth = overrideMonth || (currentTab !== 'all' && currentTab !== 'running' && currentTab !== 'stats' ? currentTab : currentCalendarMonth);
     setActiveProject(null);
     setFormData({
       assignDate: new Date().toISOString().split('T')[0],
-      month: 'April',
+      month: defaultMonth,
       clientUsername: '',
       profileName: '',
       instructionSheet: '',
@@ -578,17 +594,17 @@ export default function VercelDashboard() {
               <button
                 className="sidebar-expand-btn"
                 onClick={() => setMonthsExpanded(!monthsExpanded)}
-                title={monthsExpanded ? "Show less" : "Show all months"}
+                title={monthsExpanded ? "Show less" : `Show all months (${availableMonths.length})`}
               >
                 <ChevronDown size={14} style={{ transform: monthsExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
               </button>
             </div>
-            {(monthsExpanded ? ['April', 'May', 'June'] : ['April', 'May']).map((m) => {
+            {(monthsExpanded ? availableMonths : availableMonths.slice(0, 2)).map((m) => {
               const count = projects.filter((p) => (p.month || '').toLowerCase() === m.toLowerCase()).length;
               return (
                 <button
                   key={m}
-                  className={`sidebar-nav-item ${currentTab === m ? 'active' : ''}`}
+                  className={`sidebar-nav-item ${currentTab.toLowerCase() === m.toLowerCase() ? 'active' : ''}`}
                   onClick={() => {
                     setCurrentTab(m);
                     setProfileFilter('all');
@@ -1109,7 +1125,7 @@ export default function VercelDashboard() {
             <div className="table-sub-bar">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                 <span className="table-nav-pill">
-                  <SlidersHorizontal size={12} /> {filteredProjects.length} Records
+                  <SlidersHorizontal size={12} /> {currentTab === 'all' ? 'All Orders' : currentTab === 'running' ? 'Running Orders' : `${currentTab} Orders`}: {filteredProjects.length} Records
                 </span>
                 <span style={{ fontSize: '0.74rem', color: 'var(--accents-5)' }}>
                   Scroll down to view orders • Table header stays pinned
@@ -1164,7 +1180,22 @@ export default function VercelDashboard() {
                   {filteredProjects.length === 0 ? (
                     <tr>
                       <td colSpan={14} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
-                        No matching records found.
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--foreground)' }}>
+                            {currentTab === 'all'
+                              ? 'No orders found matching your filters.'
+                              : `No orders recorded for ${currentTab} yet.`}
+                          </span>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--accents-4)' }}>
+                            {currentTab !== 'all' ? (
+                              <>
+                                View <button type="button" onClick={() => setCurrentTab('all')} style={{ color: 'var(--foreground)', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>All Orders</button> or click <button type="button" onClick={() => openNewModal(currentTab)} style={{ color: '#38bdf8', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>+ New Order</button> to add one for {currentTab}.
+                              </>
+                            ) : (
+                              'Try clearing filters or search terms.'
+                            )}
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   ) : (
