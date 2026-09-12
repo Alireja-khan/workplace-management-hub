@@ -7,7 +7,7 @@ import {
   Filter,
   Plus,
   Table as TableIcon,
-  Kanban as KanbanIcon,
+  Columns,
   BarChart3,
   DollarSign,
   Calendar,
@@ -20,7 +20,8 @@ import {
   FileSpreadsheet,
   ChevronDown,
   UserCheck,
-  Briefcase
+  Briefcase,
+  Check
 } from 'lucide-react';
 
 const STATUS_OPTIONS = [
@@ -62,7 +63,7 @@ export default function TeamWorkspaceView({
   // Filtered projects
   const filteredProjects = projects.filter((p) => {
     // Search
-    const term = searchTerm.toLowerCase();
+    const term = (searchTerm || '').toLowerCase();
     const matchesSearch =
       !term ||
       (p.orderNumber && p.orderNumber.toLowerCase().includes(term)) ||
@@ -139,155 +140,176 @@ export default function TeamWorkspaceView({
     }
   });
 
-  const getStatusBadgeClass = (status) => {
+  const getStatusBadgeStyle = (status) => {
     const s = (status || '').toLowerCase();
-    if (s === 'wip') return 'v-status-wip';
-    if (s === 'delivered') return 'v-status-delivered';
-    if (s === 'done') return 'v-status-done';
-    if (s === 'nra') return 'v-status-nra';
-    if (s === 'cancel') return 'v-status-cancel';
-    if (s === 'need requirements' || s.includes('need')) return 'v-status-need';
-    return 'v-status-wip';
+    if (s === 'wip') return { background: 'rgba(2, 132, 199, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)' };
+    if (s === 'delivered') return { background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)' };
+    if (s === 'done') return { background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)' };
+    if (s === 'nra') return { background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.3)' };
+    if (s === 'cancel') return { background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)' };
+    if (s === 'need requirements' || s.includes('need')) return { background: 'rgba(234, 179, 8, 0.15)', color: '#facc15', border: '1px solid rgba(234, 179, 8, 0.3)' };
+    return { background: 'rgba(2, 132, 199, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)' };
   };
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       {/* Top Header & Team Action Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-[#18181B] border border-[#27272A] p-5 rounded-2xl shadow-sm">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#27272A] flex items-center justify-center text-white border border-[#3F3F46]">
-              <Users className="w-5 h-5" />
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          background: 'var(--card-bg)',
+          border: '1px solid var(--border-default)',
+          padding: '1.15rem 1.35rem',
+          borderRadius: 12,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 10,
+              background: 'var(--accents-1)',
+              border: '1px solid var(--border-highlight)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--geist-foreground)',
+            }}
+          >
+            <Users size={20} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
+                EleSquad Team Workspace
+              </h2>
+              <span
+                style={{
+                  fontSize: '0.68rem',
+                  padding: '0.15rem 0.5rem',
+                  borderRadius: 999,
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  color: '#10b981',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                }}
+              >
+                SMT 2025-2026
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-white tracking-tight">
-                  EleSquad Team Workspace
-                </h1>
-                <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">
-                  SMT 2025-2026
-                </span>
-              </div>
-              <p className="text-xs text-[#A1A1AA] mt-0.5">
-                Centralized team order pipeline, multi-member assignments & 80% net tracking
-              </p>
-            </div>
+            <p style={{ fontSize: '0.76rem', color: 'var(--accents-5)', margin: '2px 0 0 0' }}>
+              Centralized team order pipeline, multi-member assignments & 80% net tracking
+            </p>
           </div>
         </div>
 
         {/* View Switcher & Add Button */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center bg-[#09090B] p-1 rounded-xl border border-[#27272A]">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+          <div className="segmented-nav">
             <button
+              className={`segmented-item ${activeTab === 'table' ? 'active' : ''}`}
               onClick={() => handleTabChange('table')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                activeTab === 'table'
-                  ? 'bg-[#27272A] text-white shadow-sm'
-                  : 'text-[#A1A1AA] hover:text-white'
-              }`}
             >
-              <TableIcon className="w-3.5 h-3.5" />
-              Sheet Table
+              <TableIcon size={13} style={{ marginRight: 4 }} /> Sheet Table
             </button>
             <button
+              className={`segmented-item ${activeTab === 'kanban' ? 'active' : ''}`}
               onClick={() => handleTabChange('kanban')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                activeTab === 'kanban'
-                  ? 'bg-[#27272A] text-white shadow-sm'
-                  : 'text-[#A1A1AA] hover:text-white'
-              }`}
             >
-              <KanbanIcon className="w-3.5 h-3.5" />
-              Kanban
+              <Columns size={13} style={{ marginRight: 4 }} /> Kanban
             </button>
             <button
+              className={`segmented-item ${activeTab === 'analytics' ? 'active' : ''}`}
               onClick={() => handleTabChange('analytics')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                activeTab === 'analytics'
-                  ? 'bg-[#27272A] text-white shadow-sm'
-                  : 'text-[#A1A1AA] hover:text-white'
-              }`}
             >
-              <BarChart3 className="w-3.5 h-3.5" />
-              Team Stats
+              <BarChart3 size={13} style={{ marginRight: 4 }} /> Team Stats
             </button>
           </div>
 
-          <button
-            onClick={onOpenAddModal}
-            className="flex items-center gap-2 px-4 py-2 bg-white text-black hover:bg-[#F4F4F5] rounded-xl text-xs font-semibold transition-all shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Add Team Order
+          <button className="btn-v btn-v-primary" onClick={onOpenAddModal} style={{ gap: '0.4rem' }}>
+            <Plus size={14} /> Add Team Order
           </button>
         </div>
       </div>
 
       {/* Summary KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <div className="bg-[#18181B] border border-[#27272A] p-4 rounded-xl">
-          <div className="text-xs font-medium text-[#A1A1AA] flex items-center justify-between">
-            <span>Total Orders</span>
-            <FileSpreadsheet className="w-4 h-4 text-[#71717A]" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '0.85rem' }}>
+        <div className="metric-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)', fontWeight: 500 }}>Total Orders</span>
+            <FileSpreadsheet size={16} color="var(--accents-5)" />
           </div>
-          <div className="text-xl font-bold text-white mt-1.5">{totalOrders}</div>
-          <div className="text-[11px] text-[#71717A] mt-0.5">Matched filters</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, lineHeight: 1.1 }}>{totalOrders}</div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--accents-5)' }}>Filtered count</div>
         </div>
 
-        <div className="bg-[#18181B] border border-[#27272A] p-4 rounded-xl">
-          <div className="text-xs font-medium text-[#A1A1AA] flex items-center justify-between">
-            <span>Gross Amount</span>
-            <DollarSign className="w-4 h-4 text-emerald-400" />
+        <div className="metric-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)', fontWeight: 500 }}>Gross Amount</span>
+            <DollarSign size={16} color="#10b981" />
           </div>
-          <div className="text-xl font-bold text-white mt-1.5">
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981', lineHeight: 1.1 }}>
             ${totalGross.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div className="text-[11px] text-emerald-400/80 mt-0.5">100% Client Total</div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--accents-5)' }}>100% Client Total</div>
         </div>
 
-        <div className="bg-[#18181B] border border-[#27272A] p-4 rounded-xl">
-          <div className="text-xs font-medium text-[#A1A1AA] flex items-center justify-between">
-            <span>Net Share (80%)</span>
-            <DollarSign className="w-4 h-4 text-blue-400" />
+        <div className="metric-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)', fontWeight: 500 }}>Net Share (80%)</span>
+            <DollarSign size={16} color="#38bdf8" />
           </div>
-          <div className="text-xl font-bold text-white mt-1.5">
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#38bdf8', lineHeight: 1.1 }}>
             ${totalNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div className="text-[11px] text-[#A1A1AA] mt-0.5">Net team payout pool</div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--accents-5)' }}>Net team payout pool</div>
         </div>
 
-        <div className="bg-[#18181B] border border-[#27272A] p-4 rounded-xl">
-          <div className="text-xs font-medium text-[#A1A1AA] flex items-center justify-between">
-            <span>In Progress (WIP)</span>
-            <Clock className="w-4 h-4 text-amber-400" />
+        <div className="metric-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)', fontWeight: 500 }}>In Progress (WIP)</span>
+            <Clock size={16} color="#f5a623" />
           </div>
-          <div className="text-xl font-bold text-amber-400 mt-1.5">{wipOrders}</div>
-          <div className="text-[11px] text-[#71717A] mt-0.5">Active delivery queue</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f5a623', lineHeight: 1.1 }}>{wipOrders}</div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--accents-5)' }}>Active delivery queue</div>
         </div>
 
-        <div className="bg-[#18181B] border border-[#27272A] p-4 rounded-xl col-span-2 md:col-span-1">
-          <div className="text-xs font-medium text-[#A1A1AA] flex items-center justify-between">
-            <span>Delivered / Done</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="metric-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)', fontWeight: 500 }}>Delivered / Done</span>
+            <CheckCircle2 size={16} color="#10b981" />
           </div>
-          <div className="text-xl font-bold text-emerald-400 mt-1.5">{doneOrders}</div>
-          <div className="text-[11px] text-[#71717A] mt-0.5">Completed successfully</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981', lineHeight: 1.1 }}>{doneOrders}</div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--accents-5)' }}>Completed orders</div>
         </div>
       </div>
 
-      {/* Member Quick Filter Pills Bar */}
-      <div className="bg-[#18181B] border border-[#27272A] p-3 rounded-xl flex items-center gap-2 overflow-x-auto">
-        <span className="text-xs font-semibold text-[#71717A] uppercase tracking-wider flex items-center gap-1.5 pl-1 pr-2 shrink-0">
-          <UserCheck className="w-3.5 h-3.5 text-[#A1A1AA]" />
-          Assignee:
-        </span>
+      {/* Member Quick Filter Bar */}
+      <div
+        style={{
+          background: 'var(--card-bg)',
+          border: '1px solid var(--border-default)',
+          padding: '0.65rem 0.85rem',
+          borderRadius: 10,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.45rem',
+          overflowX: 'auto',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--accents-5)', fontSize: '0.74rem', fontWeight: 600, textTransform: 'uppercase', paddingRight: '0.35rem', flexShrink: 0 }}>
+          <UserCheck size={14} /> Assignee:
+        </div>
         <button
           onClick={() => setSelectedMember('All')}
-          className={`px-3 py-1 rounded-lg text-xs font-medium shrink-0 transition-all ${
-            selectedMember === 'All'
-              ? 'bg-white text-black font-semibold shadow-sm'
-              : 'bg-[#27272A] text-[#A1A1AA] hover:text-white hover:bg-[#3F3F46]'
-          }`}
+          className={`btn-v ${selectedMember === 'All' ? 'btn-v-primary' : 'btn-v-secondary'}`}
+          style={{ height: 28, padding: '0 0.65rem', fontSize: '0.74rem', flexShrink: 0 }}
         >
           All Members ({projects.length})
         </button>
@@ -295,19 +317,18 @@ export default function TeamWorkspaceView({
           <button
             key={m}
             onClick={() => setSelectedMember(m)}
-            className={`px-3 py-1 rounded-lg text-xs font-medium shrink-0 transition-all flex items-center gap-1.5 ${
-              selectedMember.toLowerCase() === m.toLowerCase()
-                ? 'bg-white text-black font-semibold shadow-sm'
-                : 'bg-[#27272A] text-[#A1A1AA] hover:text-white hover:bg-[#3F3F46]'
-            }`}
+            className={`btn-v ${selectedMember.toLowerCase() === m.toLowerCase() ? 'btn-v-primary' : 'btn-v-secondary'}`}
+            style={{ height: 28, padding: '0 0.65rem', fontSize: '0.74rem', flexShrink: 0, gap: '0.35rem' }}
           >
             <span>{m}</span>
             <span
-              className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                selectedMember.toLowerCase() === m.toLowerCase()
-                  ? 'bg-black text-white'
-                  : 'bg-[#18181B] text-[#A1A1AA]'
-              }`}
+              style={{
+                fontSize: '0.65rem',
+                padding: '0.05rem 0.35rem',
+                borderRadius: 999,
+                background: selectedMember.toLowerCase() === m.toLowerCase() ? 'rgba(0,0,0,0.25)' : 'var(--accents-2)',
+                color: selectedMember.toLowerCase() === m.toLowerCase() ? '#fff' : 'var(--accents-5)',
+              }}
             >
               {memberCounts[m]}
             </span>
@@ -315,27 +336,23 @@ export default function TeamWorkspaceView({
         ))}
       </div>
 
-      {/* Filters Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      {/* Search & Filter Controls */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.65rem' }}>
         {/* Search */}
-        <div className="relative md:col-span-2">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#71717A]" />
+        <div className="search-bar" style={{ minWidth: 260 }}>
+          <Search size={14} />
           <input
             type="text"
-            placeholder="Search Order #, Client ID, Profile, Member, Remark..."
+            placeholder="Search Order #, Client, Profile, Member..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-[#71717A] focus:outline-none focus:border-white transition-all"
           />
         </div>
 
         {/* Status Filter */}
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3.5 py-2.5 text-xs text-white appearance-none focus:outline-none focus:border-white transition-all cursor-pointer"
-          >
+        <div className="filter-group">
+          <label>Status:</label>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="All">All Statuses</option>
             {STATUS_OPTIONS.map((st) => (
               <option key={st} value={st}>
@@ -343,15 +360,14 @@ export default function TeamWorkspaceView({
               </option>
             ))}
           </select>
-          <ChevronDown className="w-3.5 h-3.5 absolute right-3.5 top-1/2 -translate-y-1/2 text-[#71717A] pointer-events-none" />
         </div>
 
         {/* Sales Person Filter */}
-        <div className="relative">
+        <div className="filter-group">
+          <label>Sales:</label>
           <select
             value={selectedSalesPerson}
             onChange={(e) => setSelectedSalesPerson(e.target.value)}
-            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3.5 py-2.5 text-xs text-white appearance-none focus:outline-none focus:border-white transition-all cursor-pointer"
           >
             <option value="All">All Sales Persons</option>
             {Object.keys(salesCounts).map((sp) => (
@@ -360,56 +376,50 @@ export default function TeamWorkspaceView({
               </option>
             ))}
           </select>
-          <ChevronDown className="w-3.5 h-3.5 absolute right-3.5 top-1/2 -translate-y-1/2 text-[#71717A] pointer-events-none" />
         </div>
       </div>
 
       {/* Main Content Area */}
       {isLoading ? (
-        <div className="bg-[#18181B] border border-[#27272A] rounded-2xl p-16 flex flex-col items-center justify-center">
-          <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-          <p className="text-xs text-[#A1A1AA] mt-4 font-medium">
-            Loading team pipeline data...
-          </p>
+        <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-default)', borderRadius: 12, padding: '3rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.85rem' }}>
+          <div className="status-saving-spinner" style={{ width: 28, height: 28, borderWidth: 3 }} />
+          <span style={{ fontSize: '0.82rem', color: 'var(--accents-5)' }}>Loading EleSquad pipeline...</span>
         </div>
       ) : filteredProjects.length === 0 ? (
-        <div className="bg-[#18181B] border border-[#27272A] rounded-2xl p-16 text-center">
-          <FileSpreadsheet className="w-12 h-12 text-[#71717A] mx-auto mb-3 opacity-60" />
-          <h3 className="text-base font-semibold text-white">No team orders found</h3>
-          <p className="text-xs text-[#A1A1AA] mt-1 max-w-sm mx-auto">
+        <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-default)', borderRadius: 12, padding: '3.5rem 1rem', textAlign: 'center' }}>
+          <FileSpreadsheet size={40} color="var(--accents-4)" style={{ margin: '0 auto 0.75rem auto' }} />
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 600 }}>No team orders found</h3>
+          <p style={{ fontSize: '0.78rem', color: 'var(--accents-5)', marginTop: 4 }}>
             Try adjusting your search query, status filters, or assigned team member selection.
           </p>
-          <button
-            onClick={onOpenAddModal}
-            className="mt-4 px-4 py-2 bg-white text-black font-semibold text-xs rounded-xl hover:bg-[#F4F4F5] transition-all"
-          >
-            Create First Team Order
+          <button onClick={onOpenAddModal} className="btn-v btn-v-primary" style={{ marginTop: '1rem', display: 'inline-flex' }}>
+            <Plus size={13} /> Add New Team Order
           </button>
         </div>
       ) : activeTab === 'table' ? (
         /* TABLE VIEW (Google Sheet Columns) */
-        <div className="bg-[#18181B] border border-[#27272A] rounded-2xl overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-[#E4E4E7] border-collapse min-w-[1200px]">
+        <div className="table-wrapper">
+          <div className="sticky-table-container">
+            <table className="v-table">
               <thead>
-                <tr className="bg-[#121214] border-b border-[#27272A] text-[11px] font-semibold text-[#A1A1AA] uppercase tracking-wider">
-                  <th className="py-3.5 px-4 font-semibold">Assign Date</th>
-                  <th className="py-3.5 px-3 font-semibold">Sales Person</th>
-                  <th className="py-3.5 px-3 font-semibold">Profile</th>
-                  <th className="py-3.5 px-3 font-semibold">Client ID</th>
-                  <th className="py-3.5 px-3 font-semibold">Order #</th>
-                  <th className="py-3.5 px-3 font-semibold text-right">Amount</th>
-                  <th className="py-3.5 px-3 font-semibold text-right">Net (80%)</th>
-                  <th className="py-3.5 px-4 font-semibold">Assigned Members</th>
-                  <th className="py-3.5 px-3 font-semibold">Est. Deli</th>
-                  <th className="py-3.5 px-3 font-semibold">Deli Date</th>
-                  <th className="py-3.5 px-3 font-semibold">Status</th>
-                  <th className="py-3.5 px-3 font-semibold">Links / Payout</th>
-                  <th className="py-3.5 px-4 font-semibold">Remark</th>
-                  <th className="py-3.5 px-4 font-semibold text-right">Actions</th>
+                <tr>
+                  <th style={{ width: 100 }}>Assign Date</th>
+                  <th style={{ width: 110 }}>Sales Person</th>
+                  <th style={{ width: 90 }}>Profile</th>
+                  <th style={{ width: 120 }}>Client ID</th>
+                  <th style={{ width: 130 }}>Order #</th>
+                  <th style={{ width: 90, textAlign: 'right' }}>Amount</th>
+                  <th style={{ width: 90, textAlign: 'right' }}>Net (80%)</th>
+                  <th style={{ width: 180 }}>Assigned Members</th>
+                  <th style={{ width: 100 }}>Est. Deli</th>
+                  <th style={{ width: 100 }}>Deli Date</th>
+                  <th style={{ width: 120 }}>Status</th>
+                  <th style={{ width: 90 }}>Sheet / Payout</th>
+                  <th style={{ width: 150 }}>Remark</th>
+                  <th style={{ width: 80, textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#27272A]">
+              <tbody>
                 {filteredProjects.map((p) => {
                   const gross = parseFloat(p.amount) || 0;
                   const net = parseFloat(p.netAmount) || gross * 0.8;
@@ -418,64 +428,93 @@ export default function TeamWorkspaceView({
                     : [];
 
                   return (
-                    <tr
-                      key={p._id}
-                      className="hover:bg-[#27272A]/50 transition-colors group"
-                    >
-                      {/* Assign Date & Month */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="font-medium text-white">{p.assignDate || '—'}</div>
-                        <div className="text-[10px] text-[#71717A]">{p.month || ''}</div>
+                    <tr key={p._id}>
+                      {/* Assign Date */}
+                      <td>
+                        <div style={{ fontWeight: 600, color: 'var(--geist-foreground)' }}>
+                          {p.assignDate || '—'}
+                        </div>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--accents-5)' }}>
+                          {p.month || ''}
+                        </div>
                       </td>
 
                       {/* Sales Person */}
-                      <td className="py-3.5 px-3 whitespace-nowrap">
-                        <span className="font-medium text-[#D4D4D8]">
+                      <td>
+                        <span style={{ fontWeight: 500, color: 'var(--geist-foreground)' }}>
                           {p.salesPerson || '—'}
                         </span>
                       </td>
 
                       {/* Profile Name */}
-                      <td className="py-3.5 px-3 whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded bg-[#27272A] text-[#A1A1AA] text-[11px] font-mono">
+                      <td>
+                        <span
+                          style={{
+                            fontSize: '0.72rem',
+                            fontFamily: 'var(--font-mono)',
+                            background: 'var(--accents-1)',
+                            padding: '0.15rem 0.4rem',
+                            borderRadius: 4,
+                            border: '1px solid var(--border-subtle)',
+                          }}
+                        >
                           {p.profileName || '—'}
                         </span>
                       </td>
 
                       {/* Client User ID */}
-                      <td className="py-3.5 px-3 whitespace-nowrap">
-                        <span className="font-medium text-white">{p.clientUserId || '—'}</span>
+                      <td>
+                        <span style={{ fontWeight: 600, color: 'var(--geist-foreground)' }}>
+                          {p.clientUserId || '—'}
+                        </span>
                       </td>
 
                       {/* Order Number */}
-                      <td className="py-3.5 px-3 whitespace-nowrap font-mono text-white font-semibold">
-                        {p.orderNumber || '—'}
+                      <td>
+                        <span
+                          style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            color: 'var(--geist-foreground)',
+                          }}
+                        >
+                          {p.orderNumber || '—'}
+                        </span>
                       </td>
 
                       {/* Gross Amount */}
-                      <td className="py-3.5 px-3 whitespace-nowrap text-right font-medium text-emerald-400">
+                      <td style={{ textAlign: 'right', fontWeight: 600, color: '#10b981' }}>
                         ${gross.toFixed(2)}
                       </td>
 
                       {/* Net Amount (80%) */}
-                      <td className="py-3.5 px-3 whitespace-nowrap text-right font-semibold text-blue-400">
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>
                         ${net.toFixed(2)}
                       </td>
 
                       {/* Assigned Members (Multi-Tag) */}
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-1.5 flex-wrap max-w-[200px]">
+                      <td>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
                           {members.length > 0 ? (
                             members.map((m, idx) => (
                               <span
                                 key={idx}
-                                className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#27272A] text-[#E4E4E7] border border-[#3F3F46]"
+                                style={{
+                                  fontSize: '0.68rem',
+                                  padding: '0.1rem 0.45rem',
+                                  borderRadius: 999,
+                                  background: 'var(--accents-2)',
+                                  color: 'var(--geist-foreground)',
+                                  border: '1px solid var(--border-default)',
+                                  fontWeight: 500,
+                                }}
                               >
                                 {m}
                               </span>
                             ))
                           ) : (
-                            <span className="text-[#71717A] italic text-[11px]">
+                            <span style={{ color: 'var(--accents-4)', fontStyle: 'italic', fontSize: '0.72rem' }}>
                               Unassigned
                             </span>
                           )}
@@ -483,29 +522,35 @@ export default function TeamWorkspaceView({
                       </td>
 
                       {/* Est. Delivery */}
-                      <td className="py-3.5 px-3 whitespace-nowrap text-[#A1A1AA]">
+                      <td style={{ color: 'var(--accents-5)', fontSize: '0.75rem' }}>
                         {p.estimatedDeliveryDate || '—'}
                       </td>
 
                       {/* Deli Date */}
-                      <td className="py-3.5 px-3 whitespace-nowrap text-[#A1A1AA]">
+                      <td style={{ color: 'var(--accents-5)', fontSize: '0.75rem' }}>
                         {p.deliveryDate || '—'}
                       </td>
 
                       {/* Status with Quick Select */}
-                      <td className="py-3.5 px-3 whitespace-nowrap">
+                      <td>
                         <select
                           value={p.status || 'Wip'}
                           onChange={(e) =>
                             onQuickUpdateStatus &&
                             onQuickUpdateStatus(p._id, e.target.value)
                           }
-                          className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer appearance-none ${getStatusBadgeClass(
-                            p.status
-                          )}`}
+                          style={{
+                            ...getStatusBadgeStyle(p.status),
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            padding: '0.2rem 0.5rem',
+                            borderRadius: 999,
+                            cursor: 'pointer',
+                            outline: 'none',
+                          }}
                         >
                           {STATUS_OPTIONS.map((st) => (
-                            <option key={st} value={st} className="bg-[#18181B] text-white">
+                            <option key={st} value={st} style={{ background: 'var(--card-bg)', color: 'var(--geist-foreground)' }}>
                               {st}
                             </option>
                           ))}
@@ -513,48 +558,51 @@ export default function TeamWorkspaceView({
                       </td>
 
                       {/* Sheet Link / Payout */}
-                      <td className="py-3.5 px-3 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                           {p.sheetLink ? (
                             <a
                               href={p.sheetLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="p-1 rounded bg-[#27272A] hover:bg-[#3F3F46] text-[#A1A1AA] hover:text-white transition-colors"
+                              className="btn-v-ghost"
+                              style={{ padding: 3 }}
                               title="Open External Sheet"
                             >
-                              <ExternalLink className="w-3.5 h-3.5" />
+                              <ExternalLink size={13} />
                             </a>
                           ) : null}
                           {p.percentage ? (
-                            <span className="text-[10px] text-[#A1A1AA] font-mono">
-                              {p.percentage}
+                            <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: 'var(--accents-5)' }}>
+                              ${p.percentage}
                             </span>
                           ) : null}
                         </div>
                       </td>
 
                       {/* Remark */}
-                      <td className="py-3.5 px-4 max-w-[180px] truncate text-[#A1A1AA]">
+                      <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.75rem', color: 'var(--accents-6)' }}>
                         {p.remark || '—'}
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: '0.25rem' }}>
                           <button
+                            className="btn-v-ghost"
+                            style={{ padding: 3 }}
                             onClick={() => onEditProject(p)}
-                            className="p-1.5 rounded-lg text-[#A1A1AA] hover:text-white hover:bg-[#27272A] transition-colors"
                             title="Edit Team Order"
                           >
-                            <Edit2 className="w-3.5 h-3.5" />
+                            <Edit2 size={13} />
                           </button>
                           <button
+                            className="btn-v-ghost"
+                            style={{ padding: 3, color: '#ef4444' }}
                             onClick={() => onDeleteProject(p._id)}
-                            className="p-1.5 rounded-lg text-[#A1A1AA] hover:text-red-400 hover:bg-red-950/40 transition-colors"
                             title="Delete Order"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </td>
@@ -567,7 +615,7 @@ export default function TeamWorkspaceView({
         </div>
       ) : activeTab === 'kanban' ? (
         /* KANBAN BOARD VIEW */
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3.5 items-start">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', alignItems: 'start' }}>
           {STATUS_OPTIONS.map((columnStatus) => {
             const columnProjects = filteredProjects.filter(
               (p) =>
@@ -581,39 +629,67 @@ export default function TeamWorkspaceView({
             return (
               <div
                 key={columnStatus}
-                className="bg-[#18181B] border border-[#27272A] rounded-xl p-3 flex flex-col min-h-[400px]"
+                style={{
+                  background: 'var(--card-bg)',
+                  border: '1px solid var(--border-default)',
+                  borderRadius: 10,
+                  padding: '0.85rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                  minHeight: 350,
+                }}
               >
                 {/* Column Header */}
-                <div className="flex items-center justify-between pb-2.5 border-b border-[#27272A] mb-3">
-                  <div className="flex items-center gap-1.5">
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    paddingBottom: '0.5rem',
+                    borderBottom: '1px solid var(--border-subtle)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                     <span
-                      className={`w-2 h-2 rounded-full ${
-                        columnStatus === 'Wip'
-                          ? 'bg-amber-400'
-                          : columnStatus === 'Done' ||
-                            columnStatus === 'Delivered'
-                          ? 'bg-emerald-400'
-                          : columnStatus === 'Cancel'
-                          ? 'bg-red-400'
-                          : columnStatus === 'NRA'
-                          ? 'bg-purple-400'
-                          : 'bg-blue-400'
-                      }`}
-                    ></span>
-                    <span className="text-xs font-bold text-white">
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background:
+                          columnStatus === 'Wip'
+                            ? '#0284c7'
+                            : columnStatus === 'Done' || columnStatus === 'Delivered'
+                            ? '#10b981'
+                            : columnStatus === 'Cancel'
+                            ? '#ef4444'
+                            : columnStatus === 'NRA'
+                            ? '#a855f7'
+                            : '#eab308',
+                      }}
+                    />
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>
                       {columnStatus}
                     </span>
-                    <span className="text-[10px] bg-[#27272A] text-[#A1A1AA] px-1.5 py-0.2 rounded-full">
+                    <span
+                      style={{
+                        fontSize: '0.68rem',
+                        padding: '0.05rem 0.35rem',
+                        borderRadius: 999,
+                        background: 'var(--accents-2)',
+                        color: 'var(--accents-6)',
+                      }}
+                    >
                       {columnProjects.length}
                     </span>
                   </div>
-                  <span className="text-[11px] font-semibold text-emerald-400">
+                  <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#10b981' }}>
                     ${columnGross.toFixed(0)}
                   </span>
                 </div>
 
                 {/* Cards */}
-                <div className="space-y-2.5 flex-1">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', flex: 1 }}>
                   {columnProjects.map((p) => {
                     const gross = parseFloat(p.amount) || 0;
                     const net = parseFloat(p.netAmount) || gross * 0.8;
@@ -624,28 +700,36 @@ export default function TeamWorkspaceView({
                     return (
                       <div
                         key={p._id}
-                        className="bg-[#09090B] border border-[#27272A] hover:border-[#3F3F46] rounded-xl p-3 space-y-2.5 transition-all shadow-sm"
+                        className="v-kanban-card"
+                        style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="font-mono text-xs font-bold text-white">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 700 }}>
                             {p.orderNumber || 'No Order #'}
                           </span>
-                          <span className="text-[11px] font-bold text-emerald-400">
+                          <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#10b981' }}>
                             ${gross}
                           </span>
                         </div>
 
-                        <div className="text-[11px] text-[#A1A1AA] flex items-center justify-between">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--accents-5)' }}>
                           <span>{p.clientUserId || 'Client'}</span>
-                          <span className="text-blue-400 font-medium">Net: ${net.toFixed(0)}</span>
+                          <span style={{ color: '#38bdf8', fontWeight: 600 }}>Net: ${net.toFixed(0)}</span>
                         </div>
 
                         {/* Assigned Members */}
-                        <div className="flex items-center gap-1 flex-wrap pt-1">
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
                           {members.map((m, idx) => (
                             <span
                               key={idx}
-                              className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#18181B] text-[#D4D4D8] border border-[#27272A]"
+                              style={{
+                                fontSize: '0.65rem',
+                                padding: '0.08rem 0.4rem',
+                                borderRadius: 4,
+                                background: 'var(--accents-1)',
+                                border: '1px solid var(--border-subtle)',
+                                color: 'var(--geist-foreground)',
+                              }}
                             >
                               {m}
                             </span>
@@ -653,20 +737,32 @@ export default function TeamWorkspaceView({
                         </div>
 
                         {/* Date & Action Footer */}
-                        <div className="flex items-center justify-between pt-1.5 border-t border-[#27272A]/80 text-[10px] text-[#71717A]">
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            paddingTop: '0.35rem',
+                            borderTop: '1px solid var(--border-subtle)',
+                            fontSize: '0.7rem',
+                            color: 'var(--accents-5)',
+                          }}
+                        >
                           <span>{p.estimatedDeliveryDate || p.assignDate || ''}</span>
-                          <div className="flex items-center gap-1">
+                          <div style={{ display: 'flex', gap: '0.25rem' }}>
                             <button
+                              className="btn-v-ghost"
+                              style={{ padding: 2 }}
                               onClick={() => onEditProject(p)}
-                              className="p-1 hover:text-white transition-colors"
                             >
-                              <Edit2 className="w-3 h-3" />
+                              <Edit2 size={11} />
                             </button>
                             <button
+                              className="btn-v-ghost"
+                              style={{ padding: 2, color: '#ef4444' }}
                               onClick={() => onDeleteProject(p._id)}
-                              className="p-1 hover:text-red-400 transition-colors"
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 size={11} />
                             </button>
                           </div>
                         </div>
@@ -680,14 +776,23 @@ export default function TeamWorkspaceView({
         </div>
       ) : (
         /* ANALYTICS / TEAM PERFORMANCE VIEW */
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
           {/* Member Workload Breakdown */}
-          <div className="bg-[#18181B] border border-[#27272A] p-5 rounded-2xl space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Users className="w-4 h-4 text-[#A1A1AA]" />
-              Member Workload & Order Volume
+          <div
+            style={{
+              background: 'var(--card-bg)',
+              border: '1px solid var(--border-default)',
+              padding: '1.25rem',
+              borderRadius: 12,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem',
+            }}
+          >
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Users size={16} color="var(--accents-5)" /> Member Workload & Order Volume
             </h3>
-            <div className="space-y-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               {memberList.map((member) => {
                 const count = memberCounts[member] || 0;
                 const pct = Math.round((count / (projects.length || 1)) * 100);
@@ -700,23 +805,33 @@ export default function TeamWorkspaceView({
                   .reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
 
                 return (
-                  <div key={member} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-white">{member}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-emerald-400 font-medium">
-                          ${memberGross.toFixed(0)}
-                        </span>
-                        <span className="text-[#A1A1AA]">
+                  <div key={member} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+                      <span style={{ fontWeight: 600 }}>{member}</span>
+                      <div style={{ display: 'flex', gap: '0.65rem' }}>
+                        <span style={{ color: '#10b981', fontWeight: 600 }}>${memberGross.toFixed(0)}</span>
+                        <span style={{ color: 'var(--accents-5)' }}>
                           {count} orders ({pct}%)
                         </span>
                       </div>
                     </div>
-                    <div className="w-full bg-[#27272A] h-2 rounded-full overflow-hidden">
+                    <div
+                      style={{
+                        width: '100%',
+                        height: 6,
+                        borderRadius: 999,
+                        background: 'var(--accents-2)',
+                        overflow: 'hidden',
+                      }}
+                    >
                       <div
-                        className="bg-white h-full rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(pct * 2, 100)}%` }}
-                      ></div>
+                        style={{
+                          width: `${Math.min(pct * 2, 100)}%`,
+                          height: '100%',
+                          background: 'var(--geist-foreground)',
+                          borderRadius: 999,
+                        }}
+                      />
                     </div>
                   </div>
                 );
@@ -725,12 +840,21 @@ export default function TeamWorkspaceView({
           </div>
 
           {/* Sales Person Breakdown */}
-          <div className="bg-[#18181B] border border-[#27272A] p-5 rounded-2xl space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Briefcase className="w-4 h-4 text-[#A1A1AA]" />
-              Sales Person Pipeline Share
+          <div
+            style={{
+              background: 'var(--card-bg)',
+              border: '1px solid var(--border-default)',
+              padding: '1.25rem',
+              borderRadius: 12,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem',
+            }}
+          >
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Briefcase size={16} color="var(--accents-5)" /> Sales Person Pipeline Share
             </h3>
-            <div className="space-y-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               {Object.keys(salesCounts).map((sp) => {
                 const count = salesCounts[sp];
                 const pct = Math.round((count / (projects.length || 1)) * 100);
@@ -739,23 +863,33 @@ export default function TeamWorkspaceView({
                   .reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
 
                 return (
-                  <div key={sp} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-white">{sp}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-emerald-400 font-medium">
-                          ${spGross.toFixed(0)}
-                        </span>
-                        <span className="text-[#A1A1AA]">
+                  <div key={sp} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+                      <span style={{ fontWeight: 600 }}>{sp}</span>
+                      <div style={{ display: 'flex', gap: '0.65rem' }}>
+                        <span style={{ color: '#10b981', fontWeight: 600 }}>${spGross.toFixed(0)}</span>
+                        <span style={{ color: 'var(--accents-5)' }}>
                           {count} orders ({pct}%)
                         </span>
                       </div>
                     </div>
-                    <div className="w-full bg-[#27272A] h-2 rounded-full overflow-hidden">
+                    <div
+                      style={{
+                        width: '100%',
+                        height: 6,
+                        borderRadius: 999,
+                        background: 'var(--accents-2)',
+                        overflow: 'hidden',
+                      }}
+                    >
                       <div
-                        className="bg-emerald-400 h-full rounded-full transition-all duration-500"
-                        style={{ width: `${pct}%` }}
-                      ></div>
+                        style={{
+                          width: `${pct}%`,
+                          height: '100%',
+                          background: '#10b981',
+                          borderRadius: 999,
+                        }}
+                      />
                     </div>
                   </div>
                 );

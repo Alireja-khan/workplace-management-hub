@@ -1431,18 +1431,18 @@ export default function VercelDashboard() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {/* Workspace Toggle Pill */}
-            <div className="workspace-switcher" style={{ marginRight: '0.25rem' }}>
+            <div className="segmented-nav" style={{ marginRight: '0.25rem' }}>
               <button
-                className={`workspace-tab ${workspaceMode === 'personal' ? 'active' : ''}`}
+                className={`segmented-item ${workspaceMode === 'personal' ? 'active' : ''}`}
                 onClick={() => setWorkspaceMode('personal')}
               >
-                Personal
+                <Briefcase size={12} style={{ marginRight: 4 }} /> Personal
               </button>
               <button
-                className={`workspace-tab ${workspaceMode === 'team' ? 'active' : ''}`}
+                className={`segmented-item ${workspaceMode === 'team' ? 'active' : ''}`}
                 onClick={() => setWorkspaceMode('team')}
               >
-                EleSquad
+                <Users size={12} style={{ marginRight: 4 }} /> EleSquad
               </button>
             </div>
 

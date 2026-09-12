@@ -1780,37 +1780,42 @@ body {
   border-radius: var(--radius-md);
   padding: 3px;
   gap: 3px;
-  margin-bottom: 0.65rem;
+  width: 100%;
 }
 
+.workspace-switcher .workspace-tab,
 .workspace-switcher-btn {
   flex: 1;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
-  padding: 0.45rem 0.65rem;
+  padding: 0.42rem 0.65rem;
   font-size: 0.76rem;
   font-weight: 500;
   color: var(--accents-5);
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
+  user-select: none;
 }
 
+.workspace-switcher .workspace-tab:hover:not(.active),
 .workspace-switcher-btn:hover:not(.active) {
   color: var(--geist-foreground);
+  background: var(--accents-1);
 }
 
+.workspace-switcher .workspace-tab.active,
 .workspace-switcher-btn.active {
-  background: var(--geist-background);
+  background: var(--card-bg);
   color: var(--geist-foreground);
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-highlight);
 }
 
 /* ==========================================================================
