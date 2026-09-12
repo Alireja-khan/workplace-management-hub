@@ -312,44 +312,23 @@ body {
 }
 
 .sidebar-expand-btn {
-  background: transparent;
-  border: none;
-  color: var(--accents-4);
+  background: var(--accents-2);
+  border: 1px solid var(--border-default);
+  color: var(--geist-foreground);
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 2px 4px;
+  padding: 3px 6px;
   border-radius: 4px;
-  transition: color 0.15s ease, background-color 0.15s ease;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .sidebar-expand-btn:hover {
-  color: var(--geist-foreground);
-  background: var(--accents-1);
-}
-
-.sidebar-more-btn {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.35rem 0.65rem;
-  font-size: 0.74rem;
-  font-weight: 500;
-  color: var(--accents-5);
-  background: transparent;
-  border: 1px dashed var(--border-default);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  width: 100%;
-  transition: all 0.15s ease;
-  margin-top: 0.2rem;
-}
-
-.sidebar-more-btn:hover {
-  background: var(--accents-1);
-  color: var(--geist-foreground);
+  background: var(--accents-3);
   border-color: var(--border-highlight);
+  color: var(--geist-foreground);
 }
 
 .sidebar-footer {

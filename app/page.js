@@ -559,7 +559,7 @@ export default function VercelDashboard() {
                 onClick={() => setMonthsExpanded(!monthsExpanded)}
                 title={monthsExpanded ? "Show less" : "Show all months"}
               >
-                <ChevronDown size={13} style={{ transform: monthsExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+                <ChevronDown size={14} style={{ transform: monthsExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
               </button>
             </div>
             {(monthsExpanded ? ['April', 'May', 'June'] : ['April', 'May']).map((m) => {
@@ -581,12 +581,6 @@ export default function VercelDashboard() {
                 </button>
               );
             })}
-            {!monthsExpanded && (
-              <button className="sidebar-more-btn" onClick={() => setMonthsExpanded(true)}>
-                <span>+1 more month (June)</span>
-                <ChevronDown size={12} />
-              </button>
-            )}
           </div>
 
           {/* Marketplace Profiles Section with Arrow Toggle (2 visible by default) */}
@@ -598,7 +592,7 @@ export default function VercelDashboard() {
                 onClick={() => setProfilesExpanded(!profilesExpanded)}
                 title={profilesExpanded ? "Show less" : `Show all profiles (${uniqueProfiles.length})`}
               >
-                <ChevronDown size={13} style={{ transform: profilesExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+                <ChevronDown size={14} style={{ transform: profilesExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
               </button>
             </div>
             {(profilesExpanded ? uniqueProfiles : uniqueProfiles.slice(0, 2)).map((prof) => (
@@ -617,12 +611,6 @@ export default function VercelDashboard() {
                 <span className="sidebar-count-badge">{profileCounts[prof] || 0}</span>
               </button>
             ))}
-            {uniqueProfiles.length > 2 && (
-              <button className="sidebar-more-btn" onClick={() => setProfilesExpanded(!profilesExpanded)}>
-                <span>{profilesExpanded ? 'Show less profiles' : `+${uniqueProfiles.length - 2} more profiles`}</span>
-                <ChevronDown size={12} style={{ transform: profilesExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
-              </button>
-            )}
           </div>
 
           {/* Quick Status Filter */}
