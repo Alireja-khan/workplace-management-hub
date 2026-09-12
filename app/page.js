@@ -40,12 +40,8 @@ import {
 export default function VercelDashboard() {
   const { data: session } = useSession();
 
-  const [theme, setTheme] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return document.documentElement.getAttribute('data-theme') || localStorage.getItem('vercel_hub_theme') || 'dark';
-    }
-    return 'dark';
-  });
+  const [theme, setTheme] = useState('dark');
+  const [mounted, setMounted] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -86,15 +82,17 @@ export default function VercelDashboard() {
 
   // Sync on Mount
   useEffect(() => {
+    setMounted(true);
     const current = document.documentElement.getAttribute('data-theme') || localStorage.getItem('vercel_hub_theme') || 'dark';
     setTheme(current);
   }, []);
 
   const toggleTheme = () => {
-    const nextTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(nextTheme);
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const nextTheme = current === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', nextTheme);
     localStorage.setItem('vercel_hub_theme', nextTheme);
+    setTheme(nextTheme);
     showToast(`Switched to ${nextTheme} theme`);
   };
 
@@ -406,14 +404,16 @@ export default function VercelDashboard() {
         <div className="sidebar-header">
           <div className="sidebar-logo">
             <img
-              src={theme === 'light' ? '/logo-black.png' : '/logo-white.png'}
+              src="/logo-black.png"
               alt="Logo"
-              style={{
-                width: 24,
-                height: 24,
-                objectFit: 'contain',
-                background: 'transparent'
-              }}
+              className="brand-logo-light"
+              style={{ width: 24, height: 24, objectFit: 'contain' }}
+            />
+            <img
+              src="/logo-white.png"
+              alt="Logo"
+              className="brand-logo-dark"
+              style={{ width: 24, height: 24, objectFit: 'contain' }}
             />
           </div>
           <div>
@@ -565,14 +565,16 @@ export default function VercelDashboard() {
 
             <div className="breadcrumb-box">
               <img
-                src={theme === 'light' ? '/logo-black.png' : '/logo-white.png'}
+                src="/logo-black.png"
                 alt="Logo"
-                style={{
-                  width: 18,
-                  height: 18,
-                  objectFit: 'contain',
-                  background: 'transparent'
-                }}
+                className="brand-logo-light"
+                style={{ width: 18, height: 18, objectFit: 'contain' }}
+              />
+              <img
+                src="/logo-white.png"
+                alt="Logo"
+                className="brand-logo-dark"
+                style={{ width: 18, height: 18, objectFit: 'contain' }}
               />
               <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Alireja-khan</span>
               <span className="breadcrumb-divider">/</span>

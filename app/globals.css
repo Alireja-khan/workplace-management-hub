@@ -99,8 +99,23 @@ body {
   line-height: 1.5;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
   overflow-x: hidden;
+}
+
+/* Pure CSS Theme Logo Display (Zero React Hydration Mismatch) */
+.brand-logo-light {
+  display: none !important;
+}
+.brand-logo-dark {
+  display: block !important;
+}
+
+[data-theme="light"] .brand-logo-light {
+  display: block !important;
+}
+[data-theme="light"] .brand-logo-dark {
+  display: none !important;
 }
 
 /* App Full Layout with Sidebar */
@@ -122,7 +137,7 @@ body {
   top: 0;
   height: 100vh;
   z-index: 50;
-  transition: transform 0.25s ease, background-color 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.25s ease, background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .sidebar-header {
@@ -732,7 +747,7 @@ body {
   gap: 0.65rem;
 }
 
-/* Responsive sidebar collapse on small screens */
+/* Responsive */
 @media (max-width: 900px) {
   .sidebar {
     position: fixed;
