@@ -920,160 +920,50 @@ body {
 }
 
 /* ==========================================================================
-   Ultra Modern Web Developer Loader & Shimmer
+   Ultra Minimal Vercel Loader
    ========================================================================== */
-.dev-loader-container {
+.minimal-loader-box {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 4.5rem 1rem;
-  width: 100%;
-}
-
-.dev-loader-card {
-  width: 100%;
-  max-width: 460px;
-  background: var(--card-bg);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.dev-loader-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.65rem 0.95rem;
-  background: var(--accents-1);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.dev-loader-dots {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.dev-loader-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-}
-
-.dev-loader-dot.red { background: #ff5f56; }
-.dev-loader-dot.yellow { background: #ffbd2e; }
-.dev-loader-dot.green { background: #27c93f; }
-
-.dev-loader-body {
-  padding: 2.2rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.25rem;
+  padding: 6rem 1rem;
+  gap: 0.9rem;
   text-align: center;
+  width: 100%;
 }
 
-.dev-orbit-spinner {
-  position: relative;
-  width: 64px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.dev-ring-outer {
-  position: absolute;
-  inset: 0;
-  border: 2px solid transparent;
+.vercel-spinner {
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--border-default);
   border-top-color: var(--geist-foreground);
-  border-bottom-color: var(--vercel-emerald);
   border-radius: 50%;
-  animation: spinFast 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-.dev-ring-inner {
-  position: absolute;
-  inset: 8px;
-  border: 2px solid transparent;
-  border-left-color: #0284c7;
-  border-right-color: var(--vercel-cyan);
-  border-radius: 50%;
-  animation: spinReverse 1.5s linear infinite;
-}
-
-.dev-icon-core {
+.minimal-loader-text {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  animation: pulseGlow 2s ease-in-out infinite;
+  gap: 0.25rem;
 }
 
-.dev-loader-title {
-  font-size: 0.92rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+.minimal-loader-title {
+  font-size: 0.86rem;
+  font-weight: 600;
   color: var(--geist-foreground);
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
+  letter-spacing: -0.01em;
 }
 
-.dev-pulse-live {
-  width: 7px;
-  height: 7px;
-  background: var(--vercel-emerald);
-  border-radius: 50%;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
-  animation: pulseGlow 1.5s infinite;
-}
-
-.dev-loader-subtitle {
-  font-family: var(--font-mono);
+.minimal-loader-subtitle {
   font-size: 0.74rem;
   color: var(--accents-5);
-  line-height: 1.4;
-  max-width: 360px;
+  font-family: var(--font-mono);
 }
 
-.dev-shimmer-track {
-  width: 100%;
-  height: 3px;
-  background: var(--accents-1);
-  position: relative;
-  overflow: hidden;
-}
-
-.dev-shimmer-bar {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 40%;
-  background: linear-gradient(90deg, transparent, var(--geist-foreground), transparent);
-  animation: shimmerMove 1.6s ease-in-out infinite;
-}
-
-@keyframes spinFast {
+@keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-}
-
-@keyframes spinReverse {
-  0% { transform: rotate(360deg); }
-  100% { transform: rotate(0deg); }
-}
-
-@keyframes pulseGlow {
-  0%, 100% { transform: scale(1); opacity: 0.9; }
-  50% { transform: scale(1.1); opacity: 1; filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.5)); }
-}
-
-@keyframes shimmerMove {
-  0% { left: -40%; }
-  100% { left: 100%; }
 }
 

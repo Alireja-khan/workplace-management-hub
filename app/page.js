@@ -715,44 +715,13 @@ export default function VercelDashboard() {
           </div>
         </header>
 
-        {/* Dynamic Main View: Developer Loader OR Stats & Analytics OR Orders (Table / Kanban) */}
+        {/* Dynamic Main View: Minimal Vercel Loader OR Stats & Analytics OR Orders (Table / Kanban) */}
         {loading ? (
-          <div className="dev-loader-container">
-            <div className="dev-loader-card">
-              <div className="dev-loader-topbar">
-                <div className="dev-loader-dots">
-                  <div className="dev-loader-dot red"></div>
-                  <div className="dev-loader-dot yellow"></div>
-                  <div className="dev-loader-dot green"></div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', color: 'var(--accents-5)', fontFamily: 'var(--font-mono)' }}>
-                  <Terminal size={12} /> db-cluster-0.workplace.mongodb.net
-                </div>
-              </div>
-
-              <div className="dev-loader-body">
-                <div className="dev-orbit-spinner">
-                  <div className="dev-ring-outer"></div>
-                  <div className="dev-ring-inner"></div>
-                  <div className="dev-icon-core">
-                    <Code2 size={20} color="var(--geist-foreground)" />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                  <div className="dev-loader-title">
-                    <span className="dev-pulse-live"></span>
-                    <span>Syncing Workplace Hub</span>
-                  </div>
-                  <p className="dev-loader-subtitle">
-                    Establishing secure connection • Fetching orders, staging subdomains & real-time revenue metrics...
-                  </p>
-                </div>
-              </div>
-
-              <div className="dev-shimmer-track">
-                <div className="dev-shimmer-bar"></div>
-              </div>
+          <div className="minimal-loader-box">
+            <div className="vercel-spinner"></div>
+            <div className="minimal-loader-text">
+              <span className="minimal-loader-title">Syncing Workplace Hub</span>
+              <span className="minimal-loader-subtitle">Loading projects & orders from database...</span>
             </div>
           </div>
         ) : currentTab === 'stats' ? (
