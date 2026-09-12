@@ -133,63 +133,63 @@ export default function LandingPage({ onOpenAuth, theme, toggleTheme }) {
             </div>
 
             <div className="landing-preview-content">
-              {/* Quick Metrics Bar */}
+              {/* Quick Metrics Bar (Generic Demo Preview) */}
               <div className="preview-metrics-grid">
                 <div className="preview-metric">
-                  <span className="preview-metric-label">Total Projects</span>
-                  <span className="preview-metric-value">150+</span>
-                  <span className="preview-metric-sub">Personal Builds & Freelance</span>
+                  <span className="preview-metric-label">Tracked Projects</span>
+                  <span className="preview-metric-value">35+ Tasks</span>
+                  <span className="preview-metric-sub">Personal Builds & Orders</span>
                 </div>
                 <div className="preview-metric">
-                  <span className="preview-metric-label">Marketplace Profiles</span>
-                  <span className="preview-metric-value">11 Profiles</span>
-                  <span className="preview-metric-sub">Fiverr, LeadsBridge, Direct</span>
+                  <span className="preview-metric-label">Multi-Platform</span>
+                  <span className="preview-metric-value">All Channels</span>
+                  <span className="preview-metric-sub">Direct, Fiverr, Upwork</span>
                 </div>
                 <div className="preview-metric">
                   <span className="preview-metric-label">Net Take-Home (80%)</span>
-                  <span className="preview-metric-value" style={{ color: '#10b981' }}>$30,800.00</span>
+                  <span className="preview-metric-value" style={{ color: '#10b981' }}>$4,250.00</span>
                   <span className="preview-metric-sub">20% fees auto-deducted</span>
                 </div>
                 <div className="preview-metric">
                   <span className="preview-metric-label">Staging Protocol</span>
-                  <span className="preview-metric-value">Subdomain QA</span>
+                  <span className="preview-metric-value">Preview QA</span>
                   <span className="preview-metric-sub">Zero Downtime Deployment</span>
                 </div>
               </div>
 
-              {/* Sample Table Mock */}
+              {/* Sample Table Mock (Generic Demo Records) */}
               <div className="preview-table-container">
                 <div className="preview-table-header">
                   <span>Assign Date</span>
-                  <span>Client Username</span>
-                  <span>Profile</span>
+                  <span>Client / Project</span>
+                  <span>Platform</span>
                   <span>Gross / Net</span>
                   <span>Status</span>
-                  <span>Staging Subdomain</span>
+                  <span>Staging URL</span>
                 </div>
                 <div className="preview-table-row">
-                  <span className="mono-text">2026-05-30</span>
-                  <span style={{ fontWeight: 600 }}>paulsneep</span>
-                  <span style={{ color: 'var(--accents-5)' }}>Web_Spero_Fiverr</span>
-                  <span className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>$300 / $240</span>
+                  <span className="mono-text">2026-09-12</span>
+                  <span style={{ fontWeight: 600 }}>client_alpha</span>
+                  <span style={{ color: 'var(--accents-5)' }}>Direct_Contract</span>
+                  <span className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>$450 / $360</span>
                   <span className="v-status-badge v-status-done">Done</span>
-                  <span style={{ color: 'var(--accents-5)', fontSize: '0.74rem' }}>paulsneep.teamcodexora.com</span>
+                  <span style={{ color: 'var(--accents-5)', fontSize: '0.74rem' }}>preview.client-alpha.dev</span>
                 </div>
                 <div className="preview-table-row">
-                  <span className="mono-text">2026-05-28</span>
-                  <span style={{ fontWeight: 600 }}>jordimaasdam</span>
-                  <span style={{ color: 'var(--accents-5)' }}>Miahs05_Fiverr</span>
-                  <span className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>$390 / $312</span>
+                  <span className="mono-text">2026-09-10</span>
+                  <span style={{ fontWeight: 600 }}>studio_nexus</span>
+                  <span style={{ color: 'var(--accents-5)' }}>Marketplace_01</span>
+                  <span className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>$300 / $240</span>
                   <span className="v-status-badge v-status-delivered">Delivered</span>
-                  <span style={{ color: 'var(--accents-5)', fontSize: '0.74rem' }}>jordimaasdam.wpelemburg.com</span>
+                  <span style={{ color: 'var(--accents-5)', fontSize: '0.74rem' }}>demo.studio-nexus.dev</span>
                 </div>
                 <div className="preview-table-row">
-                  <span className="mono-text">2026-05-25</span>
-                  <span style={{ fontWeight: 600 }}>kishanachang</span>
-                  <span style={{ color: 'var(--accents-5)' }}>WPRiders</span>
-                  <span className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>$200 / $160</span>
+                  <span className="mono-text">2026-09-08</span>
+                  <span style={{ fontWeight: 600 }}>acme_labs</span>
+                  <span style={{ color: 'var(--accents-5)' }}>Marketplace_02</span>
+                  <span className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>$250 / $200</span>
                   <span className="v-status-badge v-status-wip">In Progress</span>
-                  <span style={{ color: 'var(--accents-5)', fontSize: '0.74rem' }}>kishanachang.wpendgame.com</span>
+                  <span style={{ color: 'var(--accents-5)', fontSize: '0.74rem' }}>qa.acme-labs.dev</span>
                 </div>
               </div>
             </div>
