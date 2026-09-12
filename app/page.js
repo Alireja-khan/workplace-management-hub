@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import {
   Table as TableIcon,
@@ -34,11 +34,15 @@ import {
   Layers,
   Database,
   Menu,
-  Filter
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  SlidersHorizontal
 } from 'lucide-react';
 
 export default function VercelDashboard() {
   const { data: session } = useSession();
+  const tableContainerRef = useRef(null);
 
   const [theme, setTheme] = useState('dark');
   const [mounted, setMounted] = useState(false);
@@ -385,6 +389,13 @@ export default function VercelDashboard() {
     showToast('Copied to clipboard');
   };
 
+  const scrollTable = (direction) => {
+    if (tableContainerRef.current) {
+      const offset = direction === 'left' ? -350 : 350;
+      tableContainerRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+  };
+
   const runningCount = projects.filter((p) => p.orderStatus === 'Wip' || p.orderStatus === 'Issue' || p.timeSchedule === 'Late').length;
 
   return (
@@ -728,137 +739,173 @@ export default function VercelDashboard() {
             <p style={{ marginTop: '1rem', fontSize: '0.85rem' }}>Loading from MongoDB Atlas...</p>
           </div>
         ) : currentView === 'table' ? (
-          /* Table View */
-          <div className="v-table-container">
-            <table className="v-table">
-              <thead>
-                <tr>
-                  <th className="sortable" onClick={() => handleSort('assignDate')}>Assign Date</th>
-                  <th className="sortable" onClick={() => handleSort('clientUsername')}>Client Username</th>
-                  <th className="sortable" onClick={() => handleSort('profileName')}>Profile</th>
-                  <th>Brief Doc</th>
-                  <th className="sortable" onClick={() => handleSort('amount')}>Gross</th>
-                  <th>Net (80%)</th>
-                  <th>Order Status</th>
-                  <th>Staging Subdomain</th>
-                  <th className="sortable" onClick={() => handleSort('deadline')}>Deadline</th>
-                  <th>Schedule</th>
-                  <th>Live Domain</th>
-                  <th>Daily Update</th>
-                  <th>Review</th>
-                  <th style={{ textAlign: 'center' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredProjects.length === 0 ? (
-                  <tr>
-                    <td colSpan={14} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
-                      No matching records found.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredProjects.map((p) => {
-                    const gross = parseFloat(p.amount) || 0;
-                    const net = gross * 0.8;
-                    const statusClass =
-                      p.orderStatus === 'Done'
-                        ? 'v-status-done'
-                        : p.orderStatus === 'Delivered'
-                        ? 'v-status-delivered'
-                        : p.orderStatus === 'Issue' || p.orderStatus === 'Cancel'
-                        ? 'v-status-issue'
-                        : 'v-status-wip';
+          /* Table View with Sticky Header & Subtle Scroll Controls */
+          <div className="table-smart-wrapper">
+            <div className="table-sub-bar">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <span className="table-nav-pill">
+                  <SlidersHorizontal size={12} /> {filteredProjects.length} Records
+                </span>
+                <span style={{ fontSize: '0.74rem', color: 'var(--accents-5)' }}>
+                  Scroll down to view orders • Table header stays pinned
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--accents-4)', marginRight: 4 }}>
+                  Columns:
+                </span>
+                <button
+                  type="button"
+                  className="btn-v btn-v-secondary"
+                  style={{ padding: '0.22rem 0.6rem', fontSize: '0.72rem', gap: 4 }}
+                  onClick={() => scrollTable('left')}
+                  title="Scroll Left"
+                >
+                  <ChevronLeft size={13} /> Left
+                </button>
+                <button
+                  type="button"
+                  className="btn-v btn-v-secondary"
+                  style={{ padding: '0.22rem 0.6rem', fontSize: '0.72rem', gap: 4 }}
+                  onClick={() => scrollTable('right')}
+                  title="Scroll Right"
+                >
+                  Right <ChevronRight size={13} />
+                </button>
+              </div>
+            </div>
 
-                    return (
-                      <tr key={p._id}>
-                        <td className="mono-text" style={{ color: 'var(--accents-5)' }}>{p.assignDate || '-'}</td>
-                        <td>
-                          <span style={{ fontWeight: 600 }}>{p.clientUsername}</span>
-                        </td>
-                        <td>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)' }}>{p.profileName}</span>
-                        </td>
-                        <td>
-                          {p.instructionSheet ? (
-                            <a href={p.instructionSheet} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}>
-                              <ExternalLink size={11} /> Brief
-                            </a>
-                          ) : '-'}
-                        </td>
-                        <td className="mono-text" style={{ fontWeight: 600 }}>${gross.toFixed(2)}</td>
-                        <td className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>${net.toFixed(2)}</td>
-                        <td>
-                          <div className={`v-status-badge ${statusClass}`}>
-                            <span className="v-status-dot"></span>
-                            <select
-                              style={{ background: 'transparent', border: 'none', color: 'inherit', outline: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.73rem', fontWeight: 600 }}
-                              value={p.orderStatus || 'Wip'}
-                              onChange={(e) => handleQuickStatusChange(p._id, e.target.value)}
-                            >
-                              <option value="Done">Done</option>
-                              <option value="Wip">Wip</option>
-                              <option value="Delivered">Delivered</option>
-                              <option value="Issue">Issue</option>
-                              <option value="Cancel">Cancel</option>
-                            </select>
-                          </div>
-                        </td>
-                        <td>
-                          {p.ourSubdomain ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <a href={p.ourSubdomain} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}>
-                                <Globe size={11} /> Staging
+            <div className="v-table-container" ref={tableContainerRef}>
+              <table className="v-table">
+                <thead>
+                  <tr>
+                    <th className="sortable" onClick={() => handleSort('assignDate')}>Assign Date</th>
+                    <th className="sortable" onClick={() => handleSort('clientUsername')}>Client Username</th>
+                    <th className="sortable" onClick={() => handleSort('profileName')}>Profile</th>
+                    <th>Brief Doc</th>
+                    <th className="sortable" onClick={() => handleSort('amount')}>Gross</th>
+                    <th>Net (80%)</th>
+                    <th>Order Status</th>
+                    <th>Staging Subdomain</th>
+                    <th className="sortable" onClick={() => handleSort('deadline')}>Deadline</th>
+                    <th>Schedule</th>
+                    <th>Live Domain</th>
+                    <th>Daily Update</th>
+                    <th>Review</th>
+                    <th style={{ textAlign: 'center' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredProjects.length === 0 ? (
+                    <tr>
+                      <td colSpan={14} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
+                        No matching records found.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredProjects.map((p) => {
+                      const gross = parseFloat(p.amount) || 0;
+                      const net = gross * 0.8;
+                      const statusClass =
+                        p.orderStatus === 'Done'
+                          ? 'v-status-done'
+                          : p.orderStatus === 'Delivered'
+                          ? 'v-status-delivered'
+                          : p.orderStatus === 'Issue' || p.orderStatus === 'Cancel'
+                          ? 'v-status-issue'
+                          : 'v-status-wip';
+
+                      return (
+                        <tr key={p._id}>
+                          <td className="mono-text" style={{ color: 'var(--accents-5)' }}>{p.assignDate || '-'}</td>
+                          <td>
+                            <span style={{ fontWeight: 600 }}>{p.clientUsername}</span>
+                          </td>
+                          <td>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)' }}>{p.profileName}</span>
+                          </td>
+                          <td>
+                            {p.instructionSheet ? (
+                              <a href={p.instructionSheet} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}>
+                                <ExternalLink size={11} /> Brief
                               </a>
-                              <button className="btn-v-ghost" style={{ padding: 2, cursor: 'pointer' }} onClick={() => copyToClipboard(p.ourSubdomain)} title="Copy URL">
-                                <Copy size={11} />
+                            ) : '-'}
+                          </td>
+                          <td className="mono-text" style={{ fontWeight: 600 }}>${gross.toFixed(2)}</td>
+                          <td className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>${net.toFixed(2)}</td>
+                          <td>
+                            <div className={`v-status-badge ${statusClass}`}>
+                              <span className="v-status-dot"></span>
+                              <select
+                                style={{ background: 'transparent', border: 'none', color: 'inherit', outline: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.73rem', fontWeight: 600 }}
+                                value={p.orderStatus || 'Wip'}
+                                onChange={(e) => handleQuickStatusChange(p._id, e.target.value)}
+                              >
+                                <option value="Done">Done</option>
+                                <option value="Wip">Wip</option>
+                                <option value="Delivered">Delivered</option>
+                                <option value="Issue">Issue</option>
+                                <option value="Cancel">Cancel</option>
+                              </select>
+                            </div>
+                          </td>
+                          <td>
+                            {p.ourSubdomain ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <a href={p.ourSubdomain} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}>
+                                  <Globe size={11} /> Staging
+                                </a>
+                                <button className="btn-v-ghost" style={{ padding: 2, cursor: 'pointer' }} onClick={() => copyToClipboard(p.ourSubdomain)} title="Copy URL">
+                                  <Copy size={11} />
+                                </button>
+                              </div>
+                            ) : '-'}
+                          </td>
+                          <td className="mono-text" style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : 'var(--accents-5)' }}>
+                            {p.deadline || '-'}
+                          </td>
+                          <td>
+                            <span style={{ fontSize: '0.75rem', color: p.timeSchedule === 'Late' ? '#f5a623' : 'var(--accents-5)' }}>
+                              {p.timeSchedule || 'Complete'}
+                            </span>
+                          </td>
+                          <td>
+                            {p.clientDomain ? (
+                              <a href={p.clientDomain} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}>
+                                <ExternalLink size={11} /> Live
+                              </a>
+                            ) : '-'}
+                          </td>
+                          <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--accents-5)' }} title={p.dailyUpdate}>
+                            {p.dailyUpdate || '-'}
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: 2, color: '#f5a623' }}>
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star key={s} size={11} fill={s <= (p.review || 0) ? '#f5a623' : 'none'} color={s <= (p.review || 0) ? '#f5a623' : 'var(--border-default)'} />
+                              ))}
+                            </div>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                              <button className="btn-v-ghost" style={{ padding: 3 }} onClick={() => { setActiveProject(p); setIsDetailOpen(true); }} title="View">
+                                <Eye size={13} />
+                              </button>
+                              <button className="btn-v-ghost" style={{ padding: 3 }} onClick={() => openEditModal(p)} title="Edit">
+                                <Edit2 size={13} />
+                              </button>
+                              <button className="btn-v-ghost" style={{ padding: 3, color: '#ee0000' }} onClick={() => handleDelete(p._id, p.clientUsername)} title="Delete">
+                                <Trash2 size={13} />
                               </button>
                             </div>
-                          ) : '-'}
-                        </td>
-                        <td className="mono-text" style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : 'var(--accents-5)' }}>
-                          {p.deadline || '-'}
-                        </td>
-                        <td>
-                          <span style={{ fontSize: '0.75rem', color: p.timeSchedule === 'Late' ? '#f5a623' : 'var(--accents-5)' }}>
-                            {p.timeSchedule || 'Complete'}
-                          </span>
-                        </td>
-                        <td>
-                          {p.clientDomain ? (
-                            <a href={p.clientDomain} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}>
-                              <ExternalLink size={11} /> Live
-                            </a>
-                          ) : '-'}
-                        </td>
-                        <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--accents-5)' }} title={p.dailyUpdate}>
-                          {p.dailyUpdate || '-'}
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: 2, color: '#f5a623' }}>
-                            {[1, 2, 3, 4, 5].map((s) => (
-                              <Star key={s} size={11} fill={s <= (p.review || 0) ? '#f5a623' : 'none'} color={s <= (p.review || 0) ? '#f5a623' : 'var(--border-default)'} />
-                            ))}
-                          </div>
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                            <button className="btn-v-ghost" style={{ padding: 3 }} onClick={() => { setActiveProject(p); setIsDetailOpen(true); }} title="View">
-                              <Eye size={13} />
-                            </button>
-                            <button className="btn-v-ghost" style={{ padding: 3 }} onClick={() => openEditModal(p)} title="Edit">
-                              <Edit2 size={13} />
-                            </button>
-                            <button className="btn-v-ghost" style={{ padding: 3, color: '#ee0000' }} onClick={() => handleDelete(p._id, p.clientUsername)} title="Delete">
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
           /* Kanban View */
