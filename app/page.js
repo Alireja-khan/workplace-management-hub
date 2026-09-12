@@ -50,11 +50,7 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
-
-const MONTH_LIST = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
-];
+import { MONTH_LIST, getMonthFromDate } from '@/lib/dateUtils';
 
 export default function VercelDashboard() {
   const { data: session } = useSession();
@@ -212,7 +208,7 @@ export default function VercelDashboard() {
 
   // Dynamic available months list
   const availableMonths = useMemo(() => {
-    const set = new Set(projects.map((p) => p.month).filter(Boolean));
+    const set = new Set(projects.map((p) => getMonthFromDate(p.assignDate, p.month)).filter(Boolean));
     set.add(currentCalendarMonth);
     return Array.from(set).sort((a, b) => MONTH_LIST.indexOf(a) - MONTH_LIST.indexOf(b));
   }, [projects, currentCalendarMonth]);
@@ -231,10 +227,11 @@ export default function VercelDashboard() {
     return availableMonths.map((m) => {
       const isCurrent = m.toLowerCase() === currentCalendarMonth.toLowerCase();
       const mProjects = projects.filter((p) => {
+        const pMonth = getMonthFromDate(p.assignDate, p.month);
         if (isCurrent) {
-          return (p.month || '').toLowerCase() === m.toLowerCase() || (p.orderStatus !== 'Done' && p.orderStatus !== 'Delivered' && p.orderStatus !== 'Cancel');
+          return pMonth.toLowerCase() === m.toLowerCase() || (p.orderStatus !== 'Done' && p.orderStatus !== 'Delivered' && p.orderStatus !== 'Cancel');
         }
-        return (p.month || '').toLowerCase() === m.toLowerCase();
+        return pMonth.toLowerCase() === m.toLowerCase();
       });
       const gross = mProjects.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
       const net = gross * 0.8;
@@ -263,7 +260,8 @@ export default function VercelDashboard() {
         if (s !== 'wip' && s !== 'issue' && sch !== 'late') return false;
       } else if (currentTab !== 'all') {
         const isCurrentCalendarMonthTab = currentTab.toLowerCase() === currentCalendarMonth.toLowerCase();
-        const isAssignedInThisMonth = (p.month || '').toLowerCase() === currentTab.toLowerCase();
+        const pMonth = getMonthFromDate(p.assignDate, p.month);
+        const isAssignedInThisMonth = pMonth.toLowerCase() === currentTab.toLowerCase();
 
         if (isCurrentCalendarMonthTab) {
           // In Current Month view: show if assigned in current month OR if running/undelivered from previous months
@@ -383,9 +381,10 @@ export default function VercelDashboard() {
 
   const openEditModal = (project) => {
     setActiveProject(project);
+    const resolvedMonth = getMonthFromDate(project.assignDate, project.month || 'September');
     setFormData({
       assignDate: project.assignDate || '',
-      month: project.month || 'April',
+      month: resolvedMonth,
       clientUsername: project.clientUsername || '',
       profileName: project.profileName || '',
       instructionSheet: project.instructionSheet || '',
@@ -409,7 +408,8 @@ export default function VercelDashboard() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const payload = { ...formData, amount: parseFloat(formData.amount) || 0 };
+      const autoMonth = getMonthFromDate(formData.assignDate, formData.month);
+      const payload = { ...formData, month: autoMonth, amount: parseFloat(formData.amount) || 0 };
       if (activeProject) {
         const res = await fetch(`/api/projects/${activeProject._id}`, {
           method: 'PUT',
@@ -435,7 +435,8 @@ export default function VercelDashboard() {
       }
       setIsModalOpen(false);
     } catch (err) {
-      showToast('Save failed', 'error');
+      console.error('Save project error', err);
+      showToast('Failed to save project', 'error');
     }
   };
 
@@ -626,10 +627,11 @@ export default function VercelDashboard() {
             {displayedMonths.map((m) => {
               const isCurrentMonth = m.toLowerCase() === currentCalendarMonth.toLowerCase();
               const count = projects.filter((p) => {
+                const pMonth = getMonthFromDate(p.assignDate, p.month);
                 if (isCurrentMonth) {
-                  return (p.month || '').toLowerCase() === m.toLowerCase() || (p.orderStatus !== 'Done' && p.orderStatus !== 'Delivered' && p.orderStatus !== 'Cancel');
+                  return pMonth.toLowerCase() === m.toLowerCase() || (p.orderStatus !== 'Done' && p.orderStatus !== 'Delivered' && p.orderStatus !== 'Cancel');
                 }
-                return (p.month || '').toLowerCase() === m.toLowerCase();
+                return pMonth.toLowerCase() === m.toLowerCase();
               }).length;
               return (
                 <button
@@ -1452,20 +1454,24 @@ export default function VercelDashboard() {
                   <div className="v-form-grid">
                     <div className="v-form-group">
                       <label>Assign Date *</label>
-                      <input type="date" className="v-input" value={formData.assignDate} onChange={(e) => setFormData({ ...formData, assignDate: e.target.value })} required />
+                      <input
+                        type="date"
+                        className="v-input"
+                        value={formData.assignDate}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const autoM = getMonthFromDate(val, formData.month);
+                          setFormData({ ...formData, assignDate: val, month: autoM });
+                        }}
+                        required
+                      />
                     </div>
                     <div className="v-form-group">
-                      <label>Month Tab</label>
+                      <label>Month (Auto-synced)</label>
                       <select className="v-select" value={formData.month} onChange={(e) => setFormData({ ...formData, month: e.target.value })}>
-                        <option value="April">April</option>
-                        <option value="May">May</option>
-                        <option value="June">June</option>
-                        <option value="July">July</option>
-                        <option value="August">August</option>
-                        <option value="September">September</option>
-                        <option value="October">October</option>
-                        <option value="November">November</option>
-                        <option value="December">December</option>
+                        {MONTH_LIST.map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="v-form-group">

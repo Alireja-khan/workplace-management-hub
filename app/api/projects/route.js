@@ -1,13 +1,22 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Project from '@/models/Project';
+import { getMonthFromDate } from '@/lib/dateUtils';
 
 // GET /api/projects - Retrieve all projects
 export async function GET(request) {
   try {
     await connectToDatabase();
     const projects = await Project.find({}).sort({ createdAt: -1 });
-    return NextResponse.json({ success: true, count: projects.length, data: projects });
+    // Normalize projects so month matches assignDate
+    const normalized = projects.map((p) => {
+      const obj = p.toObject ? p.toObject() : p;
+      if (obj.assignDate) {
+        obj.month = getMonthFromDate(obj.assignDate, obj.month);
+      }
+      return obj;
+    });
+    return NextResponse.json({ success: true, count: normalized.length, data: normalized });
   } catch (error) {
     console.error('API GET /api/projects error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -25,6 +34,10 @@ export async function POST(request) {
         { success: false, error: 'Client username and profile name are required' },
         { status: 400 }
       );
+    }
+
+    if (body.assignDate) {
+      body.month = getMonthFromDate(body.assignDate, body.month);
     }
 
     const project = await Project.create(body);
