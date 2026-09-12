@@ -2,6 +2,12 @@ import mongoose from 'mongoose';
 
 const ProjectSchema = new mongoose.Schema(
   {
+    userEmail: {
+      type: String,
+      default: 'alirejakhan36@gmail.com',
+      trim: true,
+      lowercase: true,
+    },
     assignDate: {
       type: String,
       default: () => new Date().toISOString().split('T')[0],

@@ -48,9 +48,21 @@ import {
   Terminal,
   Code2,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  LogIn,
+  ShieldCheck,
+  Sparkles
 } from 'lucide-react';
 import { MONTH_LIST, getMonthFromDate } from '@/lib/dateUtils';
+
+const GoogleIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24">
+    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z" />
+    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.29 21.45 7.35 24 12 24Z" />
+    <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.94 0 12s.46 3.84 1.26 5.42l4.02-3.15Z" />
+    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.29 2.55 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98Z" />
+  </svg>
+);
 
 export default function VercelDashboard() {
   const { data: session } = useSession();
@@ -83,6 +95,13 @@ export default function VercelDashboard() {
   const [savingStatusId, setSavingStatusId] = useState(null);
   const [savedStatusSuccessId, setSavedStatusSuccessId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Auth Modal States
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authTab, setAuthTab] = useState('signin'); // 'signin' or 'signup'
+  const [authForm, setAuthForm] = useState({ name: '', email: '', password: '' });
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -355,7 +374,78 @@ export default function VercelDashboard() {
     }
   };
 
+  // Auth Handlers
+  const handleEmailSignIn = async (e) => {
+    e.preventDefault();
+    setAuthError('');
+    setAuthLoading(true);
+    try {
+      const res = await signIn('credentials', {
+        email: authForm.email,
+        password: authForm.password,
+        redirect: false,
+      });
+      if (res?.error) {
+        setAuthError(res.error || 'Invalid email or password');
+      } else {
+        setIsAuthModalOpen(false);
+        setAuthForm({ name: '', email: '', password: '' });
+        showToast('Signed in successfully');
+        fetchProjects();
+      }
+    } catch (err) {
+      setAuthError('An unexpected error occurred during sign in');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleEmailSignUp = async (e) => {
+    e.preventDefault();
+    setAuthError('');
+    setAuthLoading(true);
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(authForm),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setAuthError(data.error || 'Registration failed');
+      } else {
+        showToast('Account created! Signing in...');
+        const loginRes = await signIn('credentials', {
+          email: authForm.email,
+          password: authForm.password,
+          redirect: false,
+        });
+        if (!loginRes?.error) {
+          setIsAuthModalOpen(false);
+          setAuthForm({ name: '', email: '', password: '' });
+          fetchProjects();
+        } else {
+          setAuthTab('signin');
+        }
+      }
+    } catch (err) {
+      setAuthError('An error occurred during registration');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = () => {
+    signIn('google', { callbackUrl: '/' });
+  };
+
   const openNewModal = (overrideMonth = null) => {
+    if (!session?.user) {
+      setAuthTab('signin');
+      setIsAuthModalOpen(true);
+      showToast('Please sign in to create new orders', 'error');
+      return;
+    }
     const defaultMonth = overrideMonth || (currentTab !== 'all' && currentTab !== 'running' && currentTab !== 'stats' ? currentTab : currentCalendarMonth);
     setActiveProject(null);
     setFormData({
@@ -802,21 +892,45 @@ export default function VercelDashboard() {
 
             {/* Auth Session */}
             {session?.user ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--input-bg)', padding: '0.3rem 0.6rem', borderRadius: 6, border: '1px solid var(--border-default)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--input-bg)', padding: '0.3rem 0.65rem', borderRadius: 6, border: '1px solid var(--border-default)' }}>
                 {session.user.image ? (
-                  <img src={session.user.image} alt={session.user.name} style={{ width: 20, height: 20, borderRadius: '50%' }} />
+                  <img src={session.user.image} alt={session.user.name} style={{ width: 22, height: 22, borderRadius: '50%' }} />
                 ) : (
-                  <Github size={14} />
+                  <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'linear-gradient(135deg, #38bdf8, #10b981)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.68rem', fontWeight: 700 }}>
+                    {(session.user.name || 'AK').slice(0, 2).toUpperCase()}
+                  </div>
                 )}
-                <span style={{ fontSize: '0.78rem', fontWeight: 500 }}>{session.user.name || session.user.email}</span>
-                <button className="btn-v-ghost" onClick={() => signOut()} title="Sign Out" style={{ padding: 2, cursor: 'pointer' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>{session.user.name || 'Alireja Khan'}</span>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--accents-5)' }}>{session.user.email}</span>
+                </div>
+                <button className="btn-v-ghost" onClick={() => signOut()} title="Sign Out" style={{ padding: 3, marginLeft: 4, cursor: 'pointer' }}>
                   <LogOut size={13} />
                 </button>
               </div>
             ) : (
-              <button className="btn-v btn-v-secondary" onClick={() => signIn('github')}>
-                <Github size={13} /> Sign In
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <button
+                  className="btn-v btn-v-secondary"
+                  onClick={() => {
+                    setAuthTab('signin');
+                    setAuthError('');
+                    setIsAuthModalOpen(true);
+                  }}
+                >
+                  <LogIn size={13} /> Sign In
+                </button>
+                <button
+                  className="btn-v btn-v-primary"
+                  onClick={() => {
+                    setAuthTab('signup');
+                    setAuthError('');
+                    setIsAuthModalOpen(true);
+                  }}
+                >
+                  Sign Up
+                </button>
+              </div>
             )}
           </div>
         </header>
@@ -1110,8 +1224,78 @@ export default function VercelDashboard() {
             </div>
           </div>
         ) : (
-          /* Table / Kanban View (Clean without top KPI cards) */
+          /* Table / Kanban View */
           <>
+            {/* Public Guest Showcase Hero (Visible to unauthenticated visitors) */}
+            {!session?.user && (
+              <div className="guest-showcase-hero">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: 4, background: 'rgba(56,189,248,0.15)', color: '#38bdf8', fontWeight: 600 }}>
+                        EleSquad Agency Workspace
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--accents-5)' }}>
+                        Lead Developer: <strong style={{ color: 'var(--foreground)' }}>Alireja Khan</strong>
+                      </span>
+                    </div>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 0.35rem 0' }}>
+                      Agency Order Hub & WordPress Delivery Infrastructure
+                    </h2>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--accents-5)', margin: 0, maxWidth: 680, lineHeight: 1.5 }}>
+                      Centralized workspace managing client brief specifications, staging subdomains, DNS cutovers, daily developer sprints, and live delivery tracking across all marketplace profiles.
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.65rem' }}>
+                    <button
+                      className="btn-v btn-v-secondary"
+                      onClick={() => {
+                        setAuthTab('signin');
+                        setAuthError('');
+                        setIsAuthModalOpen(true);
+                      }}
+                    >
+                      <LogIn size={13} /> Sign In
+                    </button>
+                    <button
+                      className="btn-v btn-v-primary"
+                      onClick={() => {
+                        setAuthTab('signup');
+                        setAuthError('');
+                        setIsAuthModalOpen(true);
+                      }}
+                    >
+                      Sign Up
+                    </button>
+                  </div>
+                </div>
+
+                <div className="guest-stats-grid">
+                  <div className="guest-stat-card">
+                    <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)', textTransform: 'uppercase', fontWeight: 600 }}>Total Projects</span>
+                    <span className="mono-text" style={{ fontSize: '1.2rem', fontWeight: 700 }}>150+</span>
+                    <span style={{ fontSize: '0.72rem', color: '#10b981' }}>100% Success Delivery</span>
+                  </div>
+                  <div className="guest-stat-card">
+                    <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)', textTransform: 'uppercase', fontWeight: 600 }}>Marketplace Profiles</span>
+                    <span className="mono-text" style={{ fontSize: '1.2rem', fontWeight: 700 }}>11 Profiles</span>
+                    <span style={{ fontSize: '0.72rem', color: '#38bdf8' }}>Fiverr, LeadsBridge, etc.</span>
+                  </div>
+                  <div className="guest-stat-card">
+                    <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)', textTransform: 'uppercase', fontWeight: 600 }}>Core Expertise</span>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>WordPress & Elementor</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--accents-5)' }}>ACF, WooCommerce, Custom PHP</span>
+                  </div>
+                  <div className="guest-stat-card">
+                    <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)', textTransform: 'uppercase', fontWeight: 600 }}>Staging Protocol</span>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>Subdomain QA</span>
+                    <span style={{ fontSize: '0.72rem', color: '#10b981' }}>Zero-Downtime Deployment</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Filter & Search Bar */}
             <section className="control-bar">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
@@ -1635,6 +1819,129 @@ export default function VercelDashboard() {
               <div className="v-modal-footer">
                 <button className="btn-v btn-v-secondary" onClick={() => setIsDetailOpen(false)}>Close</button>
                 <button className="btn-v btn-v-primary" onClick={() => openEditModal(activeProject)}>Edit Order</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Google & Email/Password Authentication (Sign In / Sign Up) */}
+        {isAuthModalOpen && (
+          <div className="v-modal-overlay" onClick={() => setIsAuthModalOpen(false)}>
+            <div className="auth-modal-dialog" onClick={(e) => e.stopPropagation()}>
+              <div className="v-modal-header" style={{ borderBottom: 'none', paddingBottom: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <img src="/logo-black.png" alt="Logo" className="brand-logo-light" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                  <img src="/logo-white.png" alt="Logo" className="brand-logo-dark" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                  <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Workplace Hub</span>
+                </div>
+                <button className="btn-v-ghost" onClick={() => setIsAuthModalOpen(false)}><X size={16} /></button>
+              </div>
+
+              <div className="auth-tabs">
+                <button
+                  className={`auth-tab-btn ${authTab === 'signin' ? 'active' : ''}`}
+                  onClick={() => { setAuthTab('signin'); setAuthError(''); }}
+                >
+                  Sign In
+                </button>
+                <button
+                  className={`auth-tab-btn ${authTab === 'signup' ? 'active' : ''}`}
+                  onClick={() => { setAuthTab('signup'); setAuthError(''); }}
+                >
+                  Sign Up
+                </button>
+              </div>
+
+              <div style={{ padding: '1.25rem 1.5rem' }}>
+                {/* Google OAuth Button */}
+                <button type="button" className="google-auth-btn" onClick={handleGoogleSignIn}>
+                  <GoogleIcon />
+                  <span>Continue with Google</span>
+                </button>
+
+                <div className="auth-divider">or continue with email</div>
+
+                {authError && (
+                  <div style={{ background: 'rgba(238,0,0,0.1)', border: '1px solid rgba(238,0,0,0.3)', color: '#ff4d4f', padding: '0.5rem 0.75rem', borderRadius: 6, fontSize: '0.78rem', marginBottom: '0.85rem' }}>
+                    {authError}
+                  </div>
+                )}
+
+                <form onSubmit={authTab === 'signin' ? handleEmailSignIn : handleEmailSignUp} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  {authTab === 'signup' && (
+                    <div className="v-form-group">
+                      <label>Full Name</label>
+                      <input
+                        type="text"
+                        className="v-input"
+                        placeholder="e.g. Alireja Khan"
+                        value={authForm.name}
+                        onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })}
+                        required
+                      />
+                    </div>
+                  )}
+
+                  <div className="v-form-group">
+                    <label>Email Address</label>
+                    <input
+                      type="email"
+                      className="v-input"
+                      placeholder="e.g. alirejakhan36@gmail.com"
+                      value={authForm.email}
+                      onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div className="v-form-group">
+                    <label>Password</label>
+                    <input
+                      type="password"
+                      className="v-input"
+                      placeholder="••••••••••••"
+                      value={authForm.password}
+                      onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="btn-v btn-v-primary"
+                    disabled={authLoading}
+                    style={{ width: '100%', marginTop: '0.35rem', padding: '0.65rem', justifyContent: 'center' }}
+                  >
+                    {authLoading && <div className="status-saving-spinner" style={{ width: 13, height: 13, borderWidth: 2 }} />}
+                    <span>{authLoading ? (authTab === 'signin' ? 'Signing In...' : 'Creating Account...') : (authTab === 'signin' ? 'Sign In' : 'Create Account')}</span>
+                  </button>
+                </form>
+
+                <div style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.78rem', color: 'var(--accents-5)' }}>
+                  {authTab === 'signin' ? (
+                    <>
+                      Don't have an account?{' '}
+                      <button
+                        type="button"
+                        onClick={() => { setAuthTab('signup'); setAuthError(''); }}
+                        style={{ color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0 }}
+                      >
+                        Sign Up
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      Already have an account?{' '}
+                      <button
+                        type="button"
+                        onClick={() => { setAuthTab('signin'); setAuthError(''); }}
+                        style={{ color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0 }}
+                      >
+                        Sign In
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
