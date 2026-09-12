@@ -54,6 +54,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { MONTH_LIST, getMonthFromDate } from '@/lib/dateUtils';
+import LandingPage from '@/components/LandingPage';
 
 const GoogleIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24">
@@ -65,7 +66,7 @@ const GoogleIcon = () => (
 );
 
 export default function VercelDashboard() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const tableContainerRef = useRef(null);
 
   const currentCalendarMonth = useMemo(() => {
@@ -158,8 +159,10 @@ export default function VercelDashboard() {
   };
 
   useEffect(() => {
-    fetchProjects();
-  }, []);
+    if (session?.user) {
+      fetchProjects();
+    }
+  }, [session]);
 
   const showToast = (msg, type = 'success') => {
     setToastMessage({ text: msg, type });
@@ -614,6 +617,169 @@ export default function VercelDashboard() {
 
   const runningCount = projects.filter((p) => p.orderStatus === 'Wip' || p.orderStatus === 'Issue' || p.timeSchedule === 'Late').length;
 
+  const renderAuthModal = () => {
+    if (!isAuthModalOpen) return null;
+    return (
+      <div className="v-modal-overlay" onClick={() => setIsAuthModalOpen(false)}>
+        <div className="auth-modal-dialog" onClick={(e) => e.stopPropagation()}>
+          <div className="v-modal-header" style={{ borderBottom: 'none', paddingBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <img src="/logo-black.png" alt="Logo" className="brand-logo-light" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+              <img src="/logo-white.png" alt="Logo" className="brand-logo-dark" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+              <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Workplace Hub</span>
+            </div>
+            <button className="btn-v-ghost" onClick={() => setIsAuthModalOpen(false)}><X size={16} /></button>
+          </div>
+
+          <div className="auth-tabs">
+            <button
+              className={`auth-tab-btn ${authTab === 'signin' ? 'active' : ''}`}
+              onClick={() => { setAuthTab('signin'); setAuthError(''); }}
+            >
+              Sign In
+            </button>
+            <button
+              className={`auth-tab-btn ${authTab === 'signup' ? 'active' : ''}`}
+              onClick={() => { setAuthTab('signup'); setAuthError(''); }}
+            >
+              Sign Up
+            </button>
+          </div>
+
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            {/* Google OAuth Button */}
+            <button type="button" className="google-auth-btn" onClick={handleGoogleSignIn}>
+              <GoogleIcon />
+              <span>Continue with Google</span>
+            </button>
+
+            <div className="auth-divider">or continue with email</div>
+
+            {authError && (
+              <div style={{ background: 'rgba(238,0,0,0.1)', border: '1px solid rgba(238,0,0,0.3)', color: '#ff4d4f', padding: '0.5rem 0.75rem', borderRadius: 6, fontSize: '0.78rem', marginBottom: '0.85rem' }}>
+                {authError}
+              </div>
+            )}
+
+            <form onSubmit={authTab === 'signin' ? handleEmailSignIn : handleEmailSignUp} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {authTab === 'signup' && (
+                <div className="v-form-group">
+                  <label>Full Name</label>
+                  <input
+                    type="text"
+                    className="v-input"
+                    placeholder="e.g. Alireja Khan"
+                    value={authForm.name}
+                    onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })}
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="v-form-group">
+                <label>Email Address</label>
+                <input
+                  type="email"
+                  className="v-input"
+                  placeholder="e.g. alirejakhan36@gmail.com"
+                  value={authForm.email}
+                  onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="v-form-group">
+                <label>Password</label>
+                <input
+                  type="password"
+                  className="v-input"
+                  placeholder="••••••••••••"
+                  value={authForm.password}
+                  onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="btn-v btn-v-primary"
+                disabled={authLoading}
+                style={{ width: '100%', marginTop: '0.35rem', padding: '0.65rem', justifyContent: 'center' }}
+              >
+                {authLoading && <div className="status-saving-spinner" style={{ width: 13, height: 13, borderWidth: 2 }} />}
+                <span>{authLoading ? (authTab === 'signin' ? 'Signing In...' : 'Creating Account...') : (authTab === 'signin' ? 'Sign In' : 'Create Account')}</span>
+              </button>
+            </form>
+
+            <div style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.78rem', color: 'var(--accents-5)' }}>
+              {authTab === 'signin' ? (
+                <>
+                  Don't have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => { setAuthTab('signup'); setAuthError(''); }}
+                    style={{ color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0 }}
+                  >
+                    Sign Up
+                  </button>
+                </>
+              ) : (
+                <>
+                  Already have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => { setAuthTab('signin'); setAuthError(''); }}
+                    style={{ color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0 }}
+                  >
+                    Sign In
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Loading Screen
+  if (!mounted || status === 'loading') {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--geist-background)', color: 'var(--geist-foreground)' }}>
+        <div className="status-saving-spinner" style={{ width: 34, height: 34, borderWidth: 3, borderColor: 'rgba(56,189,248,0.2)', borderTopColor: '#38bdf8' }} />
+        <p style={{ marginTop: '1.25rem', fontSize: '0.85rem', color: 'var(--accents-5)', letterSpacing: '0.02em' }}>Loading Workplace Hub...</p>
+      </div>
+    );
+  }
+
+  // Unauthenticated Visitors: Dedicated Landing Page
+  if (!session?.user) {
+    return (
+      <div className="landing-root">
+        {toastMessage && (
+          <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 9999 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--card-bg)', border: '1px solid var(--border-default)', color: 'var(--geist-foreground)', padding: '0.65rem 1.15rem', borderRadius: 6, fontSize: '0.82rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
+              <Check size={14} color="#10b981" /> {toastMessage.text}
+            </div>
+          </div>
+        )}
+
+        <LandingPage
+          onOpenAuth={(tab = 'signin') => {
+            setAuthTab(tab);
+            setAuthError('');
+            setIsAuthModalOpen(true);
+          }}
+          theme={theme}
+          toggleTheme={toggleTheme}
+        />
+
+        {renderAuthModal()}
+      </div>
+    );
+  }
+
+  // Authenticated Users: Full Workspace Dashboard
   return (
     <div className="app-layout">
       {/* Toast Alert */}
@@ -1824,128 +1990,8 @@ export default function VercelDashboard() {
           </div>
         )}
 
-        {/* Modal: Google & Email/Password Authentication (Sign In / Sign Up) */}
-        {isAuthModalOpen && (
-          <div className="v-modal-overlay" onClick={() => setIsAuthModalOpen(false)}>
-            <div className="auth-modal-dialog" onClick={(e) => e.stopPropagation()}>
-              <div className="v-modal-header" style={{ borderBottom: 'none', paddingBottom: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <img src="/logo-black.png" alt="Logo" className="brand-logo-light" style={{ width: 20, height: 20, objectFit: 'contain' }} />
-                  <img src="/logo-white.png" alt="Logo" className="brand-logo-dark" style={{ width: 20, height: 20, objectFit: 'contain' }} />
-                  <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Workplace Hub</span>
-                </div>
-                <button className="btn-v-ghost" onClick={() => setIsAuthModalOpen(false)}><X size={16} /></button>
-              </div>
-
-              <div className="auth-tabs">
-                <button
-                  className={`auth-tab-btn ${authTab === 'signin' ? 'active' : ''}`}
-                  onClick={() => { setAuthTab('signin'); setAuthError(''); }}
-                >
-                  Sign In
-                </button>
-                <button
-                  className={`auth-tab-btn ${authTab === 'signup' ? 'active' : ''}`}
-                  onClick={() => { setAuthTab('signup'); setAuthError(''); }}
-                >
-                  Sign Up
-                </button>
-              </div>
-
-              <div style={{ padding: '1.25rem 1.5rem' }}>
-                {/* Google OAuth Button */}
-                <button type="button" className="google-auth-btn" onClick={handleGoogleSignIn}>
-                  <GoogleIcon />
-                  <span>Continue with Google</span>
-                </button>
-
-                <div className="auth-divider">or continue with email</div>
-
-                {authError && (
-                  <div style={{ background: 'rgba(238,0,0,0.1)', border: '1px solid rgba(238,0,0,0.3)', color: '#ff4d4f', padding: '0.5rem 0.75rem', borderRadius: 6, fontSize: '0.78rem', marginBottom: '0.85rem' }}>
-                    {authError}
-                  </div>
-                )}
-
-                <form onSubmit={authTab === 'signin' ? handleEmailSignIn : handleEmailSignUp} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                  {authTab === 'signup' && (
-                    <div className="v-form-group">
-                      <label>Full Name</label>
-                      <input
-                        type="text"
-                        className="v-input"
-                        placeholder="e.g. Alireja Khan"
-                        value={authForm.name}
-                        onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })}
-                        required
-                      />
-                    </div>
-                  )}
-
-                  <div className="v-form-group">
-                    <label>Email Address</label>
-                    <input
-                      type="email"
-                      className="v-input"
-                      placeholder="e.g. alirejakhan36@gmail.com"
-                      value={authForm.email}
-                      onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div className="v-form-group">
-                    <label>Password</label>
-                    <input
-                      type="password"
-                      className="v-input"
-                      placeholder="••••••••••••"
-                      value={authForm.password}
-                      onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="btn-v btn-v-primary"
-                    disabled={authLoading}
-                    style={{ width: '100%', marginTop: '0.35rem', padding: '0.65rem', justifyContent: 'center' }}
-                  >
-                    {authLoading && <div className="status-saving-spinner" style={{ width: 13, height: 13, borderWidth: 2 }} />}
-                    <span>{authLoading ? (authTab === 'signin' ? 'Signing In...' : 'Creating Account...') : (authTab === 'signin' ? 'Sign In' : 'Create Account')}</span>
-                  </button>
-                </form>
-
-                <div style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.78rem', color: 'var(--accents-5)' }}>
-                  {authTab === 'signin' ? (
-                    <>
-                      Don't have an account?{' '}
-                      <button
-                        type="button"
-                        onClick={() => { setAuthTab('signup'); setAuthError(''); }}
-                        style={{ color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0 }}
-                      >
-                        Sign Up
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      Already have an account?{' '}
-                      <button
-                        type="button"
-                        onClick={() => { setAuthTab('signin'); setAuthError(''); }}
-                        style={{ color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0 }}
-                      >
-                        Sign In
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Shared Auth Modal */}
+        {renderAuthModal()}
       </main>
     </div>
   );
