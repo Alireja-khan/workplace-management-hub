@@ -3,15 +3,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import {
-  Layers,
-  Plus,
   Table as TableIcon,
   Columns,
   Search,
   RotateCcw,
-  FileSpreadsheet,
   Download,
-  Upload,
   ExternalLink,
   Copy,
   Clock,
@@ -26,13 +22,16 @@ import {
   Wallet,
   TrendingUp,
   X,
-  Calendar,
-  Check,
-  Globe
+  Plus,
+  Globe,
+  Sparkles,
+  Layers,
+  ArrowUpRight,
+  Check
 } from 'lucide-react';
 
-export default function Dashboard() {
-  const { data: session, status: authStatus } = useSession();
+export default function VercelDashboard() {
+  const { data: session } = useSession();
 
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,11 +70,9 @@ export default function Dashboard() {
     notes: '',
   });
 
-  // Fetch projects from MongoDB API on load
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      // Auto seed if empty
       await fetch('/api/projects/seed', { method: 'POST' });
       const res = await fetch('/api/projects');
       const data = await res.json();
@@ -84,7 +81,7 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error('Failed to fetch projects', err);
-      showToast('Error connecting to database', 'error');
+      showToast('Error connecting to MongoDB', 'error');
     } finally {
       setLoading(false);
     }
@@ -96,10 +93,10 @@ export default function Dashboard() {
 
   const showToast = (msg, type = 'success') => {
     setToastMessage({ text: msg, type });
-    setTimeout(() => setToastMessage(null), 3000);
+    setTimeout(() => setToastMessage(null), 3200);
   };
 
-  // KPIs Calculation
+  // KPIs
   const kpis = useMemo(() => {
     let totalGross = 0;
     let activeWip = 0;
@@ -125,7 +122,7 @@ export default function Dashboard() {
     return { totalGross, netAmount, activeWip, wipVal, deliveredDone, rate };
   }, [projects]);
 
-  // Unique profiles for filter dropdown
+  // Unique Profiles
   const uniqueProfiles = useMemo(() => {
     return Array.from(new Set(projects.map((p) => p.profileName).filter(Boolean))).sort();
   }, [projects]);
@@ -177,7 +174,6 @@ export default function Dashboard() {
     return res;
   }, [projects, currentTab, profileFilter, statusFilter, scheduleFilter, searchQuery, sortConfig]);
 
-  // Handle Sort
   const handleSort = (key) => {
     setSortConfig((prev) => ({
       key,
@@ -185,7 +181,6 @@ export default function Dashboard() {
     }));
   };
 
-  // Quick Status Update (Direct from Table)
   const handleQuickStatusChange = async (projectId, newStatus) => {
     try {
       const res = await fetch(`/api/projects/${projectId}`, {
@@ -206,7 +201,6 @@ export default function Dashboard() {
     }
   };
 
-  // Form Handlers
   const openNewModal = () => {
     setActiveProject(null);
     setFormData({
@@ -261,7 +255,6 @@ export default function Dashboard() {
     try {
       const payload = { ...formData, amount: parseFloat(formData.amount) || 0 };
       if (activeProject) {
-        // Edit
         const res = await fetch(`/api/projects/${activeProject._id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -270,10 +263,9 @@ export default function Dashboard() {
         const data = await res.json();
         if (data.success) {
           setProjects((prev) => prev.map((p) => (p._id === activeProject._id ? data.data : p)));
-          showToast(`Order for ${payload.clientUsername} updated!`);
+          showToast(`Updated order for ${payload.clientUsername}`);
         }
       } else {
-        // Create
         const res = await fetch('/api/projects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -282,7 +274,7 @@ export default function Dashboard() {
         const data = await res.json();
         if (data.success) {
           setProjects((prev) => [data.data, ...prev]);
-          showToast(`New order added for ${payload.clientUsername}!`);
+          showToast(`Created order for ${payload.clientUsername}`);
         }
       }
       setIsModalOpen(false);
@@ -298,7 +290,7 @@ export default function Dashboard() {
       const data = await res.json();
       if (data.success) {
         setProjects((prev) => prev.filter((p) => p._id !== projectId));
-        showToast('Order deleted from MongoDB');
+        showToast('Order deleted');
         setIsDetailOpen(false);
       }
     } catch (err) {
@@ -306,7 +298,6 @@ export default function Dashboard() {
     }
   };
 
-  // CSV Export
   const exportCSV = () => {
     if (projects.length === 0) return showToast('No data to export', 'error');
     const headers = [
@@ -345,584 +336,582 @@ export default function Dashboard() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Workplace_Orders_MongoDB_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `Workplace_Orders_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast('Exported to CSV');
+    showToast('Exported CSV');
   };
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    showToast('Copied to clipboard!');
+    showToast('Copied to clipboard');
   };
 
   return (
-    <div className="container-max">
-      {/* Toast */}
-      {toastMessage && (
-        <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 9999 }}>
-          <div className="badge-pill badge-done" style={{ padding: '0.75rem 1.25rem', fontSize: '0.85rem', background: '#0f172a', border: '1px solid #10b981', color: '#f8fafc', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-            <Check size={16} color="#10b981" /> {toastMessage.text}
-          </div>
-        </div>
-      )}
+    <>
+      {/* Vercel Ambient Background Grid */}
+      <div className="vercel-grid-bg"></div>
+      <div className="vercel-radial-glow"></div>
 
-      {/* Top Navbar */}
-      <header className="nav-header">
-        <div className="brand-wrapper">
-          <div style={{ width: 38, height: 38, background: '#10b981', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-            <Layers size={20} />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <h1 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Workplace Hub</h1>
-              <span className="brand-badge">Next.js + MongoDB</span>
+      <div className="app-wrapper">
+        {/* Toast Alert */}
+        {toastMessage && (
+          <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 9999 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#0a0a0a', border: '1px solid #333333', color: '#ededed', padding: '0.65rem 1.15rem', borderRadius: 6, fontSize: '0.82rem', boxShadow: '0 20px 40px rgba(0,0,0,0.8)' }}>
+              <Check size={14} color="#10b981" /> {toastMessage.text}
             </div>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Streamlined Agency Order & Subdomain Tracker</p>
           </div>
-        </div>
+        )}
 
-        {/* User Auth & Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          <button className="btn btn-outline" onClick={exportCSV} title="Export CSV">
-            <Download size={15} /> Export
-          </button>
-          
-          <button className="btn btn-primary" onClick={openNewModal}>
-            <Plus size={16} /> New Order
-          </button>
+        {/* Vercel Header & Breadcrumbs */}
+        <header className="vercel-header">
+          <div className="vercel-breadcrumb">
+            {/* Vercel Triangle Logo */}
+            <div className="vercel-logo-tri">
+              <svg width="22" height="22" viewBox="0 0 76 65" fill="#ffffff">
+                <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" />
+              </svg>
+            </div>
+            <span className="breadcrumb-divider">/</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#ffffff' }}>Alireja-khan</span>
+            <span className="breadcrumb-divider">/</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#888888' }}>my-work-place</span>
+            <span className="project-tag">Production</span>
+          </div>
 
-          {/* GitHub Auth Pill */}
-          {session?.user ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-input)', padding: '0.3rem 0.6rem', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
-              {session.user.image ? (
-                <img src={session.user.image} alt={session.user.name} style={{ width: 24, height: 24, borderRadius: '50%' }} />
-              ) : (
-                <Github size={16} />
-              )}
-              <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{session.user.name || session.user.email}</span>
-              <button className="btn-ghost" onClick={() => signOut()} title="Sign Out" style={{ padding: 2, cursor: 'pointer' }}>
-                <LogOut size={14} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button className="btn-v btn-v-secondary" onClick={exportCSV} title="Export CSV">
+              <Download size={13} /> Export CSV
+            </button>
+            <button className="btn-v btn-v-primary" onClick={openNewModal}>
+              <Plus size={14} /> New Order
+            </button>
+
+            {session?.user ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#0a0a0a', padding: '0.3rem 0.6rem', borderRadius: 6, border: '1px solid #222222' }}>
+                {session.user.image ? (
+                  <img src={session.user.image} alt={session.user.name} style={{ width: 20, height: 20, borderRadius: '50%' }} />
+                ) : (
+                  <Github size={14} />
+                )}
+                <span style={{ fontSize: '0.78rem', fontWeight: 500 }}>{session.user.name || session.user.email}</span>
+                <button className="btn-v-ghost" onClick={() => signOut()} title="Sign Out" style={{ padding: 2, cursor: 'pointer' }}>
+                  <LogOut size={13} />
+                </button>
+              </div>
+            ) : (
+              <button className="btn-v btn-v-secondary" onClick={() => signIn('github')}>
+                <Github size={13} /> Sign In
+              </button>
+            )}
+          </div>
+        </header>
+
+        {/* Vercel Metrics (KPI Cards) */}
+        <section className="metrics-row">
+          <div className="metric-card">
+            <div className="metric-header">
+              <span className="metric-title">Total Gross Volume</span>
+              <Wallet size={15} color="#888" />
+            </div>
+            <div className="metric-value">${kpis.totalGross.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+            <div className="metric-footer">
+              <span className="metric-badge">{projects.length} Orders</span> All-time tracked in MongoDB
+            </div>
+          </div>
+
+          <div className="metric-card">
+            <div className="metric-header">
+              <span className="metric-title">Net Revenue (Take-Home 80%)</span>
+              <TrendingUp size={15} color="#10b981" />
+            </div>
+            <div className="metric-value" style={{ color: '#ededed' }}>
+              ${kpis.netAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            </div>
+            <div className="metric-footer">
+              <span className="metric-badge green">-20% Fee Deducted</span> 80% Net profit
+            </div>
+          </div>
+
+          <div className="metric-card">
+            <div className="metric-header">
+              <span className="metric-title">Work In Progress</span>
+              <Clock size={15} color="#38bdf8" />
+            </div>
+            <div className="metric-value">{kpis.activeWip}</div>
+            <div className="metric-footer">
+              <span className="metric-badge blue">${kpis.wipVal.toFixed(0)} WIP</span> Active development queue
+            </div>
+          </div>
+
+          <div className="metric-card">
+            <div className="metric-header">
+              <span className="metric-title">Delivery Rate</span>
+              <CheckCircle2 size={15} color="#10b981" />
+            </div>
+            <div className="metric-value">{kpis.rate}%</div>
+            <div className="metric-footer">
+              <span className="metric-badge green">{kpis.deliveredDone} Delivered</span> Successfully completed
+            </div>
+          </div>
+        </section>
+
+        {/* Control Bar (Vercel Segmented Nav & Search) */}
+        <section className="control-bar">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div className="segmented-nav">
+              <button className={`segmented-item ${currentTab === 'all' ? 'active' : ''}`} onClick={() => setCurrentTab('all')}>
+                All Orders ({projects.length})
+              </button>
+              <button className={`segmented-item ${currentTab === 'running' ? 'active' : ''}`} onClick={() => setCurrentTab('running')}>
+                Running ({projects.filter((p) => p.orderStatus === 'Wip' || p.orderStatus === 'Issue' || p.timeSchedule === 'Late').length})
+              </button>
+              <button className={`segmented-item ${currentTab === 'April' ? 'active' : ''}`} onClick={() => setCurrentTab('April')}>April</button>
+              <button className={`segmented-item ${currentTab === 'May' ? 'active' : ''}`} onClick={() => setCurrentTab('May')}>May</button>
+              <button className={`segmented-item ${currentTab === 'June' ? 'active' : ''}`} onClick={() => setCurrentTab('June')}>June</button>
+            </div>
+
+            <div className="segmented-nav">
+              <button className={`segmented-item ${currentView === 'table' ? 'active' : ''}`} onClick={() => setCurrentView('table')}>
+                <TableIcon size={13} style={{ marginRight: 4 }} /> Table
+              </button>
+              <button className={`segmented-item ${currentView === 'kanban' ? 'active' : ''}`} onClick={() => setCurrentView('kanban')}>
+                <Columns size={13} style={{ marginRight: 4 }} /> Kanban
               </button>
             </div>
-          ) : (
-            <button className="btn btn-outline" onClick={() => signIn('github')} style={{ gap: '0.45rem' }}>
-              <Github size={16} /> Login with GitHub
-            </button>
-          )}
-        </div>
-      </header>
-
-      {/* KPI Stats Cards */}
-      <section className="kpi-grid">
-        <div className="kpi-box">
-          <div className="kpi-title">
-            <span>Total Gross Revenue</span>
-            <Wallet size={16} color="#06b6d4" />
-          </div>
-          <div className="kpi-num">${kpis.totalGross.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-          <div className="kpi-desc">{projects.length} Total orders recorded in MongoDB</div>
-        </div>
-
-        <div className="kpi-box">
-          <div className="kpi-title">
-            <span>Net Take-Home (Without 20%)</span>
-            <TrendingUp size={16} color="#10b981" />
-          </div>
-          <div className="kpi-num" style={{ color: '#10b981' }}>${kpis.netAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-          <div className="kpi-desc">80% profit after platform fee (-20%)</div>
-        </div>
-
-        <div className="kpi-box">
-          <div className="kpi-title">
-            <span>Active Work In Progress</span>
-            <Clock size={16} color="#818cf8" />
-          </div>
-          <div className="kpi-num">{kpis.activeWip}</div>
-          <div className="kpi-desc">${kpis.wipVal.toFixed(0)} current WIP queue</div>
-        </div>
-
-        <div className="kpi-box">
-          <div className="kpi-title">
-            <span>Delivered & Completed</span>
-            <CheckCircle2 size={16} color="#34d399" />
-          </div>
-          <div className="kpi-num">{kpis.deliveredDone}</div>
-          <div className="kpi-desc">{kpis.rate}% delivery completion rate</div>
-        </div>
-      </section>
-
-      {/* Controls & Filter Panel */}
-      <section className="panel-card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-          {/* Month & Running Tabs */}
-          <div className="tab-nav">
-            <button className={`tab-item ${currentTab === 'all' ? 'active' : ''}`} onClick={() => setCurrentTab('all')}>
-              All Orders ({projects.length})
-            </button>
-            <button className={`tab-item ${currentTab === 'running' ? 'active' : ''}`} onClick={() => setCurrentTab('running')}>
-              Running ({projects.filter((p) => p.orderStatus === 'Wip' || p.orderStatus === 'Issue' || p.timeSchedule === 'Late').length})
-            </button>
-            <button className={`tab-item ${currentTab === 'April' ? 'active' : ''}`} onClick={() => setCurrentTab('April')}>April</button>
-            <button className={`tab-item ${currentTab === 'May' ? 'active' : ''}`} onClick={() => setCurrentTab('May')}>May</button>
-            <button className={`tab-item ${currentTab === 'June' ? 'active' : ''}`} onClick={() => setCurrentTab('June')}>June</button>
           </div>
 
-          {/* View Mode Toggle */}
-          <div style={{ display: 'flex', background: 'var(--bg-input)', padding: 3, borderRadius: 6, border: '1px solid var(--border-subtle)' }}>
+          {/* Filters Row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+            <div className="v-input-wrapper">
+              <input
+                type="text"
+                className="v-input"
+                placeholder="Search orders, clients, subdomains..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <select className="v-select" value={profileFilter} onChange={(e) => setProfileFilter(e.target.value)}>
+              <option value="all">All Marketplace Profiles</option>
+              {uniqueProfiles.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+
+            <select className="v-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="all">All Statuses</option>
+              <option value="Done">Done</option>
+              <option value="Wip">Wip</option>
+              <option value="Delivered">Delivered</option>
+              <option value="Issue">Issue</option>
+              <option value="Cancel">Cancel</option>
+            </select>
+
+            <select className="v-select" value={scheduleFilter} onChange={(e) => setScheduleFilter(e.target.value)}>
+              <option value="all">All Schedules</option>
+              <option value="Complete">Complete</option>
+              <option value="Late">Late</option>
+              <option value="Repeat Order">Repeat Order</option>
+              <option value="Add-on">Add-on</option>
+            </select>
+
             <button
-              className="btn btn-ghost"
-              style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', background: currentView === 'table' ? 'var(--bg-surface-elevated)' : 'transparent', color: currentView === 'table' ? '#fff' : 'var(--text-muted)' }}
-              onClick={() => setCurrentView('table')}
+              className="btn-v btn-v-secondary"
+              onClick={() => {
+                setSearchQuery('');
+                setProfileFilter('all');
+                setStatusFilter('all');
+                setScheduleFilter('all');
+              }}
+              title="Reset Filters"
             >
-              <TableIcon size={14} /> Table
-            </button>
-            <button
-              className="btn btn-ghost"
-              style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', background: currentView === 'kanban' ? 'var(--bg-surface-elevated)' : 'transparent', color: currentView === 'kanban' ? '#fff' : 'var(--text-muted)' }}
-              onClick={() => setCurrentView('kanban')}
-            >
-              <Columns size={14} /> Kanban
+              <RotateCcw size={13} /> Reset
             </button>
           </div>
-        </div>
+        </section>
 
-        {/* Filter Inputs Row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: 240 }}>
-            <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-            <input
-              type="text"
-              className="field-input"
-              style={{ width: '100%', paddingLeft: 32 }}
-              placeholder="Search by client, profile, subdomain, or update notes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+        {/* Main Content Area */}
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '5rem 1rem', color: '#888888' }}>
+            <div style={{ display: 'inline-block', width: 28, height: 28, border: '2px solid rgba(255,255,255,0.1)', borderTopColor: '#ffffff', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+            <p style={{ marginTop: '1rem', fontSize: '0.85rem' }}>Loading from MongoDB Atlas...</p>
           </div>
-
-          <select className="field-select" value={profileFilter} onChange={(e) => setProfileFilter(e.target.value)}>
-            <option value="all">All Marketplace Profiles</option>
-            {uniqueProfiles.map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
-
-          <select className="field-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="all">All Statuses</option>
-            <option value="Done">Done</option>
-            <option value="Wip">Wip</option>
-            <option value="Delivered">Delivered</option>
-            <option value="Issue">Issue</option>
-            <option value="Cancel">Cancel</option>
-          </select>
-
-          <select className="field-select" value={scheduleFilter} onChange={(e) => setScheduleFilter(e.target.value)}>
-            <option value="all">All Schedules</option>
-            <option value="Complete">Complete</option>
-            <option value="Late">Late</option>
-            <option value="Repeat Order">Repeat Order</option>
-            <option value="Add-on">Add-on</option>
-          </select>
-
-          <button
-            className="btn btn-outline"
-            onClick={() => {
-              setSearchQuery('');
-              setProfileFilter('all');
-              setStatusFilter('all');
-              setScheduleFilter('all');
-            }}
-            title="Reset Filters"
-          >
-            <RotateCcw size={14} /> Reset
-          </button>
-        </div>
-      </section>
-
-      {/* Main Content Area */}
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--text-dim)' }}>
-          <div style={{ display: 'inline-block', width: 32, height: 32, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#10b981', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-          <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>Loading records from MongoDB Atlas...</p>
-        </div>
-      ) : currentView === 'table' ? (
-        /* Table View */
-        <div className="table-wrap">
-          <table className="clean-table">
-            <thead>
-              <tr>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('assignDate')}>Assign Date</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('clientUsername')}>Client Username</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('profileName')}>Profile</th>
-                <th>Brief / Doc</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('amount')}>Gross ($)</th>
-                <th>Without 20% ($)</th>
-                <th>Order Status</th>
-                <th>Our Subdomain</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('deadline')}>Deadline</th>
-                <th>Schedule</th>
-                <th>Client Domain</th>
-                <th>Marketplace</th>
-                <th>Daily Update</th>
-                <th>Review</th>
-                <th style={{ textAlign: 'center' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredProjects.length === 0 ? (
+        ) : currentView === 'table' ? (
+          /* Table View */
+          <div className="v-table-container">
+            <table className="v-table">
+              <thead>
                 <tr>
-                  <td colSpan={15} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-dim)' }}>
-                    No matching orders found in database.
-                  </td>
+                  <th className="sortable" onClick={() => handleSort('assignDate')}>Assign Date</th>
+                  <th className="sortable" onClick={() => handleSort('clientUsername')}>Client Username</th>
+                  <th className="sortable" onClick={() => handleSort('profileName')}>Profile</th>
+                  <th>Brief Doc</th>
+                  <th className="sortable" onClick={() => handleSort('amount')}>Gross</th>
+                  <th>Net (80%)</th>
+                  <th>Order Status</th>
+                  <th>Staging Subdomain</th>
+                  <th className="sortable" onClick={() => handleSort('deadline')}>Deadline</th>
+                  <th>Schedule</th>
+                  <th>Live Domain</th>
+                  <th>Daily Update</th>
+                  <th>Review</th>
+                  <th style={{ textAlign: 'center' }}>Actions</th>
                 </tr>
-              ) : (
-                filteredProjects.map((p) => {
-                  const gross = parseFloat(p.amount) || 0;
-                  const net = gross * 0.8;
-                  const statusClass =
-                    p.orderStatus === 'Done'
-                      ? 'badge-done'
-                      : p.orderStatus === 'Delivered'
-                      ? 'badge-delivered'
-                      : p.orderStatus === 'Issue' || p.orderStatus === 'Cancel'
-                      ? 'badge-issue'
-                      : 'badge-wip';
+              </thead>
+              <tbody>
+                {filteredProjects.length === 0 ? (
+                  <tr>
+                    <td colSpan={14} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#666666' }}>
+                      No matching records found.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredProjects.map((p) => {
+                    const gross = parseFloat(p.amount) || 0;
+                    const net = gross * 0.8;
+                    const statusClass =
+                      p.orderStatus === 'Done'
+                        ? 'v-status-done'
+                        : p.orderStatus === 'Delivered'
+                        ? 'v-status-delivered'
+                        : p.orderStatus === 'Issue' || p.orderStatus === 'Cancel'
+                        ? 'v-status-issue'
+                        : 'v-status-wip';
 
-                  return (
-                    <tr key={p._id}>
-                      <td style={{ color: 'var(--text-muted)' }}>{p.assignDate || '-'}</td>
-                      <td>
-                        <strong style={{ color: '#fff' }}>{p.clientUsername}</strong>
-                      </td>
-                      <td>
-                        <span className="badge-pill" style={{ background: 'var(--bg-input)', color: '#94a3b8' }}>
-                          {p.profileName}
-                        </span>
-                      </td>
-                      <td>
-                        {p.instructionSheet ? (
-                          <a href={p.instructionSheet} target="_blank" rel="noreferrer" className="btn btn-outline" style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', color: '#34d399' }}>
-                            <ExternalLink size={12} /> Brief
-                          </a>
-                        ) : '-'}
-                      </td>
-                      <td><strong style={{ color: '#fff' }}>${gross.toFixed(2)}</strong></td>
-                      <td><span style={{ color: '#10b981', fontWeight: 700 }}>${net.toFixed(2)}</span></td>
-                      <td>
-                        <select
-                          className={`badge-pill ${statusClass}`}
-                          style={{ outline: 'none', cursor: 'pointer' }}
-                          value={p.orderStatus || 'Wip'}
-                          onChange={(e) => handleQuickStatusChange(p._id, e.target.value)}
-                        >
-                          <option value="Done">Done</option>
-                          <option value="Wip">Wip</option>
-                          <option value="Delivered">Delivered</option>
-                          <option value="Issue">Issue</option>
-                          <option value="Cancel">Cancel</option>
-                        </select>
-                      </td>
-                      <td>
-                        {p.ourSubdomain ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <a href={p.ourSubdomain} target="_blank" rel="noreferrer" className="btn btn-outline" style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', color: '#38bdf8' }}>
-                              <Globe size={12} /> Staging
+                    return (
+                      <tr key={p._id}>
+                        <td className="mono-text" style={{ color: '#888888' }}>{p.assignDate || '-'}</td>
+                        <td>
+                          <span style={{ fontWeight: 600, color: '#ffffff' }}>{p.clientUsername}</span>
+                        </td>
+                        <td>
+                          <span style={{ fontSize: '0.75rem', color: '#a1a1a1' }}>{p.profileName}</span>
+                        </td>
+                        <td>
+                          {p.instructionSheet ? (
+                            <a href={p.instructionSheet} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}>
+                              <ExternalLink size={11} /> Brief
                             </a>
-                            <button className="btn-ghost" style={{ padding: 3, cursor: 'pointer' }} onClick={() => copyToClipboard(p.ourSubdomain)} title="Copy URL">
-                              <Copy size={12} />
+                          ) : '-'}
+                        </td>
+                        <td className="mono-text" style={{ color: '#ffffff', fontWeight: 600 }}>${gross.toFixed(2)}</td>
+                        <td className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>${net.toFixed(2)}</td>
+                        <td>
+                          <div className={`v-status-badge ${statusClass}`}>
+                            <span className="v-status-dot"></span>
+                            <select
+                              style={{ background: 'transparent', border: 'none', color: 'inherit', outline: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.73rem', fontWeight: 600 }}
+                              value={p.orderStatus || 'Wip'}
+                              onChange={(e) => handleQuickStatusChange(p._id, e.target.value)}
+                            >
+                              <option value="Done" style={{ background: '#111' }}>Done</option>
+                              <option value="Wip" style={{ background: '#111' }}>Wip</option>
+                              <option value="Delivered" style={{ background: '#111' }}>Delivered</option>
+                              <option value="Issue" style={{ background: '#111' }}>Issue</option>
+                              <option value="Cancel" style={{ background: '#111' }}>Cancel</option>
+                            </select>
+                          </div>
+                        </td>
+                        <td>
+                          {p.ourSubdomain ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <a href={p.ourSubdomain} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}>
+                                <Globe size={11} /> Staging
+                              </a>
+                              <button className="btn-v-ghost" style={{ padding: 2, cursor: 'pointer' }} onClick={() => copyToClipboard(p.ourSubdomain)} title="Copy URL">
+                                <Copy size={11} />
+                              </button>
+                            </div>
+                          ) : '-'}
+                        </td>
+                        <td className="mono-text" style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : '#888888' }}>
+                          {p.deadline || '-'}
+                        </td>
+                        <td>
+                          <span style={{ fontSize: '0.75rem', color: p.timeSchedule === 'Late' ? '#f5a623' : '#888888' }}>
+                            {p.timeSchedule || 'Complete'}
+                          </span>
+                        </td>
+                        <td>
+                          {p.clientDomain ? (
+                            <a href={p.clientDomain} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}>
+                              <ExternalLink size={11} /> Live
+                            </a>
+                          ) : '-'}
+                        </td>
+                        <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#888888' }} title={p.dailyUpdate}>
+                          {p.dailyUpdate || '-'}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 2, color: '#f5a623' }}>
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <Star key={s} size={11} fill={s <= (p.review || 0) ? '#f5a623' : 'none'} color={s <= (p.review || 0) ? '#f5a623' : '#333333'} />
+                            ))}
+                          </div>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                            <button className="btn-v-ghost" style={{ padding: 3 }} onClick={() => { setActiveProject(p); setIsDetailOpen(true); }} title="View">
+                              <Eye size={13} />
+                            </button>
+                            <button className="btn-v-ghost" style={{ padding: 3 }} onClick={() => openEditModal(p)} title="Edit">
+                              <Edit2 size={13} />
+                            </button>
+                            <button className="btn-v-ghost" style={{ padding: 3, color: '#ee0000' }} onClick={() => handleDelete(p._id, p.clientUsername)} title="Delete">
+                              <Trash2 size={13} />
                             </button>
                           </div>
-                        ) : '-'}
-                      </td>
-                      <td style={{ color: p.timeSchedule === 'Late' ? '#fb7185' : 'var(--text-muted)' }}>
-                        {p.deadline || '-'}
-                      </td>
-                      <td>
-                        <span className={`badge-pill ${p.timeSchedule === 'Complete' ? 'badge-done' : p.timeSchedule === 'Late' ? 'badge-late' : 'badge-wip'}`}>
-                          {p.timeSchedule || 'Regular'}
-                        </span>
-                      </td>
-                      <td>
-                        {p.clientDomain ? (
-                          <a href={p.clientDomain} target="_blank" rel="noreferrer" className="btn btn-outline" style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', color: '#a855f7' }}>
-                            <ExternalLink size={12} /> Live
-                          </a>
-                        ) : '-'}
-                      </td>
-                      <td>
-                        <span className="badge-pill badge-delivered">{p.marketplaceStatus || 'Delivered'}</span>
-                      </td>
-                      <td style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)' }} title={p.dailyUpdate}>
-                        {p.dailyUpdate || '-'}
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 2, color: '#fbbf24' }}>
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star key={s} size={12} fill={s <= (p.review || 0) ? '#fbbf24' : 'none'} color={s <= (p.review || 0) ? '#fbbf24' : '#475569'} />
-                          ))}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          /* Kanban View */
+          <div className="v-kanban-board">
+            {['Assigned', 'Wip', 'Issue', 'Delivered', 'Done'].map((colStatus) => {
+              const colItems = filteredProjects.filter((p) => (p.orderStatus || 'Assigned') === colStatus);
+              return (
+                <div
+                  key={colStatus}
+                  className="v-kanban-col"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    const pId = e.dataTransfer.getData('text/plain');
+                    if (pId) handleQuickStatusChange(pId, colStatus);
+                  }}
+                >
+                  <div className="v-kanban-header">
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#ededed' }}>
+                      {colStatus === 'Wip' ? 'In Progress' : colStatus}
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: '#888888', background: '#111111', padding: '0.1rem 0.4rem', borderRadius: 4, border: '1px solid #222222' }}>
+                      {colItems.length}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {colItems.map((p) => (
+                      <div
+                        key={p._id}
+                        className="v-kanban-card"
+                        draggable
+                        onDragStart={(e) => e.dataTransfer.setData('text/plain', p._id)}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#ffffff' }}>{p.clientUsername}</span>
+                          <span className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>
+                            ${((p.amount || 0) * 0.8).toFixed(0)}
+                          </span>
                         </div>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                          <button className="btn-ghost" style={{ padding: 4 }} onClick={() => { setActiveProject(p); setIsDetailOpen(true); }} title="View details">
-                            <Eye size={14} />
-                          </button>
-                          <button className="btn-ghost" style={{ padding: 4 }} onClick={() => openEditModal(p)} title="Edit order">
-                            <Edit2 size={14} />
-                          </button>
-                          <button className="btn-ghost" style={{ padding: 4, color: '#fb7185' }} onClick={() => handleDelete(p._id, p.clientUsername)} title="Delete">
-                            <Trash2 size={14} />
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#888888' }}>
+                          <span>{p.profileName}</span>
+                          <span className="mono-text">Gross: ${p.amount}</span>
+                        </div>
+
+                        {p.dailyUpdate && (
+                          <div style={{ fontSize: '0.75rem', color: '#a1a1a1', background: '#0a0a0a', padding: '0.4rem 0.5rem', borderRadius: 4, borderLeft: '2px solid #333333' }}>
+                            {p.dailyUpdate}
+                          </div>
+                        )}
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.4rem', borderTop: '1px solid #1f1f1f', fontSize: '0.72rem' }}>
+                          <span style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : '#888888', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Clock size={11} /> {p.deadline || 'No deadline'}
+                          </span>
+                          <button className="btn-v-ghost" style={{ padding: 2 }} onClick={() => openEditModal(p)}>
+                            <Edit2 size={12} />
                           </button>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        /* Kanban Board View */
-        <div className="kanban-grid">
-          {['Assigned', 'Wip', 'Issue', 'Delivered', 'Done'].map((colStatus) => {
-            const colItems = filteredProjects.filter((p) => (p.orderStatus || 'Assigned') === colStatus);
-            return (
-              <div
-                key={colStatus}
-                className="kanban-col"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  const pId = e.dataTransfer.getData('text/plain');
-                  if (pId) handleQuickStatusChange(pId, colStatus);
-                }}
-              >
-                <div className="kanban-header">
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    {colStatus === 'Wip' ? 'In Progress (WIP)' : colStatus}
-                  </span>
-                  <span className="badge-pill" style={{ background: 'var(--bg-input)' }}>{colItems.length}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+        )}
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {colItems.map((p) => (
-                    <div
-                      key={p._id}
-                      className="kanban-card"
-                      draggable
-                      onDragStart={(e) => e.dataTransfer.setData('text/plain', p._id)}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <strong style={{ fontSize: '0.9rem' }}>{p.clientUsername}</strong>
-                        <span style={{ color: '#10b981', fontWeight: 700, fontSize: '0.85rem' }}>
-                          ${((p.amount || 0) * 0.8).toFixed(0)} <small style={{ color: 'var(--text-dim)', fontWeight: 400 }}>net</small>
-                        </span>
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-                        <span>{p.profileName}</span>
-                        <span>Gross: ${p.amount}</span>
-                      </div>
-
-                      {p.dailyUpdate && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', background: 'var(--bg-input)', padding: '0.4rem 0.5rem', borderRadius: 4, borderLeft: '2px solid #10b981' }}>
-                          {p.dailyUpdate}
-                        </div>
-                      )}
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.4rem', borderTop: '1px solid var(--border-subtle)', fontSize: '0.75rem' }}>
-                        <span style={{ color: p.timeSchedule === 'Late' ? '#fb7185' : 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Clock size={12} /> {p.deadline || 'No deadline'}
-                        </span>
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          <button className="btn-ghost" style={{ padding: 2 }} onClick={() => openEditModal(p)}>
-                            <Edit2 size={13} />
-                          </button>
-                        </div>
+        {/* Modal: Add/Edit Order */}
+        {isModalOpen && (
+          <div className="v-modal-overlay">
+            <div className="v-modal-dialog">
+              <div className="v-modal-header">
+                <span style={{ fontSize: '0.95rem', fontWeight: 600, color: '#ffffff' }}>
+                  {activeProject ? `Edit Order: ${activeProject.clientUsername}` : 'Create New Order'}
+                </span>
+                <button className="btn-v-ghost" onClick={() => setIsModalOpen(false)}><X size={16} /></button>
+              </div>
+              <form onSubmit={handleSubmit}>
+                <div className="v-modal-body">
+                  <div className="v-form-grid">
+                    <div className="v-form-group">
+                      <label>Assign Date *</label>
+                      <input type="date" className="v-input" value={formData.assignDate} onChange={(e) => setFormData({ ...formData, assignDate: e.target.value })} required />
+                    </div>
+                    <div className="v-form-group">
+                      <label>Month Tab</label>
+                      <select className="v-select" value={formData.month} onChange={(e) => setFormData({ ...formData, month: e.target.value })}>
+                        <option value="April">April</option>
+                        <option value="May">May</option>
+                        <option value="June">June</option>
+                        <option value="July">July</option>
+                        <option value="August">August</option>
+                        <option value="September">September</option>
+                        <option value="October">October</option>
+                        <option value="November">November</option>
+                        <option value="December">December</option>
+                      </select>
+                    </div>
+                    <div className="v-form-group">
+                      <label>Client Username *</label>
+                      <input type="text" className="v-input" placeholder="e.g. mharris4463" value={formData.clientUsername} onChange={(e) => setFormData({ ...formData, clientUsername: e.target.value })} required />
+                    </div>
+                    <div className="v-form-group">
+                      <label>Profile Name *</label>
+                      <input type="text" className="v-input" placeholder="e.g. LeadsBridge, WpStellar" value={formData.profileName} onChange={(e) => setFormData({ ...formData, profileName: e.target.value })} required />
+                    </div>
+                    <div className="v-form-group">
+                      <label>Gross Amount ($) *</label>
+                      <input type="number" className="v-input" placeholder="e.g. 200" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} required />
+                    </div>
+                    <div className="v-form-group">
+                      <label>Net Take-Home (80%)</label>
+                      <div className="mono-text" style={{ background: '#000000', border: '1px solid #222222', padding: '0.5rem 0.85rem', borderRadius: 5, color: '#10b981', fontWeight: 600 }}>
+                        ${((parseFloat(formData.amount) || 0) * 0.8).toFixed(2)}
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Add / Edit Project Modal */}
-      {isModalOpen && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <div className="modal-title-bar">
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>
-                {activeProject ? `Edit Order: ${activeProject.clientUsername}` : 'Add New Order to MongoDB'}
-              </h3>
-              <button className="btn-ghost" onClick={() => setIsModalOpen(false)}><X size={18} /></button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="modal-body">
-                <div className="form-grid-2">
-                  <div className="field-group">
-                    <label>Assign Date *</label>
-                    <input type="date" className="field-input" value={formData.assignDate} onChange={(e) => setFormData({ ...formData, assignDate: e.target.value })} required />
-                  </div>
-                  <div className="field-group">
-                    <label>Month Tab</label>
-                    <select className="field-select" value={formData.month} onChange={(e) => setFormData({ ...formData, month: e.target.value })}>
-                      <option value="April">April</option>
-                      <option value="May">May</option>
-                      <option value="June">June</option>
-                      <option value="July">July</option>
-                      <option value="August">August</option>
-                      <option value="September">September</option>
-                      <option value="October">October</option>
-                      <option value="November">November</option>
-                      <option value="December">December</option>
-                    </select>
-                  </div>
-                  <div className="field-group">
-                    <label>Client Username *</label>
-                    <input type="text" className="field-input" placeholder="e.g. mharris4463" value={formData.clientUsername} onChange={(e) => setFormData({ ...formData, clientUsername: e.target.value })} required />
-                  </div>
-                  <div className="field-group">
-                    <label>Profile Name *</label>
-                    <input type="text" className="field-input" placeholder="e.g. LeadsBridge, WpStellar" value={formData.profileName} onChange={(e) => setFormData({ ...formData, profileName: e.target.value })} required />
-                  </div>
-                  <div className="field-group">
-                    <label>Gross Amount ($) *</label>
-                    <input type="number" className="field-input" placeholder="e.g. 200" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} required />
-                  </div>
-                  <div className="field-group">
-                    <label>Net Take-Home Preview (80%)</label>
-                    <div style={{ background: 'var(--accent-emerald-subtle)', border: '1px solid rgba(16,185,129,0.3)', padding: '0.55rem 0.8rem', borderRadius: 6, color: '#10b981', fontWeight: 800 }}>
-                      ${((parseFloat(formData.amount) || 0) * 0.8).toFixed(2)}
+                    <div className="v-form-group">
+                      <label>Order Status</label>
+                      <select className="v-select" value={formData.orderStatus} onChange={(e) => setFormData({ ...formData, orderStatus: e.target.value })}>
+                        <option value="Wip">Wip</option>
+                        <option value="Done">Done</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Issue">Issue</option>
+                        <option value="Cancel">Cancel</option>
+                      </select>
+                    </div>
+                    <div className="v-form-group">
+                      <label>Time Schedule</label>
+                      <select className="v-select" value={formData.timeSchedule} onChange={(e) => setFormData({ ...formData, timeSchedule: e.target.value })}>
+                        <option value="Complete">Complete</option>
+                        <option value="Late">Late</option>
+                        <option value="Need domain">Need domain</option>
+                        <option value="Repeat Order">Repeat Order</option>
+                        <option value="Add-on">Add-on</option>
+                      </select>
+                    </div>
+                    <div className="v-form-group">
+                      <label>Deadline Date</label>
+                      <input type="date" className="v-input" value={formData.deadline} onChange={(e) => setFormData({ ...formData, deadline: e.target.value })} />
+                    </div>
+                    <div className="v-form-group">
+                      <label>Marketplace Status</label>
+                      <select className="v-select" value={formData.marketplaceStatus} onChange={(e) => setFormData({ ...formData, marketplaceStatus: e.target.value })}>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Wip">Wip</option>
+                        <option value="Cancel">Cancel</option>
+                      </select>
+                    </div>
+                    <div className="v-form-group full">
+                      <label>Instruction Sheet / Brief URL</label>
+                      <input type="url" className="v-input" placeholder="https://docs.google.com/..." value={formData.instructionSheet} onChange={(e) => setFormData({ ...formData, instructionSheet: e.target.value })} />
+                    </div>
+                    <div className="v-form-group full">
+                      <label>Our Staging Subdomain</label>
+                      <input type="url" className="v-input" placeholder="https://client.wpcoreweb.com/" value={formData.ourSubdomain} onChange={(e) => setFormData({ ...formData, ourSubdomain: e.target.value })} />
+                    </div>
+                    <div className="v-form-group full">
+                      <label>Client Live Domain</label>
+                      <input type="url" className="v-input" placeholder="https://clientdomain.com/" value={formData.clientDomain} onChange={(e) => setFormData({ ...formData, clientDomain: e.target.value })} />
+                    </div>
+                    <div className="v-form-group full">
+                      <label>Daily Update Note</label>
+                      <input type="text" className="v-input" placeholder="Current progress or solved revisions..." value={formData.dailyUpdate} onChange={(e) => setFormData({ ...formData, dailyUpdate: e.target.value })} />
+                    </div>
+                    <div className="v-form-group full">
+                      <label>Backup & Developer Notes</label>
+                      <textarea className="v-input" style={{ resize: 'vertical', minHeight: 60 }} placeholder="Backup location, assigned dev..." value={formData.backupInfo} onChange={(e) => setFormData({ ...formData, backupInfo: e.target.value })} />
                     </div>
                   </div>
-                  <div className="field-group">
-                    <label>Order Status</label>
-                    <select className="field-select" value={formData.orderStatus} onChange={(e) => setFormData({ ...formData, orderStatus: e.target.value })}>
-                      <option value="Wip">Wip</option>
-                      <option value="Done">Done</option>
-                      <option value="Delivered">Delivered</option>
-                      <option value="Issue">Issue</option>
-                      <option value="Cancel">Cancel</option>
-                    </select>
-                  </div>
-                  <div className="field-group">
-                    <label>Time Schedule</label>
-                    <select className="field-select" value={formData.timeSchedule} onChange={(e) => setFormData({ ...formData, timeSchedule: e.target.value })}>
-                      <option value="Complete">Complete</option>
-                      <option value="Late">Late</option>
-                      <option value="Need domain">Need domain</option>
-                      <option value="Repeat Order">Repeat Order</option>
-                      <option value="Add-on">Add-on</option>
-                    </select>
-                  </div>
-                  <div className="field-group">
-                    <label>Deadline Date</label>
-                    <input type="date" className="field-input" value={formData.deadline} onChange={(e) => setFormData({ ...formData, deadline: e.target.value })} />
-                  </div>
-                  <div className="field-group">
-                    <label>Marketplace Status</label>
-                    <select className="field-select" value={formData.marketplaceStatus} onChange={(e) => setFormData({ ...formData, marketplaceStatus: e.target.value })}>
-                      <option value="Delivered">Delivered</option>
-                      <option value="Wip">Wip</option>
-                      <option value="Cancel">Cancel</option>
-                    </select>
-                  </div>
-                  <div className="field-group span-2">
-                    <label>Instruction Sheet / Brief URL</label>
-                    <input type="url" className="field-input" placeholder="https://docs.google.com/..." value={formData.instructionSheet} onChange={(e) => setFormData({ ...formData, instructionSheet: e.target.value })} />
-                  </div>
-                  <div className="field-group span-2">
-                    <label>Our Subdomain (Staging Link)</label>
-                    <input type="url" className="field-input" placeholder="https://client.wpcoreweb.com/" value={formData.ourSubdomain} onChange={(e) => setFormData({ ...formData, ourSubdomain: e.target.value })} />
-                  </div>
-                  <div className="field-group span-2">
-                    <label>Client Live Domain</label>
-                    <input type="url" className="field-input" placeholder="https://clientdomain.com/" value={formData.clientDomain} onChange={(e) => setFormData({ ...formData, clientDomain: e.target.value })} />
-                  </div>
-                  <div className="field-group span-2">
-                    <label>Daily Update Note</label>
-                    <input type="text" className="field-input" placeholder="Current progress or solved bugs..." value={formData.dailyUpdate} onChange={(e) => setFormData({ ...formData, dailyUpdate: e.target.value })} />
-                  </div>
-                  <div className="field-group span-2">
-                    <label>Backup Information & Team Notes</label>
-                    <textarea className="field-textarea" placeholder="Backup saved location, team assignee..." value={formData.backupInfo} onChange={(e) => setFormData({ ...formData, backupInfo: e.target.value })} />
-                  </div>
                 </div>
-              </div>
-              <div style={{ padding: '1rem 1.4rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Save to MongoDB</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Project Details Modal */}
-      {isDetailOpen && activeProject && (
-        <div className="modal-backdrop">
-          <div className="modal-content" style={{ maxWidth: 520 }}>
-            <div className="modal-title-bar">
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>{activeProject.clientUsername}</h3>
-              <button className="btn-ghost" onClick={() => setIsDetailOpen(false)}><X size={18} /></button>
-            </div>
-            <div className="modal-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', background: 'var(--bg-input)', padding: '0.85rem', borderRadius: 8 }}>
-                <div>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>Gross Amount</span>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>${activeProject.amount}</div>
+                <div className="v-modal-footer">
+                  <button type="button" className="btn-v btn-v-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                  <button type="submit" className="btn-v btn-v-primary">Save to MongoDB</button>
                 </div>
-                <div>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>Net Profit (80%)</span>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10b981' }}>${((activeProject.amount || 0) * 0.8).toFixed(2)}</div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Resource Links</span>
-                {activeProject.instructionSheet && (
-                  <a href={activeProject.instructionSheet} target="_blank" rel="noreferrer" className="btn btn-outline" style={{ justifyContent: 'space-between' }}>
-                    <span>Instruction Brief</span> <ExternalLink size={14} />
-                  </a>
-                )}
-                {activeProject.ourSubdomain && (
-                  <a href={activeProject.ourSubdomain} target="_blank" rel="noreferrer" className="btn btn-outline" style={{ justifyContent: 'space-between' }}>
-                    <span>Staging Subdomain</span> <ExternalLink size={14} />
-                  </a>
-                )}
-                {activeProject.clientDomain && (
-                  <a href={activeProject.clientDomain} target="_blank" rel="noreferrer" className="btn btn-outline" style={{ justifyContent: 'space-between' }}>
-                    <span>Client Live Domain</span> <ExternalLink size={14} />
-                  </a>
-                )}
-              </div>
-
-              <div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Daily Update</span>
-                <p style={{ fontSize: '0.85rem', background: 'var(--bg-input)', padding: '0.65rem', borderRadius: 6, marginTop: 4 }}>
-                  {activeProject.dailyUpdate || 'No updates recorded.'}
-                </p>
-              </div>
-
-              <div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Backup & Handover Notes</span>
-                <p style={{ fontSize: '0.85rem', background: 'var(--bg-input)', padding: '0.65rem', borderRadius: 6, marginTop: 4 }}>
-                  {activeProject.backupInfo || 'No backup notes.'}
-                </p>
-              </div>
-            </div>
-            <div style={{ padding: '0.85rem 1.4rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-              <button className="btn btn-outline" onClick={() => setIsDetailOpen(false)}>Close</button>
-              <button className="btn btn-primary" onClick={() => openEditModal(activeProject)}>Edit Order</button>
+              </form>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+
+        {/* Modal: View Details */}
+        {isDetailOpen && activeProject && (
+          <div className="v-modal-overlay">
+            <div className="v-modal-dialog" style={{ maxWidth: 520 }}>
+              <div className="v-modal-header">
+                <span style={{ fontSize: '0.95rem', fontWeight: 600, color: '#ffffff' }}>{activeProject.clientUsername}</span>
+                <button className="btn-v-ghost" onClick={() => setIsDetailOpen(false)}><X size={16} /></button>
+              </div>
+              <div className="v-modal-body">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', background: '#000000', padding: '0.85rem', borderRadius: 6, border: '1px solid #222222' }}>
+                  <div>
+                    <span style={{ fontSize: '0.7rem', color: '#888888' }}>Gross Amount</span>
+                    <div className="mono-text" style={{ fontSize: '1.1rem', fontWeight: 700 }}>${activeProject.amount}</div>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.7rem', color: '#888888' }}>Net Take-Home (80%)</span>
+                    <div className="mono-text" style={{ fontSize: '1.1rem', fontWeight: 700, color: '#10b981' }}>${((activeProject.amount || 0) * 0.8).toFixed(2)}</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', color: '#888888' }}>Resource Links</span>
+                  {activeProject.instructionSheet && (
+                    <a href={activeProject.instructionSheet} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ justifyContent: 'space-between' }}>
+                      <span>Instruction Brief</span> <ExternalLink size={13} />
+                    </a>
+                  )}
+                  {activeProject.ourSubdomain && (
+                    <a href={activeProject.ourSubdomain} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ justifyContent: 'space-between' }}>
+                      <span>Staging Subdomain</span> <ExternalLink size={13} />
+                    </a>
+                  )}
+                  {activeProject.clientDomain && (
+                    <a href={activeProject.clientDomain} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ justifyContent: 'space-between' }}>
+                      <span>Client Live Domain</span> <ExternalLink size={13} />
+                    </a>
+                  )}
+                </div>
+
+                <div>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', color: '#888888' }}>Daily Update</span>
+                  <p style={{ fontSize: '0.82rem', background: '#000000', padding: '0.65rem', borderRadius: 6, border: '1px solid #222222', marginTop: 4 }}>
+                    {activeProject.dailyUpdate || 'No updates recorded.'}
+                  </p>
+                </div>
+
+                <div>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', color: '#888888' }}>Backup & Notes</span>
+                  <p style={{ fontSize: '0.82rem', background: '#000000', padding: '0.65rem', borderRadius: 6, border: '1px solid #222222', marginTop: 4 }}>
+                    {activeProject.backupInfo || 'No backup notes.'}
+                  </p>
+                </div>
+              </div>
+              <div className="v-modal-footer">
+                <button className="btn-v btn-v-secondary" onClick={() => setIsDetailOpen(false)}>Close</button>
+                <button className="btn-v btn-v-primary" onClick={() => openEditModal(activeProject)}>Edit Order</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
