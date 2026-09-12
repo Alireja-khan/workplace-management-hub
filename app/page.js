@@ -24,15 +24,15 @@ import {
   X,
   Plus,
   Globe,
-  Sparkles,
-  Layers,
-  ArrowUpRight,
+  Sun,
+  Moon,
   Check
 } from 'lucide-react';
 
 export default function VercelDashboard() {
   const { data: session } = useSession();
 
+  const [theme, setTheme] = useState('dark');
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentTab, setCurrentTab] = useState('all');
@@ -69,6 +69,21 @@ export default function VercelDashboard() {
     backupInfo: '',
     notes: '',
   });
+
+  // Init Theme
+  useEffect(() => {
+    const saved = localStorage.getItem('vercel_hub_theme') || 'dark';
+    setTheme(saved);
+    document.documentElement.setAttribute('data-theme', saved);
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    document.documentElement.setAttribute('data-theme', nextTheme);
+    localStorage.setItem('vercel_hub_theme', nextTheme);
+    showToast(`Switched to ${nextTheme} theme`);
+  };
 
   const fetchProjects = async () => {
     try {
@@ -358,7 +373,7 @@ export default function VercelDashboard() {
         {/* Toast Alert */}
         {toastMessage && (
           <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 9999 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#0a0a0a', border: '1px solid #333333', color: '#ededed', padding: '0.65rem 1.15rem', borderRadius: 6, fontSize: '0.82rem', boxShadow: '0 20px 40px rgba(0,0,0,0.8)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--card-bg)', border: '1px solid var(--border-default)', color: 'var(--geist-foreground)', padding: '0.65rem 1.15rem', borderRadius: 6, fontSize: '0.82rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
               <Check size={14} color="#10b981" /> {toastMessage.text}
             </div>
           </div>
@@ -369,18 +384,23 @@ export default function VercelDashboard() {
           <div className="vercel-breadcrumb">
             {/* Vercel Triangle Logo */}
             <div className="vercel-logo-tri">
-              <svg width="22" height="22" viewBox="0 0 76 65" fill="#ffffff">
+              <svg width="22" height="22" viewBox="0 0 76 65" fill="currentColor">
                 <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" />
               </svg>
             </div>
             <span className="breadcrumb-divider">/</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#ffffff' }}>Alireja-khan</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Alireja-khan</span>
             <span className="breadcrumb-divider">/</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#888888' }}>my-work-place</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accents-5)' }}>my-work-place</span>
             <span className="project-tag">Production</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {/* Theme Toggle Button */}
+            <button className="btn-v-icon" onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}>
+              {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
+
             <button className="btn-v btn-v-secondary" onClick={exportCSV} title="Export CSV">
               <Download size={13} /> Export CSV
             </button>
@@ -389,7 +409,7 @@ export default function VercelDashboard() {
             </button>
 
             {session?.user ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#0a0a0a', padding: '0.3rem 0.6rem', borderRadius: 6, border: '1px solid #222222' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--input-bg)', padding: '0.3rem 0.6rem', borderRadius: 6, border: '1px solid var(--border-default)' }}>
                 {session.user.image ? (
                   <img src={session.user.image} alt={session.user.name} style={{ width: 20, height: 20, borderRadius: '50%' }} />
                 ) : (
@@ -413,7 +433,7 @@ export default function VercelDashboard() {
           <div className="metric-card">
             <div className="metric-header">
               <span className="metric-title">Total Gross Volume</span>
-              <Wallet size={15} color="#888" />
+              <Wallet size={15} color="var(--accents-5)" />
             </div>
             <div className="metric-value">${kpis.totalGross.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
             <div className="metric-footer">
@@ -426,7 +446,7 @@ export default function VercelDashboard() {
               <span className="metric-title">Net Revenue (Take-Home 80%)</span>
               <TrendingUp size={15} color="#10b981" />
             </div>
-            <div className="metric-value" style={{ color: '#ededed' }}>
+            <div className="metric-value" style={{ color: 'var(--geist-foreground)' }}>
               ${kpis.netAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
             <div className="metric-footer">
@@ -437,7 +457,7 @@ export default function VercelDashboard() {
           <div className="metric-card">
             <div className="metric-header">
               <span className="metric-title">Work In Progress</span>
-              <Clock size={15} color="#38bdf8" />
+              <Clock size={15} color="#0284c7" />
             </div>
             <div className="metric-value">{kpis.activeWip}</div>
             <div className="metric-footer">
@@ -535,8 +555,8 @@ export default function VercelDashboard() {
 
         {/* Main Content Area */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '5rem 1rem', color: '#888888' }}>
-            <div style={{ display: 'inline-block', width: 28, height: 28, border: '2px solid rgba(255,255,255,0.1)', borderTopColor: '#ffffff', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+          <div style={{ textAlign: 'center', padding: '5rem 1rem', color: 'var(--accents-5)' }}>
+            <div style={{ display: 'inline-block', width: 28, height: 28, border: '2px solid var(--border-default)', borderTopColor: 'var(--geist-foreground)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
             <p style={{ marginTop: '1rem', fontSize: '0.85rem' }}>Loading from MongoDB Atlas...</p>
           </div>
         ) : currentView === 'table' ? (
@@ -564,7 +584,7 @@ export default function VercelDashboard() {
               <tbody>
                 {filteredProjects.length === 0 ? (
                   <tr>
-                    <td colSpan={14} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#666666' }}>
+                    <td colSpan={14} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
                       No matching records found.
                     </td>
                   </tr>
@@ -583,12 +603,12 @@ export default function VercelDashboard() {
 
                     return (
                       <tr key={p._id}>
-                        <td className="mono-text" style={{ color: '#888888' }}>{p.assignDate || '-'}</td>
+                        <td className="mono-text" style={{ color: 'var(--accents-5)' }}>{p.assignDate || '-'}</td>
                         <td>
-                          <span style={{ fontWeight: 600, color: '#ffffff' }}>{p.clientUsername}</span>
+                          <span style={{ fontWeight: 600 }}>{p.clientUsername}</span>
                         </td>
                         <td>
-                          <span style={{ fontSize: '0.75rem', color: '#a1a1a1' }}>{p.profileName}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)' }}>{p.profileName}</span>
                         </td>
                         <td>
                           {p.instructionSheet ? (
@@ -597,7 +617,7 @@ export default function VercelDashboard() {
                             </a>
                           ) : '-'}
                         </td>
-                        <td className="mono-text" style={{ color: '#ffffff', fontWeight: 600 }}>${gross.toFixed(2)}</td>
+                        <td className="mono-text" style={{ fontWeight: 600 }}>${gross.toFixed(2)}</td>
                         <td className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>${net.toFixed(2)}</td>
                         <td>
                           <div className={`v-status-badge ${statusClass}`}>
@@ -607,11 +627,11 @@ export default function VercelDashboard() {
                               value={p.orderStatus || 'Wip'}
                               onChange={(e) => handleQuickStatusChange(p._id, e.target.value)}
                             >
-                              <option value="Done" style={{ background: '#111' }}>Done</option>
-                              <option value="Wip" style={{ background: '#111' }}>Wip</option>
-                              <option value="Delivered" style={{ background: '#111' }}>Delivered</option>
-                              <option value="Issue" style={{ background: '#111' }}>Issue</option>
-                              <option value="Cancel" style={{ background: '#111' }}>Cancel</option>
+                              <option value="Done">Done</option>
+                              <option value="Wip">Wip</option>
+                              <option value="Delivered">Delivered</option>
+                              <option value="Issue">Issue</option>
+                              <option value="Cancel">Cancel</option>
                             </select>
                           </div>
                         </td>
@@ -627,11 +647,11 @@ export default function VercelDashboard() {
                             </div>
                           ) : '-'}
                         </td>
-                        <td className="mono-text" style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : '#888888' }}>
+                        <td className="mono-text" style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : 'var(--accents-5)' }}>
                           {p.deadline || '-'}
                         </td>
                         <td>
-                          <span style={{ fontSize: '0.75rem', color: p.timeSchedule === 'Late' ? '#f5a623' : '#888888' }}>
+                          <span style={{ fontSize: '0.75rem', color: p.timeSchedule === 'Late' ? '#f5a623' : 'var(--accents-5)' }}>
                             {p.timeSchedule || 'Complete'}
                           </span>
                         </td>
@@ -642,13 +662,13 @@ export default function VercelDashboard() {
                             </a>
                           ) : '-'}
                         </td>
-                        <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#888888' }} title={p.dailyUpdate}>
+                        <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--accents-5)' }} title={p.dailyUpdate}>
                           {p.dailyUpdate || '-'}
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: 2, color: '#f5a623' }}>
                             {[1, 2, 3, 4, 5].map((s) => (
-                              <Star key={s} size={11} fill={s <= (p.review || 0) ? '#f5a623' : 'none'} color={s <= (p.review || 0) ? '#f5a623' : '#333333'} />
+                              <Star key={s} size={11} fill={s <= (p.review || 0) ? '#f5a623' : 'none'} color={s <= (p.review || 0) ? '#f5a623' : 'var(--border-default)'} />
                             ))}
                           </div>
                         </td>
@@ -688,10 +708,10 @@ export default function VercelDashboard() {
                   }}
                 >
                   <div className="v-kanban-header">
-                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#ededed' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>
                       {colStatus === 'Wip' ? 'In Progress' : colStatus}
                     </span>
-                    <span style={{ fontSize: '0.72rem', color: '#888888', background: '#111111', padding: '0.1rem 0.4rem', borderRadius: 4, border: '1px solid #222222' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--accents-5)', background: 'var(--accents-1)', padding: '0.1rem 0.4rem', borderRadius: 4, border: '1px solid var(--border-default)' }}>
                       {colItems.length}
                     </span>
                   </div>
@@ -705,25 +725,25 @@ export default function VercelDashboard() {
                         onDragStart={(e) => e.dataTransfer.setData('text/plain', p._id)}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#ffffff' }}>{p.clientUsername}</span>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{p.clientUsername}</span>
                           <span className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>
                             ${((p.amount || 0) * 0.8).toFixed(0)}
                           </span>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#888888' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--accents-5)' }}>
                           <span>{p.profileName}</span>
                           <span className="mono-text">Gross: ${p.amount}</span>
                         </div>
 
                         {p.dailyUpdate && (
-                          <div style={{ fontSize: '0.75rem', color: '#a1a1a1', background: '#0a0a0a', padding: '0.4rem 0.5rem', borderRadius: 4, borderLeft: '2px solid #333333' }}>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--accents-6)', background: 'var(--accents-1)', padding: '0.4rem 0.5rem', borderRadius: 4, borderLeft: '2px solid var(--border-highlight)' }}>
                             {p.dailyUpdate}
                           </div>
                         )}
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.4rem', borderTop: '1px solid #1f1f1f', fontSize: '0.72rem' }}>
-                          <span style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : '#888888', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.4rem', borderTop: '1px solid var(--border-subtle)', fontSize: '0.72rem' }}>
+                          <span style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : 'var(--accents-5)', display: 'flex', alignItems: 'center', gap: 4 }}>
                             <Clock size={11} /> {p.deadline || 'No deadline'}
                           </span>
                           <button className="btn-v-ghost" style={{ padding: 2 }} onClick={() => openEditModal(p)}>
@@ -744,7 +764,7 @@ export default function VercelDashboard() {
           <div className="v-modal-overlay">
             <div className="v-modal-dialog">
               <div className="v-modal-header">
-                <span style={{ fontSize: '0.95rem', fontWeight: 600, color: '#ffffff' }}>
+                <span style={{ fontSize: '0.95rem', fontWeight: 600 }}>
                   {activeProject ? `Edit Order: ${activeProject.clientUsername}` : 'Create New Order'}
                 </span>
                 <button className="btn-v-ghost" onClick={() => setIsModalOpen(false)}><X size={16} /></button>
@@ -784,7 +804,7 @@ export default function VercelDashboard() {
                     </div>
                     <div className="v-form-group">
                       <label>Net Take-Home (80%)</label>
-                      <div className="mono-text" style={{ background: '#000000', border: '1px solid #222222', padding: '0.5rem 0.85rem', borderRadius: 5, color: '#10b981', fontWeight: 600 }}>
+                      <div className="mono-text" style={{ background: 'var(--input-bg)', border: '1px solid var(--border-default)', padding: '0.5rem 0.85rem', borderRadius: 5, color: '#10b981', fontWeight: 600 }}>
                         ${((parseFloat(formData.amount) || 0) * 0.8).toFixed(2)}
                       </div>
                     </div>
@@ -856,23 +876,23 @@ export default function VercelDashboard() {
           <div className="v-modal-overlay">
             <div className="v-modal-dialog" style={{ maxWidth: 520 }}>
               <div className="v-modal-header">
-                <span style={{ fontSize: '0.95rem', fontWeight: 600, color: '#ffffff' }}>{activeProject.clientUsername}</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: 600 }}>{activeProject.clientUsername}</span>
                 <button className="btn-v-ghost" onClick={() => setIsDetailOpen(false)}><X size={16} /></button>
               </div>
               <div className="v-modal-body">
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', background: '#000000', padding: '0.85rem', borderRadius: 6, border: '1px solid #222222' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', background: 'var(--input-bg)', padding: '0.85rem', borderRadius: 6, border: '1px solid var(--border-default)' }}>
                   <div>
-                    <span style={{ fontSize: '0.7rem', color: '#888888' }}>Gross Amount</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)' }}>Gross Amount</span>
                     <div className="mono-text" style={{ fontSize: '1.1rem', fontWeight: 700 }}>${activeProject.amount}</div>
                   </div>
                   <div>
-                    <span style={{ fontSize: '0.7rem', color: '#888888' }}>Net Take-Home (80%)</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)' }}>Net Take-Home (80%)</span>
                     <div className="mono-text" style={{ fontSize: '1.1rem', fontWeight: 700, color: '#10b981' }}>${((activeProject.amount || 0) * 0.8).toFixed(2)}</div>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', color: '#888888' }}>Resource Links</span>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--accents-5)' }}>Resource Links</span>
                   {activeProject.instructionSheet && (
                     <a href={activeProject.instructionSheet} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ justifyContent: 'space-between' }}>
                       <span>Instruction Brief</span> <ExternalLink size={13} />
@@ -891,15 +911,15 @@ export default function VercelDashboard() {
                 </div>
 
                 <div>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', color: '#888888' }}>Daily Update</span>
-                  <p style={{ fontSize: '0.82rem', background: '#000000', padding: '0.65rem', borderRadius: 6, border: '1px solid #222222', marginTop: 4 }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--accents-5)' }}>Daily Update</span>
+                  <p style={{ fontSize: '0.82rem', background: 'var(--input-bg)', padding: '0.65rem', borderRadius: 6, border: '1px solid var(--border-default)', marginTop: 4 }}>
                     {activeProject.dailyUpdate || 'No updates recorded.'}
                   </p>
                 </div>
 
                 <div>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', color: '#888888' }}>Backup & Notes</span>
-                  <p style={{ fontSize: '0.82rem', background: '#000000', padding: '0.65rem', borderRadius: 6, border: '1px solid #222222', marginTop: 4 }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--accents-5)' }}>Backup & Notes</span>
+                  <p style={{ fontSize: '0.82rem', background: 'var(--input-bg)', padding: '0.65rem', borderRadius: 6, border: '1px solid var(--border-default)', marginTop: 4 }}>
                     {activeProject.backupInfo || 'No backup notes.'}
                   </p>
                 </div>

@@ -1,12 +1,12 @@
 /* ==========================================================================
-   Vercel Design System - Master Stylesheet
-   Pure Black (#000), Crisp Precision Borders (#222), Geist-inspired Typography
+   Vercel Design System - Dual Theme (Dark & Light)
+   Pure Black (#000) & Crisp Clean White (#FFF), Precision Borders & Typography
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap');
 
 :root {
-  /* Vercel True Dark Theme */
+  /* Vercel Dark Theme (Default) */
   --geist-background: #000000;
   --geist-foreground: #ededed;
   
@@ -19,14 +19,27 @@
   --accents-7: #eaeaea;
   --accents-8: #fafafa;
 
-  --border-subtle: #1f1f1f;
+  --border-subtle: #1e1e1e;
   --border-default: #2e2e2e;
   --border-highlight: #444444;
 
+  --card-bg: rgba(10, 10, 10, 0.7);
+  --header-bg: rgba(10, 10, 10, 0.85);
+  --input-bg: #000000;
+  --table-bg: rgba(10, 10, 10, 0.6);
+  --table-header-bg: #000000;
+
+  --btn-primary-bg: #ffffff;
+  --btn-primary-fg: #000000;
+  --btn-secondary-bg: #111111;
+  --btn-secondary-fg: #ededed;
+  --btn-secondary-border: #2e2e2e;
+
+  --grid-color: rgba(255, 255, 255, 0.03);
+  --glow-color: rgba(255, 255, 255, 0.06);
+
   --vercel-blue: #0070f3;
   --vercel-cyan: #50e3c2;
-  --vercel-purple: #7928ca;
-  --vercel-pink: #ff0080;
   --vercel-amber: #f5a623;
   --vercel-red: #ee0000;
   --vercel-emerald: #10b981;
@@ -34,9 +47,43 @@
   --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'Geist Mono', Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
-  --radius-sm: 5px;
+  --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
+}
+
+/* Vercel Light Theme */
+[data-theme="light"] {
+  --geist-background: #fafafa;
+  --geist-foreground: #000000;
+  
+  --accents-1: #f4f4f5;
+  --accents-2: #e4e4e7;
+  --accents-3: #d4d4d8;
+  --accents-4: #a1a1aa;
+  --accents-5: #71717a;
+  --accents-6: #52525b;
+  --accents-7: #27272a;
+  --accents-8: #09090b;
+
+  --border-subtle: #e4e4e7;
+  --border-default: #d4d4d8;
+  --border-highlight: #a1a1aa;
+
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --header-bg: rgba(255, 255, 255, 0.9);
+  --input-bg: #ffffff;
+  --table-bg: rgba(255, 255, 255, 0.9);
+  --table-header-bg: #f4f4f5;
+
+  --btn-primary-bg: #000000;
+  --btn-primary-fg: #ffffff;
+  --btn-secondary-bg: #ffffff;
+  --btn-secondary-fg: #000000;
+  --btn-secondary-border: #d4d4d8;
+
+  --grid-color: rgba(0, 0, 0, 0.04);
+  --glow-color: rgba(0, 0, 0, 0.03);
 }
 
 *, *::before, *::after {
@@ -52,16 +99,16 @@ body {
   line-height: 1.5;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Vercel Subtle Background Grid */
+/* Vercel Background Grid */
 .vercel-grid-bg {
   position: fixed;
   inset: 0;
   background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
   background-size: 48px 48px;
   pointer-events: none;
   z-index: 0;
@@ -74,7 +121,7 @@ body {
   transform: translateX(-50%);
   width: 800px;
   height: 400px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.06) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--glow-color) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -91,33 +138,26 @@ body {
   gap: 1.5rem;
 }
 
-/* Vercel Header & Breadcrumb */
+/* Vercel Header */
 .vercel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0.85rem 1.25rem;
-  background: rgba(10, 10, 10, 0.8);
+  background: var(--header-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   flex-wrap: wrap;
   gap: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
 }
 
 .vercel-breadcrumb {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-}
-
-.vercel-logo-tri {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .breadcrumb-divider {
@@ -135,7 +175,7 @@ body {
   color: var(--accents-6);
 }
 
-/* Vercel Button System */
+/* Vercel Buttons */
 .btn-v {
   display: inline-flex;
   align-items: center;
@@ -154,27 +194,25 @@ body {
 }
 
 .btn-v-primary {
-  background: #ffffff;
-  color: #000000;
-  border-color: #ffffff;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  border-color: var(--btn-primary-bg);
   font-weight: 600;
 }
 
 .btn-v-primary:hover {
-  background: #eaeaea;
-  border-color: #eaeaea;
+  opacity: 0.9;
 }
 
 .btn-v-secondary {
-  background: var(--accents-1);
-  color: var(--geist-foreground);
-  border-color: var(--border-default);
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-fg);
+  border-color: var(--btn-secondary-border);
 }
 
 .btn-v-secondary:hover {
   background: var(--accents-2);
   border-color: var(--accents-4);
-  color: #ffffff;
 }
 
 .btn-v-ghost {
@@ -188,7 +226,27 @@ body {
   color: var(--geist-foreground);
 }
 
-/* Vercel Metric Cards (KPI) */
+.btn-v-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-fg);
+  border: 1px solid var(--btn-secondary-border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-v-icon:hover {
+  background: var(--accents-2);
+  border-color: var(--accents-4);
+}
+
+/* Metric Cards */
 .metrics-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -196,7 +254,7 @@ body {
 }
 
 .metric-card {
-  background: rgba(12, 12, 12, 0.7);
+  background: var(--card-bg);
   backdrop-filter: blur(12px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
@@ -205,11 +263,13 @@ body {
   flex-direction: column;
   gap: 0.65rem;
   position: relative;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, transform 0.15s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
 }
 
 .metric-card:hover {
   border-color: var(--border-highlight);
+  transform: translateY(-1px);
 }
 
 .metric-header {
@@ -223,7 +283,7 @@ body {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--accents-6);
+  color: var(--accents-5);
 }
 
 .metric-value {
@@ -231,7 +291,7 @@ body {
   font-size: 1.85rem;
   font-weight: 700;
   letter-spacing: -0.04em;
-  color: #ffffff;
+  color: var(--geist-foreground);
   line-height: 1.1;
 }
 
@@ -251,6 +311,7 @@ body {
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-default);
   background: var(--accents-1);
+  color: var(--accents-7);
 }
 
 .metric-badge.green {
@@ -260,14 +321,14 @@ body {
 }
 
 .metric-badge.blue {
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.3);
-  background: rgba(56, 189, 248, 0.08);
+  color: #0284c7;
+  border-color: rgba(2, 132, 199, 0.3);
+  background: rgba(2, 132, 199, 0.08);
 }
 
-/* Control Bar & Segmented Controls */
+/* Control Bar */
 .control-bar {
-  background: rgba(12, 12, 12, 0.7);
+  background: var(--card-bg);
   backdrop-filter: blur(14px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -275,12 +336,13 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
 }
 
 .segmented-nav {
   display: inline-flex;
   align-items: center;
-  background: #000000;
+  background: var(--input-bg);
   padding: 3px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-subtle);
@@ -291,7 +353,7 @@ body {
 .segmented-item {
   background: transparent;
   border: none;
-  color: var(--accents-6);
+  color: var(--accents-5);
   font-size: 0.8rem;
   font-weight: 500;
   padding: 0.35rem 0.85rem;
@@ -307,12 +369,12 @@ body {
 
 .segmented-item.active {
   background: var(--accents-2);
-  color: #ffffff;
+  color: var(--geist-foreground);
   font-weight: 600;
   border: 1px solid var(--border-default);
 }
 
-/* Inputs & Selects */
+/* Form inputs */
 .v-input-wrapper {
   position: relative;
   flex: 1;
@@ -321,7 +383,7 @@ body {
 
 .v-input {
   width: 100%;
-  background: #000000;
+  background: var(--input-bg);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   padding: 0.5rem 0.85rem;
@@ -333,11 +395,11 @@ body {
 }
 
 .v-input:focus {
-  border-color: #ffffff;
+  border-color: var(--geist-foreground);
 }
 
 .v-select {
-  background: #000000;
+  background: var(--input-bg);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   padding: 0.5rem 0.85rem;
@@ -350,22 +412,23 @@ body {
 }
 
 .v-select:focus {
-  border-color: #ffffff;
+  border-color: var(--geist-foreground);
 }
 
 .v-select option {
-  background: #111111;
-  color: #ffffff;
+  background: var(--input-bg);
+  color: var(--geist-foreground);
 }
 
-/* Vercel Table Style */
+/* Vercel Table */
 .v-table-container {
   width: 100%;
   overflow-x: auto;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  background: rgba(10, 10, 10, 0.6);
+  background: var(--table-bg);
   backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
 }
 
 .v-table {
@@ -377,7 +440,7 @@ body {
 }
 
 .v-table thead {
-  background: #000000;
+  background: var(--table-header-bg);
   border-bottom: 1px solid var(--border-default);
   position: sticky;
   top: 0;
@@ -404,7 +467,7 @@ body {
 }
 
 .v-table th.sortable:hover {
-  color: #ffffff;
+  color: var(--geist-foreground);
 }
 
 .v-table tbody tr {
@@ -432,7 +495,7 @@ body {
   font-size: 0.8rem;
 }
 
-/* Vercel Status Dots */
+/* Status Badges with Dots */
 .v-status-badge {
   display: inline-flex;
   align-items: center;
@@ -442,7 +505,7 @@ body {
   font-size: 0.73rem;
   font-weight: 500;
   border: 1px solid var(--border-default);
-  background: #000000;
+  background: var(--input-bg);
 }
 
 .v-status-dot {
@@ -452,9 +515,9 @@ body {
 }
 
 .v-status-done .v-status-dot { background: var(--vercel-emerald); box-shadow: 0 0 6px rgba(16, 185, 129, 0.4); }
-.v-status-wip .v-status-dot { background: #38bdf8; box-shadow: 0 0 6px rgba(56, 189, 248, 0.4); }
+.v-status-wip .v-status-dot { background: #0284c7; box-shadow: 0 0 6px rgba(2, 132, 199, 0.4); }
 .v-status-issue .v-status-dot { background: var(--vercel-red); box-shadow: 0 0 6px rgba(238, 0, 0, 0.4); }
-.v-status-delivered .v-status-dot { background: var(--vercel-cyan); box-shadow: 0 0 6px rgba(80, 227, 194, 0.4); }
+.v-status-delivered .v-status-dot { background: #0d9488; box-shadow: 0 0 6px rgba(13, 148, 136, 0.4); }
 .v-status-late .v-status-dot { background: var(--vercel-amber); box-shadow: 0 0 6px rgba(245, 166, 35, 0.4); }
 
 /* Vercel Kanban Grid */
@@ -466,7 +529,7 @@ body {
 }
 
 .v-kanban-col {
-  background: rgba(10, 10, 10, 0.6);
+  background: var(--card-bg);
   backdrop-filter: blur(12px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -486,7 +549,7 @@ body {
 }
 
 .v-kanban-card {
-  background: #000000;
+  background: var(--input-bg);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   padding: 0.95rem;
@@ -495,6 +558,7 @@ body {
   gap: 0.65rem;
   cursor: grab;
   transition: transform 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 .v-kanban-card:hover {
@@ -506,7 +570,7 @@ body {
 .v-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(8px);
   z-index: 1000;
   display: flex;
@@ -516,14 +580,14 @@ body {
 }
 
 .v-modal-dialog {
-  background: #0a0a0a;
+  background: var(--geist-background);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 650px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
 }
 
 .v-modal-header {
@@ -560,7 +624,7 @@ body {
 .v-form-group label {
   font-size: 0.74rem;
   font-weight: 500;
-  color: var(--accents-6);
+  color: var(--accents-5);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
