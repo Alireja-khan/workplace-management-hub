@@ -24,10 +24,24 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/logo-black.png" media="(prefers-color-scheme: light)" />
         <link rel="icon" href="/logo-white.png" media="(prefers-color-scheme: dark)" />
+        {/* Instant blocking theme script to prevent Theme Flash / Flickering on page load */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var saved = localStorage.getItem('vercel_hub_theme');
+                  var theme = saved || 'dark';
+                  document.documentElement.setAttribute('data-theme', theme);
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
       </head>
       <body>
         <SessionWrapper>

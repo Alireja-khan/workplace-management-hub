@@ -40,7 +40,12 @@ import {
 export default function VercelDashboard() {
   const { data: session } = useSession();
 
-  const [theme, setTheme] = useState('dark');
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return document.documentElement.getAttribute('data-theme') || localStorage.getItem('vercel_hub_theme') || 'dark';
+    }
+    return 'dark';
+  });
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,11 +84,10 @@ export default function VercelDashboard() {
     notes: '',
   });
 
-  // Init Theme
+  // Sync on Mount
   useEffect(() => {
-    const saved = localStorage.getItem('vercel_hub_theme') || 'dark';
-    setTheme(saved);
-    document.documentElement.setAttribute('data-theme', saved);
+    const current = document.documentElement.getAttribute('data-theme') || localStorage.getItem('vercel_hub_theme') || 'dark';
+    setTheme(current);
   }, []);
 
   const toggleTheme = () => {
