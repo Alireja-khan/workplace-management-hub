@@ -715,15 +715,125 @@ export default function VercelDashboard() {
           </div>
         </header>
 
-        {/* Dynamic Main View: Minimal Vercel Loader OR Stats & Analytics OR Orders (Table / Kanban) */}
+        {/* Dynamic Main View: Skeleton Loading OR Stats & Analytics OR Orders (Table / Kanban) */}
         {loading ? (
-          <div className="minimal-loader-box">
-            <div className="vercel-spinner"></div>
-            <div className="minimal-loader-text">
-              <span className="minimal-loader-title">Syncing Workplace Hub</span>
-              <span className="minimal-loader-subtitle">Loading projects & orders from database...</span>
+          currentTab === 'stats' ? (
+            /* Stats & Analytics Skeleton */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <section className="metrics-row">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="metric-card" style={{ gap: '0.85rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div className="skeleton-shimmer" style={{ width: 100, height: 12 }} />
+                      <div className="skeleton-shimmer" style={{ width: 16, height: 16, borderRadius: '50%' }} />
+                    </div>
+                    <div className="skeleton-shimmer" style={{ width: 130, height: 28 }} />
+                    <div className="skeleton-shimmer" style={{ width: 160, height: 14 }} />
+                  </div>
+                ))}
+              </section>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} style={{ background: 'var(--card-bg)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div className="skeleton-shimmer" style={{ width: 90, height: 10 }} />
+                    <div className="skeleton-shimmer" style={{ width: 110, height: 20 }} />
+                  </div>
+                ))}
+              </div>
+
+              <div className="analytics-grid">
+                {[1, 2].map((i) => (
+                  <div key={i} className="analytics-card" style={{ gap: '1.2rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <div className="skeleton-shimmer" style={{ width: 180, height: 16 }} />
+                      <div className="skeleton-shimmer" style={{ width: 80, height: 12 }} />
+                    </div>
+                    {[1, 2, 3, 4, 5].map((r) => (
+                      <div key={r} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <div className="skeleton-shimmer" style={{ width: 120, height: 12 }} />
+                          <div className="skeleton-shimmer" style={{ width: 90, height: 12 }} />
+                        </div>
+                        <div className="skeleton-shimmer" style={{ width: '100%', height: 6 }} />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Table Skeleton View */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <section className="control-bar">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                  <div className="skeleton-shimmer" style={{ flex: 1, minWidth: 240, height: 36 }} />
+                  <div className="skeleton-shimmer" style={{ width: 140, height: 36 }} />
+                  <div className="skeleton-shimmer" style={{ width: 120, height: 36 }} />
+                  <div className="skeleton-shimmer" style={{ width: 120, height: 36 }} />
+                  <div className="skeleton-shimmer" style={{ width: 80, height: 36 }} />
+                </div>
+              </section>
+
+              <div className="table-smart-wrapper">
+                <div className="table-sub-bar">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <div className="skeleton-shimmer" style={{ width: 90, height: 18, borderRadius: 999 }} />
+                    <span style={{ fontSize: '0.74rem', color: 'var(--accents-5)' }}>
+                      Syncing database orders & records...
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <div className="skeleton-shimmer" style={{ width: 55, height: 22, borderRadius: 4 }} />
+                    <div className="skeleton-shimmer" style={{ width: 55, height: 22, borderRadius: 4 }} />
+                  </div>
+                </div>
+
+                <div className="v-table-container">
+                  <table className="v-table">
+                    <thead>
+                      <tr>
+                        <th>Assign Date</th>
+                        <th>Client Username</th>
+                        <th>Profile</th>
+                        <th>Brief Doc</th>
+                        <th>Gross</th>
+                        <th>Net (80%)</th>
+                        <th>Order Status</th>
+                        <th>Staging Subdomain</th>
+                        <th>Deadline</th>
+                        <th>Schedule</th>
+                        <th>Live Domain</th>
+                        <th>Daily Update</th>
+                        <th>Review</th>
+                        <th style={{ textAlign: 'center' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((row) => (
+                        <tr key={row} className="skeleton-row">
+                          <td><div className="skeleton-shimmer" style={{ width: 75, height: 12 }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: 110, height: 14 }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: 85, height: 12 }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: 48, height: 20, borderRadius: 4 }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: 55, height: 14 }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: 55, height: 14 }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: 70, height: 20, borderRadius: 999 }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: 65, height: 20, borderRadius: 4 }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: 75, height: 12 }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: 60, height: 12 }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: 48, height: 20, borderRadius: 4 }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: 130, height: 12 }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: 65, height: 12 }} /></td>
+                          <td style={{ textAlign: 'center' }}><div className="skeleton-shimmer" style={{ width: 55, height: 18, borderRadius: 4 }} /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )
         ) : currentTab === 'stats' ? (
           /* Dedicated Stats & Analytics Page */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
