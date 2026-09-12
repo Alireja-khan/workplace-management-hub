@@ -26,13 +26,22 @@ import {
   Globe,
   Sun,
   Moon,
-  Check
+  Check,
+  LayoutDashboard,
+  Zap,
+  Calendar,
+  Briefcase,
+  Layers,
+  Database,
+  Menu,
+  Filter
 } from 'lucide-react';
 
 export default function VercelDashboard() {
   const { data: session } = useSession();
 
   const [theme, setTheme] = useState('dark');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentTab, setCurrentTab] = useState('all');
@@ -140,6 +149,17 @@ export default function VercelDashboard() {
   // Unique Profiles
   const uniqueProfiles = useMemo(() => {
     return Array.from(new Set(projects.map((p) => p.profileName).filter(Boolean))).sort();
+  }, [projects]);
+
+  // Counts by profile
+  const profileCounts = useMemo(() => {
+    const counts = {};
+    projects.forEach((p) => {
+      if (p.profileName) {
+        counts[p.profileName] = (counts[p.profileName] || 0) + 1;
+      }
+    });
+    return counts;
   }, [projects]);
 
   // Filtered & Sorted Projects
@@ -363,51 +383,199 @@ export default function VercelDashboard() {
     showToast('Copied to clipboard');
   };
 
+  const runningCount = projects.filter((p) => p.orderStatus === 'Wip' || p.orderStatus === 'Issue' || p.timeSchedule === 'Late').length;
+
   return (
-    <>
-      {/* Vercel Ambient Background Grid */}
-      <div className="vercel-grid-bg"></div>
-      <div className="vercel-radial-glow"></div>
-
-      <div className="app-wrapper">
-        {/* Toast Alert */}
-        {toastMessage && (
-          <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 9999 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--card-bg)', border: '1px solid var(--border-default)', color: 'var(--geist-foreground)', padding: '0.65rem 1.15rem', borderRadius: 6, fontSize: '0.82rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
-              <Check size={14} color="#10b981" /> {toastMessage.text}
-            </div>
+    <div className="app-layout">
+      {/* Toast Alert */}
+      {toastMessage && (
+        <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 9999 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--card-bg)', border: '1px solid var(--border-default)', color: 'var(--geist-foreground)', padding: '0.65rem 1.15rem', borderRadius: 6, fontSize: '0.82rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
+            <Check size={14} color="#10b981" /> {toastMessage.text}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Vercel Header & Breadcrumbs */}
-        <header className="vercel-header">
-          <div className="vercel-breadcrumb">
-            {/* Vercel Triangle Logo */}
-            <div className="vercel-logo-tri">
-              <svg width="22" height="22" viewBox="0 0 76 65" fill="currentColor">
-                <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" />
-              </svg>
+      {/* Left Sidebar */}
+      <aside className={`sidebar ${mobileSidebarOpen ? 'mobile-open' : ''}`}>
+        {/* Brand Header */}
+        <div className="sidebar-header">
+          <div className="sidebar-logo">
+            <svg width="20" height="20" viewBox="0 0 76 65" fill="currentColor">
+              <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" />
+            </svg>
+          </div>
+          <div>
+            <div className="sidebar-brand-name">Workplace Hub</div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--accents-5)' }}>my-work-place</div>
+          </div>
+        </div>
+
+        {/* Action Button inside Sidebar */}
+        <div style={{ padding: '0.85rem 0.85rem 0.25rem 0.85rem' }}>
+          <button className="btn-v btn-v-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={openNewModal}>
+            <Plus size={14} /> New Order
+          </button>
+        </div>
+
+        {/* Navigation Content */}
+        <div className="sidebar-content">
+          {/* Main Navigation */}
+          <div className="sidebar-section">
+            <div className="sidebar-section-title">Views</div>
+            <button
+              className={`sidebar-nav-item ${currentTab === 'all' && profileFilter === 'all' && statusFilter === 'all' ? 'active' : ''}`}
+              onClick={() => {
+                setCurrentTab('all');
+                setProfileFilter('all');
+                setStatusFilter('all');
+                setScheduleFilter('all');
+              }}
+            >
+              <div className="sidebar-nav-left">
+                <LayoutDashboard size={14} />
+                <span>All Orders</span>
+              </div>
+              <span className="sidebar-count-badge">{projects.length}</span>
+            </button>
+
+            <button
+              className={`sidebar-nav-item ${currentTab === 'running' ? 'active' : ''}`}
+              onClick={() => {
+                setCurrentTab('running');
+                setProfileFilter('all');
+                setStatusFilter('all');
+              }}
+            >
+              <div className="sidebar-nav-left">
+                <Zap size={14} color="#38bdf8" />
+                <span>Running Orders</span>
+              </div>
+              <span className="sidebar-count-badge" style={{ color: '#38bdf8', borderColor: 'rgba(56,189,248,0.3)' }}>
+                {runningCount}
+              </span>
+            </button>
+          </div>
+
+          {/* Month Section */}
+          <div className="sidebar-section">
+            <div className="sidebar-section-title">Months</div>
+            {['April', 'May', 'June'].map((m) => {
+              const count = projects.filter((p) => (p.month || '').toLowerCase() === m.toLowerCase()).length;
+              return (
+                <button
+                  key={m}
+                  className={`sidebar-nav-item ${currentTab === m ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab(m);
+                    setProfileFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <Calendar size={14} />
+                    <span>{m}</span>
+                  </div>
+                  <span className="sidebar-count-badge">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Marketplace Profiles Section */}
+          <div className="sidebar-section">
+            <div className="sidebar-section-title">Marketplace Profiles</div>
+            {uniqueProfiles.map((prof) => (
+              <button
+                key={prof}
+                className={`sidebar-nav-item ${profileFilter === prof ? 'active' : ''}`}
+                onClick={() => {
+                  setProfileFilter(prof);
+                  setCurrentTab('all');
+                }}
+              >
+                <div className="sidebar-nav-left">
+                  <Briefcase size={14} />
+                  <span style={{ maxWidth: 125, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prof}</span>
+                </div>
+                <span className="sidebar-count-badge">{profileCounts[prof] || 0}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Quick Status Filter */}
+          <div className="sidebar-section">
+            <div className="sidebar-section-title">Quick Status</div>
+            <button
+              className={`sidebar-nav-item ${statusFilter === 'Wip' ? 'active' : ''}`}
+              onClick={() => setStatusFilter(statusFilter === 'Wip' ? 'all' : 'Wip')}
+            >
+              <div className="sidebar-nav-left">
+                <span className="v-status-dot" style={{ background: '#0284c7' }}></span>
+                <span>Work In Progress</span>
+              </div>
+              <span className="sidebar-count-badge">{kpis.activeWip}</span>
+            </button>
+
+            <button
+              className={`sidebar-nav-item ${statusFilter === 'Done' ? 'active' : ''}`}
+              onClick={() => setStatusFilter(statusFilter === 'Done' ? 'all' : 'Done')}
+            >
+              <div className="sidebar-nav-left">
+                <span className="v-status-dot" style={{ background: '#10b981' }}></span>
+                <span>Completed</span>
+              </div>
+              <span className="sidebar-count-badge">{kpis.deliveredDone}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Sidebar Footer */}
+        <div className="sidebar-footer">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.72rem', color: 'var(--accents-5)' }}>
+            <Database size={13} color="#10b981" />
+            <span>MongoDB Atlas</span>
+          </div>
+
+          <button className="btn-v-icon" style={{ width: 30, height: 30 }} onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}>
+            {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="main-wrapper">
+        {/* Top Navbar */}
+        <header className="top-nav">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            {/* Mobile Hamburger */}
+            <button className="btn-v-icon" style={{ display: 'none' }} onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}>
+              <Menu size={16} />
+            </button>
+
+            <div className="breadcrumb-box">
+              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Alireja-khan</span>
+              <span className="breadcrumb-divider">/</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accents-5)' }}>my-work-place</span>
+              <span className="project-pill">Production</span>
             </div>
-            <span className="breadcrumb-divider">/</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Alireja-khan</span>
-            <span className="breadcrumb-divider">/</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accents-5)' }}>my-work-place</span>
-            <span className="project-tag">Production</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {/* Theme Toggle Button */}
-            <button className="btn-v-icon" onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}>
-              {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-            </button>
+            {/* Table / Kanban View Switcher */}
+            <div className="segmented-nav">
+              <button className={`segmented-item ${currentView === 'table' ? 'active' : ''}`} onClick={() => setCurrentView('table')}>
+                <TableIcon size={13} style={{ marginRight: 4 }} /> Table
+              </button>
+              <button className={`segmented-item ${currentView === 'kanban' ? 'active' : ''}`} onClick={() => setCurrentView('kanban')}>
+                <Columns size={13} style={{ marginRight: 4 }} /> Kanban
+              </button>
+            </div>
 
             <button className="btn-v btn-v-secondary" onClick={exportCSV} title="Export CSV">
-              <Download size={13} /> Export CSV
-            </button>
-            <button className="btn-v btn-v-primary" onClick={openNewModal}>
-              <Plus size={14} /> New Order
+              <Download size={13} /> Export
             </button>
 
+            {/* Auth Session */}
             {session?.user ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--input-bg)', padding: '0.3rem 0.6rem', borderRadius: 6, border: '1px solid var(--border-default)' }}>
                 {session.user.image ? (
@@ -428,7 +596,7 @@ export default function VercelDashboard() {
           </div>
         </header>
 
-        {/* Vercel Metrics (KPI Cards) */}
+        {/* KPI Metrics */}
         <section className="metrics-row">
           <div className="metric-card">
             <div className="metric-header">
@@ -437,7 +605,7 @@ export default function VercelDashboard() {
             </div>
             <div className="metric-value">${kpis.totalGross.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
             <div className="metric-footer">
-              <span className="metric-badge">{projects.length} Orders</span> All-time tracked in MongoDB
+              <span className="metric-badge">{projects.length} Orders</span> Total orders in MongoDB
             </div>
           </div>
 
@@ -477,45 +645,21 @@ export default function VercelDashboard() {
           </div>
         </section>
 
-        {/* Control Bar (Vercel Segmented Nav & Search) */}
+        {/* Filter & Search Bar */}
         <section className="control-bar">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div className="segmented-nav">
-              <button className={`segmented-item ${currentTab === 'all' ? 'active' : ''}`} onClick={() => setCurrentTab('all')}>
-                All Orders ({projects.length})
-              </button>
-              <button className={`segmented-item ${currentTab === 'running' ? 'active' : ''}`} onClick={() => setCurrentTab('running')}>
-                Running ({projects.filter((p) => p.orderStatus === 'Wip' || p.orderStatus === 'Issue' || p.timeSchedule === 'Late').length})
-              </button>
-              <button className={`segmented-item ${currentTab === 'April' ? 'active' : ''}`} onClick={() => setCurrentTab('April')}>April</button>
-              <button className={`segmented-item ${currentTab === 'May' ? 'active' : ''}`} onClick={() => setCurrentTab('May')}>May</button>
-              <button className={`segmented-item ${currentTab === 'June' ? 'active' : ''}`} onClick={() => setCurrentTab('June')}>June</button>
-            </div>
-
-            <div className="segmented-nav">
-              <button className={`segmented-item ${currentView === 'table' ? 'active' : ''}`} onClick={() => setCurrentView('table')}>
-                <TableIcon size={13} style={{ marginRight: 4 }} /> Table
-              </button>
-              <button className={`segmented-item ${currentView === 'kanban' ? 'active' : ''}`} onClick={() => setCurrentView('kanban')}>
-                <Columns size={13} style={{ marginRight: 4 }} /> Kanban
-              </button>
-            </div>
-          </div>
-
-          {/* Filters Row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             <div className="v-input-wrapper">
               <input
                 type="text"
                 className="v-input"
-                placeholder="Search orders, clients, subdomains..."
+                placeholder="Search orders, clients, subdomains, notes..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
 
             <select className="v-select" value={profileFilter} onChange={(e) => setProfileFilter(e.target.value)}>
-              <option value="all">All Marketplace Profiles</option>
+              <option value="all">All Profiles ({uniqueProfiles.length})</option>
               {uniqueProfiles.map((p) => (
                 <option key={p} value={p}>{p}</option>
               ))}
@@ -545,6 +689,7 @@ export default function VercelDashboard() {
                 setProfileFilter('all');
                 setStatusFilter('all');
                 setScheduleFilter('all');
+                setCurrentTab('all');
               }}
               title="Reset Filters"
             >
@@ -553,7 +698,7 @@ export default function VercelDashboard() {
           </div>
         </section>
 
-        {/* Main Content Area */}
+        {/* Content Display: Table or Kanban */}
         {loading ? (
           <div style={{ textAlign: 'center', padding: '5rem 1rem', color: 'var(--accents-5)' }}>
             <div style={{ display: 'inline-block', width: 28, height: 28, border: '2px solid var(--border-default)', borderTopColor: 'var(--geist-foreground)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
@@ -931,7 +1076,7 @@ export default function VercelDashboard() {
             </div>
           </div>
         )}
-      </div>
-    </>
+      </main>
+    </div>
   );
 }
