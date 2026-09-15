@@ -268,6 +268,22 @@ export default function VercelDashboard() {
     setTimeout(() => setToastMessage(null), 3200);
   };
 
+  // Team KPIs
+  const teamFinancialOverview = useMemo(() => {
+    let wipNetValue = 0;
+    let deliveredNetValue = 0;
+    teamProjects.forEach(p => {
+      const status = (p.orderStatus || '').toLowerCase();
+      const net = parseFloat(p.netAmount) || (parseFloat(p.amount) * 0.8 || 0);
+      if (status === 'wip') {
+        wipNetValue += net;
+      } else if (status === 'delivered' || status === 'done') {
+        deliveredNetValue += net;
+      }
+    });
+    return { wipNetValue, deliveredNetValue };
+  }, [teamProjects]);
+
   // KPIs
   const kpis = useMemo(() => {
     let totalGross = 0;
@@ -1448,6 +1464,31 @@ export default function VercelDashboard() {
 
             {/* Team Navigation Content */}
             <div className="sidebar-content">
+              {/* Financial Overview */}
+              <div className="sidebar-section">
+                <div className="sidebar-section-title">Financial Overview</div>
+                
+                <div className="sidebar-nav-item" style={{ cursor: 'default' }}>
+                  <div className="sidebar-nav-left">
+                    <DollarSign size={14} color="#38bdf8" />
+                    <span style={{ fontSize: '0.8rem' }}>WIP Net Value</span>
+                  </div>
+                  <span className="mono-text" style={{ fontSize: '0.75rem', fontWeight: 600, color: '#38bdf8' }}>
+                    ${teamFinancialOverview.wipNetValue.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="sidebar-nav-item" style={{ cursor: 'default' }}>
+                  <div className="sidebar-nav-left">
+                    <DollarSign size={14} color="#10b981" />
+                    <span style={{ fontSize: '0.8rem' }}>Delivered Net Value</span>
+                  </div>
+                  <span className="mono-text" style={{ fontSize: '0.75rem', fontWeight: 600, color: '#10b981' }}>
+                    ${teamFinancialOverview.deliveredNetValue.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
               {/* Team Views */}
               <div className="sidebar-section">
                 <div className="sidebar-section-title">Team Views</div>
