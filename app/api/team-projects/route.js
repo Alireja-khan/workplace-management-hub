@@ -25,11 +25,34 @@ export async function GET(request) {
   }
 }
 
-// POST /api/team-projects - Create a new team project
+// POST /api/team-projects - Create a new team project (or bulk array insert)
 export async function POST(request) {
   try {
     await connectToDatabase();
     const body = await request.json();
+
+    if (Array.isArray(body)) {
+      const prepared = body.map((item) => {
+        const amt = parseFloat(item.amount) || 0;
+        const assignDate = item.assignDate || new Date().toISOString().split('T')[0];
+        return {
+          ...item,
+          clientUserId: item.clientUserId || 'client_' + Math.floor(Math.random() * 10000),
+          assignDate,
+          month: getMonthFromDate(assignDate, item.month),
+          amount: amt,
+          netAmount: amt * 0.8,
+          percentage: parseFloat(item.percentage) || 0,
+          assignedMembers: Array.isArray(item.assignedMembers) && item.assignedMembers.length > 0
+            ? item.assignedMembers
+            : (typeof item.assignedMembers === 'string' && item.assignedMembers.trim()
+                ? item.assignedMembers.split(/[,/]/).map((s) => s.trim()).filter(Boolean)
+                : ['Alireja']),
+        };
+      });
+      const created = await TeamProject.insertMany(prepared);
+      return NextResponse.json({ success: true, count: created.length, data: created }, { status: 201 });
+    }
 
     if (!body.clientUserId) {
       return NextResponse.json(

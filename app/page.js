@@ -55,6 +55,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { MONTH_LIST, getMonthFromDate } from '@/lib/dateUtils';
+import { ensureValidUrl, parsePersonalSheetText, extractUrlFromHtmlOrText } from '@/lib/sheetParser';
 import LandingPage from '@/components/LandingPage';
 import TeamWorkspaceView from '@/components/TeamWorkspaceView';
 import TeamOrderModal from '@/components/TeamOrderModal';
@@ -113,10 +114,10 @@ export default function VercelDashboard() {
   const [teamProjects, setTeamProjects] = useState([]);
   const [teamLoading, setTeamLoading] = useState(false);
   const [teamSearchQuery, setTeamSearchQuery] = useState('');
-  const [teamStatusFilter, setTeamStatusFilter] = useState('All');
-  const [teamMemberFilter, setTeamMemberFilter] = useState('All');
-  const [teamSalesFilter, setTeamSalesFilter] = useState('All');
-  const [teamMonthFilter, setTeamMonthFilter] = useState('All');
+  const [teamStatusFilter, setTeamStatusFilter] = useState('all');
+  const [teamMemberFilter, setTeamMemberFilter] = useState('all');
+  const [teamSalesFilter, setTeamSalesFilter] = useState('all');
+  const [teamMonthFilter, setTeamMonthFilter] = useState('all');
   const [teamViewMode, setTeamViewMode] = useState('table');
   const [teamMembersExpanded, setTeamMembersExpanded] = useState(true);
 
@@ -142,7 +143,38 @@ export default function VercelDashboard() {
     teamName: 'EleSquad',
     percentage: '',
     note: '',
+    timeSchedule: 'Fresh Query',
   });
+
+  // Smart Quick Auto-Fill States for Personal Modal
+  const [personalRawText, setPersonalRawText] = useState('');
+  const [personalPasteSuccess, setPersonalPasteSuccess] = useState(false);
+
+  const handlePersonalQuickPaste = (textToParse, overrideUrl = '') => {
+    const parsed = parsePersonalSheetText(textToParse, overrideUrl);
+    if (parsed) {
+      setFormData((prev) => ({
+        ...prev,
+        ...parsed,
+      }));
+      setPersonalPasteSuccess(true);
+      setTimeout(() => setPersonalPasteSuccess(false), 3500);
+    }
+  };
+
+  const handlePersonalTextareaPaste = (e) => {
+    e.preventDefault();
+    const clipboardData = e.clipboardData;
+    if (!clipboardData) return;
+
+    const htmlData = clipboardData.getData('text/html') || '';
+    const textData = clipboardData.getData('text/plain') || '';
+    
+    setPersonalRawText(textData);
+
+    const extractedUrl = extractUrlFromHtmlOrText(htmlData, textData);
+    handlePersonalQuickPaste(textData, extractedUrl);
+  };
 
   // Form State
   const [formData, setFormData] = useState({
@@ -155,7 +187,7 @@ export default function VercelDashboard() {
     orderStatus: 'Wip',
     ourSubdomain: '',
     deadline: '',
-    timeSchedule: 'Complete',
+    timeSchedule: 'Fresh Query',
     clientDomain: '',
     marketplaceStatus: 'Delivered',
     dailyUpdate: '',
@@ -172,6 +204,17 @@ export default function VercelDashboard() {
     setTheme(current);
   }, []);
 
+  // When switching to Team workspace mode, default to showing ALL team projects
+  useEffect(() => {
+    if (workspaceMode === 'team') {
+      setCurrentTab('all');
+      setTeamMemberFilter('all');
+      setTeamSalesFilter('all');
+      setProfileFilter('all');
+      setStatusFilter('all');
+    }
+  }, [workspaceMode]);
+
   const toggleTheme = () => {
     const current = document.documentElement.getAttribute('data-theme') || 'dark';
     const nextTheme = current === 'dark' ? 'light' : 'dark';
@@ -181,9 +224,9 @@ export default function VercelDashboard() {
     showToast(`Switched to ${nextTheme} theme`);
   };
 
-  const fetchProjects = async () => {
+  const fetchProjects = async (showSkeleton = false) => {
     try {
-      setLoading(true);
+      if (showSkeleton) setLoading(true);
       await fetch('/api/projects/seed', { method: 'POST' });
       const res = await fetch('/api/projects');
       const data = await res.json();
@@ -198,9 +241,9 @@ export default function VercelDashboard() {
     }
   };
 
-  const fetchTeamProjects = async () => {
+  const fetchTeamProjects = async (showSkeleton = false) => {
     try {
-      setTeamLoading(true);
+      if (showSkeleton) setTeamLoading(true);
       await fetch('/api/team-projects/seed', { method: 'POST' });
       const res = await fetch('/api/team-projects');
       const data = await res.json();
@@ -441,21 +484,21 @@ export default function VercelDashboard() {
         }
       }
 
-      if (teamMemberFilter !== 'all') {
+      if (teamMemberFilter.toLowerCase() !== 'all') {
         if (!Array.isArray(p.assignedMembers) || !p.assignedMembers.some((m) => m.toLowerCase() === teamMemberFilter.toLowerCase())) {
           return false;
         }
       }
 
-      if (teamSalesFilter !== 'all' && (p.salesPerson || '').toLowerCase() !== teamSalesFilter.toLowerCase()) {
+      if (teamSalesFilter.toLowerCase() !== 'all' && (p.salesPerson || '').toLowerCase() !== teamSalesFilter.toLowerCase()) {
         return false;
       }
 
-      if (profileFilter !== 'all' && (p.profileName || '').toLowerCase() !== profileFilter.toLowerCase()) {
+      if (profileFilter.toLowerCase() !== 'all' && (p.profileName || '').toLowerCase() !== profileFilter.toLowerCase()) {
         return false;
       }
 
-      if (statusFilter !== 'all' && (p.status || '').toLowerCase() !== statusFilter.toLowerCase()) {
+      if (statusFilter.toLowerCase() !== 'all' && (p.status || '').toLowerCase() !== statusFilter.toLowerCase()) {
         return false;
       }
 
@@ -680,6 +723,8 @@ export default function VercelDashboard() {
     }
     const defaultMonth = overrideMonth || (currentTab !== 'all' && currentTab !== 'running' && currentTab !== 'stats' ? currentTab : currentCalendarMonth);
     setActiveProject(null);
+    setPersonalRawText('');
+    setPersonalPasteSuccess(false);
     setFormData({
       assignDate: new Date().toISOString().split('T')[0],
       month: defaultMonth,
@@ -690,7 +735,7 @@ export default function VercelDashboard() {
       orderStatus: 'Wip',
       ourSubdomain: '',
       deadline: '',
-      timeSchedule: 'Complete',
+      timeSchedule: 'Fresh Query',
       clientDomain: '',
       marketplaceStatus: 'Delivered',
       dailyUpdate: '',
@@ -704,6 +749,8 @@ export default function VercelDashboard() {
 
   const openEditModal = (project) => {
     setActiveProject(project);
+    setPersonalRawText('');
+    setPersonalPasteSuccess(false);
     const resolvedMonth = getMonthFromDate(project.assignDate, project.month || 'September');
     setFormData({
       assignDate: project.assignDate || '',
@@ -715,7 +762,7 @@ export default function VercelDashboard() {
       orderStatus: project.orderStatus || 'Wip',
       ourSubdomain: project.ourSubdomain || '',
       deadline: project.deadline ? project.deadline.split('T')[0] : '',
-      timeSchedule: project.timeSchedule || 'Complete',
+      timeSchedule: project.timeSchedule || 'Fresh Query',
       clientDomain: project.clientDomain || '',
       marketplaceStatus: project.marketplaceStatus || 'Delivered',
       dailyUpdate: project.dailyUpdate || '',
@@ -792,6 +839,7 @@ export default function VercelDashboard() {
       teamName: 'EleSquad',
       percentage: '',
       note: '',
+      timeSchedule: 'Fresh Query',
     });
     setIsTeamModalOpen(true);
   };
@@ -815,6 +863,7 @@ export default function VercelDashboard() {
       teamName: p.teamName || 'EleSquad',
       percentage: p.percentage || '',
       note: p.notes || p.note || '',
+      timeSchedule: p.timeSchedule || 'Fresh Query',
     });
     setIsTeamModalOpen(true);
   };
@@ -833,6 +882,7 @@ export default function VercelDashboard() {
         amount: gross,
         netAmount: net,
         status: teamFormData.orderStatus,
+        timeSchedule: teamFormData.timeSchedule,
         notes: teamFormData.note,
       };
 
@@ -2133,13 +2183,13 @@ export default function VercelDashboard() {
 
                     <select
                       className="v-select"
+                      style={{ minWidth: 150 }}
                       value={scheduleFilter}
                       onChange={(e) => setScheduleFilter(e.target.value)}
                     >
-                      <option value="all">All Schedules</option>
-                      <option value="Complete">Complete</option>
-                      <option value="Late">Late</option>
-                      <option value="Repeat Order">Repeat Order</option>
+                      <option value="all">All Order Types</option>
+                      <option value="Fresh Query">Fresh Query</option>
+                      <option value="Repeat">Repeat Order</option>
                       <option value="Add-on">Add-on</option>
                     </select>
                   </>
@@ -2220,8 +2270,10 @@ export default function VercelDashboard() {
                           <th className="sortable" onClick={() => handleSort('estimatedDeliveryDate')}>Est. Deli</th>
                           <th>Deli Date</th>
                           <th>Order Status</th>
-                          <th>Sheet / Payout</th>
-                          <th>Remark</th>
+                          <th>Order Type</th>
+                          <th>Sheet</th>
+                          <th>Payout</th>
+                          <th>Note</th>
                           <th style={{ textAlign: 'center' }}>Actions</th>
                         </tr>
                       </thead>
@@ -2238,7 +2290,7 @@ export default function VercelDashboard() {
                           <th>Order Status</th>
                           <th>Staging Subdomain</th>
                           <th className="sortable" onClick={() => handleSort('deadline')}>Deadline</th>
-                          <th>Schedule</th>
+                          <th>Order Type</th>
                           <th>Live Domain</th>
                           <th>Daily Update</th>
                           <th>Review</th>
@@ -2251,7 +2303,7 @@ export default function VercelDashboard() {
                         /* TEAM TABLE ROWS */
                         filteredTeamProjects.length === 0 ? (
                           <tr>
-                            <td colSpan={14} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
+                            <td colSpan={16} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
                                 <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--foreground)' }}>
                                   No team orders found matching your filters.
@@ -2349,21 +2401,28 @@ export default function VercelDashboard() {
                                   </div>
                                 </td>
                                 <td>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)' }}>
+                                    {p.timeSchedule || 'Fresh Query'}
+                                  </span>
+                                </td>
+                                <td>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                    {p.sheetLink ? (
-                                      <a href={p.sheetLink} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }} title="Open Sheet">
+                                    {ensureValidUrl(p.sheetLink) ? (
+                                      <a href={ensureValidUrl(p.sheetLink)} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }} title="Open Sheet">
                                         <ExternalLink size={11} /> Sheet
                                       </a>
                                     ) : null}
-                                    {p.percentage ? (
-                                      <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: 'var(--accents-5)' }}>
-                                        ${p.percentage}
-                                      </span>
-                                    ) : null}
                                   </div>
                                 </td>
+                                <td>
+                                  {p.percentage ? (
+                                    <span className="mono-text" style={{ fontSize: '0.74rem', color: '#10b981', fontWeight: 600 }}>
+                                      ${p.percentage}
+                                    </span>
+                                  ) : '-'}
+                                </td>
                                 <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.75rem', color: 'var(--accents-5)' }}>
-                                  {p.remark || '-'}
+                                  {p.note || '-'}
                                 </td>
                                 <td style={{ textAlign: 'center' }}>
                                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -2489,7 +2548,7 @@ export default function VercelDashboard() {
                                 </td>
                                 <td>
                                   <span style={{ fontSize: '0.75rem', color: p.timeSchedule === 'Late' ? '#f5a623' : 'var(--accents-5)' }}>
-                                    {p.timeSchedule || 'Complete'}
+                                    {p.timeSchedule || 'Fresh Query'}
                                   </span>
                                 </td>
                                 <td>
@@ -2700,6 +2759,45 @@ export default function VercelDashboard() {
               </div>
               <form onSubmit={handleSubmit}>
                 <div className="v-modal-body">
+                  {/* Smart Raw Paste Box for Personal Orders */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(16, 185, 129, 0.08))',
+                    border: '1px dashed rgba(56, 189, 248, 0.4)',
+                    borderRadius: 8,
+                    padding: '0.85rem 1rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem',
+                    marginBottom: '1.2rem',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', fontWeight: 600, color: '#38bdf8' }}>
+                        <Sparkles size={15} />
+                        <span>⚡ Smart Quick Auto-Fill (Copy & Paste Raw Text)</span>
+                      </div>
+                      {personalPasteSuccess && (
+                        <span style={{ fontSize: '0.73rem', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Check size={12} /> Auto-filled!
+                        </span>
+                      )}
+                    </div>
+                    <textarea
+                      className="v-input"
+                      rows={2}
+                      style={{ fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}
+                      placeholder="Paste raw Google Sheet row/text here to auto-fill..."
+                      value={personalRawText}
+                      onPaste={handlePersonalTextareaPaste}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPersonalRawText(val);
+                        if (val.trim()) {
+                          handlePersonalQuickPaste(val);
+                        }
+                      }}
+                    />
+                  </div>
+
                   <div className="v-form-grid">
                     <div className="v-form-group">
                       <label>Assign Date *</label>
@@ -2752,12 +2850,10 @@ export default function VercelDashboard() {
                       </select>
                     </div>
                     <div className="v-form-group">
-                      <label>Time Schedule</label>
+                      <label>Order Type</label>
                       <select className="v-select" value={formData.timeSchedule} onChange={(e) => setFormData({ ...formData, timeSchedule: e.target.value })}>
-                        <option value="Complete">Complete</option>
-                        <option value="Late">Late</option>
-                        <option value="Need domain">Need domain</option>
-                        <option value="Repeat Order">Repeat Order</option>
+                        <option value="Fresh Query">Fresh Query</option>
+                        <option value="Repeat">Repeat Order</option>
                         <option value="Add-on">Add-on</option>
                       </select>
                     </div>

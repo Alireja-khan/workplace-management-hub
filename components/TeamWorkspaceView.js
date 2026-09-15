@@ -76,12 +76,12 @@ export default function TeamWorkspaceView({
 
     // Status
     const matchesStatus =
-      statusFilter === 'All' ||
+      (statusFilter || '').toLowerCase() === 'all' ||
       (p.status && p.status.toLowerCase() === statusFilter.toLowerCase());
 
     // Member
     const matchesMember =
-      selectedMember === 'All' ||
+      (selectedMember || '').toLowerCase() === 'all' ||
       (Array.isArray(p.assignedMembers) &&
         p.assignedMembers.some(
           (m) => m.toLowerCase() === selectedMember.toLowerCase()
@@ -89,13 +89,13 @@ export default function TeamWorkspaceView({
 
     // Sales Person
     const matchesSales =
-      selectedSalesPerson === 'All' ||
+      (selectedSalesPerson || '').toLowerCase() === 'all' ||
       (p.salesPerson &&
         p.salesPerson.toLowerCase() === selectedSalesPerson.toLowerCase());
 
     // Month
     const matchesMonth =
-      selectedMonth === 'All' ||
+      (selectedMonth || '').toLowerCase() === 'all' ||
       (p.month && p.month.toLowerCase() === selectedMonth.toLowerCase());
 
     return matchesSearch && matchesStatus && matchesMember && matchesSales && matchesMonth;
