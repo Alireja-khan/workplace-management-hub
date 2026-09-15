@@ -422,7 +422,7 @@ export default function VercelDashboard() {
     teamProjects.forEach((p) => {
       const amt = parseFloat(p.amount) || 0;
       totalGross += amt;
-      const s = (p.status || '').toLowerCase();
+      const s = (p.orderStatus || '').toLowerCase();
       if (s === 'wip') {
         activeWip++;
         wipVal += amt;
@@ -442,7 +442,7 @@ export default function VercelDashboard() {
 
   // Team Running Count
   const teamRunningCount = useMemo(() => {
-    return teamProjects.filter((p) => (p.status || '').toLowerCase() === 'wip').length;
+    return teamProjects.filter((p) => (p.orderStatus || '').toLowerCase() === 'wip').length;
   }, [teamProjects]);
 
   // Team Monthly Stats for Analytics Page
@@ -452,13 +452,13 @@ export default function VercelDashboard() {
       const mProjects = teamProjects.filter((p) => {
         const pMonth = getMonthFromDate(p.assignDate, p.month);
         if (isCurrent) {
-          return pMonth.toLowerCase() === m.toLowerCase() || (p.status !== 'Done' && p.status !== 'Delivered' && p.status !== 'Cancel');
+          return pMonth.toLowerCase() === m.toLowerCase() || (p.orderStatus !== 'Done' && p.orderStatus !== 'Delivered' && p.orderStatus !== 'Cancel');
         }
         return pMonth.toLowerCase() === m.toLowerCase();
       });
       const gross = mProjects.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
       const net = gross * 0.8;
-      const completed = mProjects.filter((p) => (p.status || '').toLowerCase() === 'done' || (p.status || '').toLowerCase() === 'delivered').length;
+      const completed = mProjects.filter((p) => (p.orderStatus || '').toLowerCase() === 'done' || (p.orderStatus || '').toLowerCase() === 'delivered').length;
       return { month: m, count: mProjects.length, gross, net, completed };
     });
   }, [teamProjects, availableMonths, currentCalendarMonth]);
@@ -467,7 +467,7 @@ export default function VercelDashboard() {
   const filteredTeamProjects = useMemo(() => {
     let res = teamProjects.filter((p) => {
       if (currentTab === 'running') {
-        const s = (p.status || '').toLowerCase();
+        const s = (p.orderStatus || '').toLowerCase();
         if (s !== 'wip') return false;
       } else if (currentTab !== 'all') {
         const isCurrentCalendarMonthTab = currentTab.toLowerCase() === currentCalendarMonth.toLowerCase();
@@ -475,7 +475,7 @@ export default function VercelDashboard() {
         const isAssignedInThisMonth = pMonth.toLowerCase() === currentTab.toLowerCase();
 
         if (isCurrentCalendarMonthTab) {
-          const isRunning = p.status !== 'Done' && p.status !== 'Delivered' && p.status !== 'Cancel';
+          const isRunning = p.orderStatus !== 'Done' && p.orderStatus !== 'Delivered' && p.orderStatus !== 'Cancel';
           if (!isAssignedInThisMonth && !isRunning) return false;
         } else {
           if (!isAssignedInThisMonth) return false;
@@ -496,7 +496,7 @@ export default function VercelDashboard() {
         return false;
       }
 
-      if (statusFilter.toLowerCase() !== 'all' && (p.status || '').toLowerCase() !== statusFilter.toLowerCase()) {
+      if (statusFilter.toLowerCase() !== 'all' && (p.orderStatus || '').toLowerCase() !== statusFilter.toLowerCase()) {
         return false;
       }
 
@@ -614,7 +614,7 @@ export default function VercelDashboard() {
 
     // Optimistic UI update
     setProjects((prev) =>
-      prev.map((p) => (p._id === projectId ? { ...p, orderStatus: newStatus } : p))
+      prev.map((p) => (p._id === projectId ? { ...p, orderorderStatus: newStatus } : p))
     );
     setSavingStatusId(projectId);
 
@@ -623,8 +623,8 @@ export default function VercelDashboard() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          orderStatus: newStatus,
-          marketplaceStatus: newStatus === 'Done' || newStatus === 'Delivered' ? 'Delivered' : 'Wip',
+          orderorderStatus: newStatus,
+          marketplaceorderStatus: newStatus === 'Done' || newStatus === 'Delivered' ? 'Delivered' : 'Wip',
         }),
       });
       const data = await res.json();
@@ -856,7 +856,7 @@ export default function VercelDashboard() {
       estimatedDeliveryDate: p.estimatedDeliveryDate || '',
       deliveryDate: p.deliveryDate || '',
       remark: p.remark || '',
-      orderStatus: p.status || 'Wip',
+      orderStatus: p.orderStatus || 'Wip',
       sheetLink: p.sheetLink || '',
       teamName: p.teamName || 'EleSquad',
       percentage: p.percentage || '',
@@ -940,12 +940,12 @@ export default function VercelDashboard() {
   const handleQuickUpdateTeamStatus = async (id, newStatus) => {
     try {
       setTeamProjects((prev) =>
-        prev.map((p) => (p._id === id ? { ...p, status: newStatus } : p))
+        prev.map((p) => (p._id === id ? { ...p, orderStatus: newStatus } : p))
       );
       const res = await fetch(`/api/team-projects/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ orderStatus: newStatus }),
       });
       const data = await res.json();
       if (data.success) {
@@ -1476,7 +1476,7 @@ export default function VercelDashboard() {
                     <span>WIP Queue</span>
                   </div>
                   <span className="sidebar-count-badge" style={{ color: '#38bdf8', borderColor: 'rgba(56,189,248,0.3)' }}>
-                    {teamProjects.filter((p) => (p.status || '').toLowerCase() === 'wip').length}
+                    {teamProjects.filter((p) => (p.orderStatus || '').toLowerCase() === 'wip').length}
                   </span>
                 </button>
               </div>
@@ -1530,7 +1530,7 @@ export default function VercelDashboard() {
               <div className="sidebar-section">
                 <div className="sidebar-section-title">Team Status</div>
                 {['Wip', 'Delivered', 'Done', 'NRA', 'Need Requirements', 'Cancel'].map((st) => {
-                  const count = teamProjects.filter((p) => (p.status || '').toLowerCase() === st.toLowerCase()).length;
+                  const count = teamProjects.filter((p) => (p.orderStatus || '').toLowerCase() === st.toLowerCase()).length;
                   if (count === 0 && st !== 'Wip' && st !== 'Done') return null;
                   return (
                     <button
@@ -2317,7 +2317,7 @@ export default function VercelDashboard() {
                             const gross = parseFloat(p.amount) || 0;
                             const net = parseFloat(p.netAmount) || gross * 0.8;
                             const members = Array.isArray(p.assignedMembers) ? p.assignedMembers : [];
-                            const statusLower = (p.status || 'Wip').toLowerCase();
+                            const statusLower = (p.orderStatus || 'Wip').toLowerCase();
                             const statusClass =
                               statusLower === 'done'
                                 ? 'v-status-done'
@@ -2386,7 +2386,7 @@ export default function VercelDashboard() {
                                         fontSize: '0.73rem',
                                         fontWeight: 600,
                                       }}
-                                      value={p.status || 'Wip'}
+                                      value={p.orderStatus || 'Wip'}
                                       onChange={(e) => handleQuickUpdateTeamStatus(p._id, e.target.value)}
                                     >
                                       <option value="Wip">Wip</option>
@@ -2596,7 +2596,7 @@ export default function VercelDashboard() {
                 {workspaceMode === 'team'
                   ? ['Wip', 'Delivered', 'Done', 'NRA', 'Need Requirements', 'Cancel'].map((colStatus) => {
                       const colItems = filteredTeamProjects.filter(
-                        (p) => (p.status || 'Wip').toLowerCase() === colStatus.toLowerCase()
+                        (p) => (p.orderStatus || 'Wip').toLowerCase() === colStatus.toLowerCase()
                       );
                       const colGross = colItems.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
 
