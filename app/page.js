@@ -227,7 +227,6 @@ export default function VercelDashboard() {
   const fetchProjects = async (showSkeleton = false) => {
     try {
       if (showSkeleton) setLoading(true);
-      await fetch('/api/projects/seed', { method: 'POST' });
       const res = await fetch('/api/projects');
       const data = await res.json();
       if (data.success) {
@@ -244,7 +243,6 @@ export default function VercelDashboard() {
   const fetchTeamProjects = async (showSkeleton = false) => {
     try {
       if (showSkeleton) setTeamLoading(true);
-      await fetch('/api/team-projects/seed', { method: 'POST' });
       const res = await fetch('/api/team-projects');
       const data = await res.json();
       if (data.success) {
