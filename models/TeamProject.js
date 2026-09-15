@@ -57,8 +57,13 @@ const TeamProjectSchema = new mongoose.Schema(
     },
     orderStatus: {
       type: String,
-      enum: ['Wip', 'Delivered', 'Done', 'NRA', 'Cancel', 'Need Requirements'],
+      enum: ['Wip', 'Delivered', 'Done', 'NRA', 'Cancel', 'Need Requirements', 'Issue'],
       default: 'Wip',
+    },
+    timeSchedule: {
+      type: String,
+      default: 'Fresh Query',
+      trim: true,
     },
     sheetLink: {
       type: String,
