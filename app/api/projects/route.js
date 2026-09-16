@@ -85,9 +85,6 @@ export async function GET(request) {
   try {
     await connectToDatabase();
 
-    // Auto-sync all existing team projects to personal workspace
-    await syncAllExistingTeamProjects();
-
     const projects = await Project.find({}).sort({ createdAt: -1 });
     // Normalize projects so month matches assignDate
     const normalized = projects.map((p) => {
