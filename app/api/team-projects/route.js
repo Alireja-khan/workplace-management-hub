@@ -59,6 +59,8 @@ async function syncTeamOrderToPersonal(teamOrder, targetMemberName = 'Alireja') 
       profileName: teamOrder.profileName || 'Team Project',
       amount: parseFloat(teamOrder.amount) || 0,
       orderStatus: teamOrder.orderStatus || 'Wip',
+      currentStatus: teamOrder.currentStatus || 'All Sorted',
+      solvedAt: teamOrder.solvedAt || null,
       estimatedDeliveryDate: teamOrder.estimatedDeliveryDate || '',
       deliveryDate: teamOrder.deliveryDate || '',
       instructionSheet: teamOrder.sheetLink || '',
@@ -82,6 +84,14 @@ async function syncTeamOrderToPersonal(teamOrder, targetMemberName = 'Alireja') 
 export async function GET(request) {
   try {
     await connectToDatabase();
+
+    // Auto-reset 'Solved' status back to 'All Sorted' if 2 days (48 hours) have passed without status changes
+    const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    await TeamProject.updateMany(
+      { currentStatus: 'Solved', solvedAt: { $lte: twoDaysAgo } },
+      { $set: { currentStatus: 'All Sorted', solvedAt: null } }
+    );
+
     const projects = await TeamProject.find({}).sort({ createdAt: -1 });
     const normalized = projects.map((p) => {
       const obj = p.toObject ? p.toObject() : p;
@@ -90,6 +100,9 @@ export async function GET(request) {
       }
       if (!obj.netAmount && obj.amount) {
         obj.netAmount = obj.amount * 0.8;
+      }
+      if (!obj.currentStatus) {
+        obj.currentStatus = 'All Sorted';
       }
       return obj;
     });

@@ -60,6 +60,15 @@ const TeamProjectSchema = new mongoose.Schema(
       enum: ['Wip', 'Delivered', 'Done', 'NRA', 'Cancel', 'Need Requirements', 'Issue'],
       default: 'Wip',
     },
+    currentStatus: {
+      type: String,
+      enum: ['All Sorted', 'Issue', 'WIP', 'Solved'],
+      default: 'All Sorted',
+    },
+    solvedAt: {
+      type: Date,
+      default: null,
+    },
     timeSchedule: {
       type: String,
       default: 'Fresh Query',

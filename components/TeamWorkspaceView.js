@@ -33,6 +33,20 @@ const STATUS_OPTIONS = [
   'Need Requirements'
 ];
 
+function getEffectiveCurrentStatus(p) {
+  const rawStatus = p?.currentStatus || 'All Sorted';
+  if (rawStatus === 'Solved' && p?.solvedAt) {
+    const solvedTime = new Date(p.solvedAt).getTime();
+    if (!isNaN(solvedTime)) {
+      const twoDaysInMs = 48 * 60 * 60 * 1000;
+      if (Date.now() - solvedTime >= twoDaysInMs) {
+        return 'All Sorted';
+      }
+    }
+  }
+  return rawStatus;
+}
+
 export default function TeamWorkspaceView({
   projects = [],
   isLoading = false,
@@ -51,7 +65,8 @@ export default function TeamWorkspaceView({
   onOpenAddModal,
   onEditProject,
   onDeleteProject,
-  onQuickUpdateStatus
+  onQuickUpdateStatus,
+  onQuickUpdateCurrentStatus
 }) {
   const [activeTab, setActiveTab] = useState(viewMode);
 
@@ -405,10 +420,11 @@ export default function TeamWorkspaceView({
                     <th style={{ width: 180 }}>Assigned Members</th>
                     <th style={{ width: 100 }}>Est. Deli</th>
                     <th style={{ width: 100 }}>Deli Date</th>
-                    <th style={{ width: 120 }}>Status</th>
+                    <th style={{ width: 110 }}>Order Status</th>
+                    <th style={{ width: 120 }}>Current Status</th>
                     <th style={{ width: 90 }}>Sheet / Payout</th>
                     <th style={{ width: 150 }}>Remark</th>
-                    <th style={{ width: 80, textAlign: 'center' }}>Actions</th>
+                    <th style={{ width: 80, textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -584,13 +600,13 @@ export default function TeamWorkspaceView({
                       {/* Status with Quick Select */}
                       <td>
                         <select
-                          value={p.status || 'Wip'}
+                          value={p.status || p.orderStatus || 'Wip'}
                           onChange={(e) =>
                             onQuickUpdateStatus &&
                             onQuickUpdateStatus(p._id, e.target.value)
                           }
                           style={{
-                            ...getStatusBadgeStyle(p.status),
+                            ...getStatusBadgeStyle(p.status || p.orderStatus),
                             fontSize: '0.7rem',
                             fontWeight: 600,
                             padding: '0.2rem 0.5rem',
@@ -605,6 +621,50 @@ export default function TeamWorkspaceView({
                             </option>
                           ))}
                         </select>
+                      </td>
+
+                      {/* Current Status with Quick Select */}
+                      <td>
+                        {(() => {
+                          const effCStatus = getEffectiveCurrentStatus(p);
+                          const cStatusLower = effCStatus.toLowerCase();
+                          const cStatusClass =
+                            cStatusLower === 'issue'
+                              ? 'v-cstatus-issue'
+                              : cStatusLower === 'wip'
+                              ? 'v-cstatus-wip'
+                              : cStatusLower === 'solved'
+                              ? 'v-cstatus-solved'
+                              : 'v-cstatus-all-sorted';
+
+                          return (
+                            <div className={`v-cstatus-badge ${cStatusClass}`}>
+                              <span className="v-cstatus-dot"></span>
+                              <select
+                                value={effCStatus}
+                                onChange={(e) =>
+                                  onQuickUpdateCurrentStatus &&
+                                  onQuickUpdateCurrentStatus(p._id, e.target.value)
+                                }
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: 'inherit',
+                                  outline: 'none',
+                                  cursor: 'pointer',
+                                  fontFamily: 'inherit',
+                                  fontSize: '0.73rem',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                <option value="All Sorted">All Sorted</option>
+                                <option value="Issue">Issue</option>
+                                <option value="WIP">WIP</option>
+                                <option value="Solved">Solved</option>
+                              </select>
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* Sheet Link / Payout */}

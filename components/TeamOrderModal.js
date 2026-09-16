@@ -346,6 +346,20 @@ export default function TeamOrderModal({
               </div>
 
               <div className="v-form-group">
+                <label>Current Status</label>
+                <select
+                  className="v-select"
+                  value={formData.currentStatus || 'All Sorted'}
+                  onChange={(e) => setFormData({ ...formData, currentStatus: e.target.value })}
+                >
+                  <option value="All Sorted">All Sorted</option>
+                  <option value="Issue">Issue</option>
+                  <option value="WIP">WIP</option>
+                  <option value="Solved">Solved</option>
+                </select>
+              </div>
+
+              <div className="v-form-group">
                 <label>Estimated Delivery Date</label>
                 <input
                   type="date"

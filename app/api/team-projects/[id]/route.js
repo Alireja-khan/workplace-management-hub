@@ -102,6 +102,12 @@ export async function PUT(request, { params }) {
       body.month = getMonthFromDate(body.assignDate, body.month);
     }
 
+    if (body.currentStatus === 'Solved') {
+      body.solvedAt = new Date();
+    } else if (body.currentStatus && body.currentStatus !== 'Solved') {
+      body.solvedAt = null;
+    }
+
     if (body.amount !== undefined) {
       const amt = parseFloat(body.amount) || 0;
       body.amount = amt;
