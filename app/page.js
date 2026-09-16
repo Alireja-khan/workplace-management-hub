@@ -1111,6 +1111,41 @@ export default function VercelDashboard() {
     }
   };
 
+  const handleQuickUpdateTeamCurrentStatus = async (id, newCStatus) => {
+    const prevProject = teamProjects.find((p) => p._id === id);
+    const prevCStatus = prevProject ? (prevProject.currentStatus || 'All Sorted') : 'All Sorted';
+
+    const payload = {
+      currentStatus: newCStatus,
+      solvedAt: newCStatus === 'Solved' ? new Date() : null,
+    };
+
+    setTeamProjects((prev) =>
+      prev.map((p) => (p._id === id ? { ...p, ...payload } : p))
+    );
+
+    try {
+      const res = await fetch(`/api/team-projects/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTeamProjects((prev) => prev.map((p) => (p._id === id ? data.data : p)));
+        showToast(`Issue status updated to ${newCStatus}`);
+        fetchProjects();
+      } else {
+        throw new Error(data.error || 'Update failed');
+      }
+    } catch (e) {
+      setTeamProjects((prev) =>
+        prev.map((p) => (p._id === id ? { ...p, currentStatus: prevCStatus } : p))
+      );
+      showToast('Failed to update issue status', 'error');
+    }
+  };
+
   const handleDelete = async (projectId, clientName) => {
     if (!confirm(`Are you sure you want to delete the order for "${clientName}"?`)) return;
     try {
