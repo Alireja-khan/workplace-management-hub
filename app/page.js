@@ -2474,7 +2474,7 @@ export default function VercelDashboard() {
                           <th className="sortable" onClick={() => handleSort('estimatedDeliveryDate')}>Est. Deli</th>
                           <th>Deli Date</th>
                           <th>Order Status</th>
-                          <th>Current Status</th>
+                          {currentTab !== 'running' && <th>Current Status</th>}
                           <th>Order Type</th>
                           <th>Sheet</th>
                           <th>Payout</th>
@@ -2496,7 +2496,7 @@ export default function VercelDashboard() {
                           <th className="sortable" onClick={() => handleSort('estimatedDeliveryDate')}>Est. Deli</th>
                           <th>Deli Date</th>
                           <th>Order Status</th>
-                          <th>Current Status</th>
+                          {currentTab !== 'running' && <th>Current Status</th>}
                           <th>Order Type</th>
                           <th>Sheet</th>
                           <th>Remark</th>
@@ -2509,7 +2509,7 @@ export default function VercelDashboard() {
                         /* TEAM TABLE ROWS */
                         filteredTeamProjects.length === 0 ? (
                           <tr>
-                            <td colSpan={17} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
+                            <td colSpan={currentTab === 'running' ? 16 : 17} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
                                 <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--foreground)' }}>
                                   No team orders found matching your filters.
@@ -2604,45 +2604,47 @@ export default function VercelDashboard() {
                                     </select>
                                   </div>
                                 </td>
-                                <td>
-                                  {(() => {
-                                    const effCStatus = getEffectiveCurrentStatus(p);
-                                    const cStatusLower = effCStatus.toLowerCase();
-                                    const cStatusClass =
-                                      cStatusLower === 'issue'
-                                        ? 'v-cstatus-issue'
-                                        : cStatusLower === 'wip'
-                                        ? 'v-cstatus-wip'
-                                        : cStatusLower === 'solved'
-                                        ? 'v-cstatus-solved'
-                                        : 'v-cstatus-all-sorted';
+                                {currentTab !== 'running' && (
+                                  <td>
+                                    {(() => {
+                                      const effCStatus = getEffectiveCurrentStatus(p);
+                                      const cStatusLower = effCStatus.toLowerCase();
+                                      const cStatusClass =
+                                        cStatusLower === 'issue'
+                                          ? 'v-cstatus-issue'
+                                          : cStatusLower === 'wip'
+                                          ? 'v-cstatus-wip'
+                                          : cStatusLower === 'solved'
+                                          ? 'v-cstatus-solved'
+                                          : 'v-cstatus-all-sorted';
 
-                                    return (
-                                      <div className={`v-cstatus-badge ${cStatusClass}`}>
-                                        <span className="v-cstatus-dot"></span>
-                                        <select
-                                          style={{
-                                            background: 'transparent',
-                                            border: 'none',
-                                            color: 'inherit',
-                                            outline: 'none',
-                                            cursor: 'pointer',
-                                            fontFamily: 'inherit',
-                                            fontSize: '0.73rem',
-                                            fontWeight: 600,
-                                          }}
-                                          value={effCStatus}
-                                          onChange={(e) => handleQuickUpdateTeamCurrentStatus(p._id, e.target.value)}
-                                        >
-                                          <option value="All Sorted">All Sorted</option>
-                                          <option value="Issue">Issue</option>
-                                          <option value="WIP">WIP</option>
-                                          <option value="Solved">Solved</option>
-                                        </select>
-                                      </div>
-                                    );
-                                  })()}
-                                </td>
+                                      return (
+                                        <div className={`v-cstatus-badge ${cStatusClass}`}>
+                                          <span className="v-cstatus-dot"></span>
+                                          <select
+                                            style={{
+                                              background: 'transparent',
+                                              border: 'none',
+                                              color: 'inherit',
+                                              outline: 'none',
+                                              cursor: 'pointer',
+                                              fontFamily: 'inherit',
+                                              fontSize: '0.73rem',
+                                              fontWeight: 600,
+                                            }}
+                                            value={effCStatus}
+                                            onChange={(e) => handleQuickUpdateTeamCurrentStatus(p._id, e.target.value)}
+                                          >
+                                            <option value="All Sorted">All Sorted</option>
+                                            <option value="Issue">Issue</option>
+                                            <option value="WIP">WIP</option>
+                                            <option value="Solved">Solved</option>
+                                          </select>
+                                        </div>
+                                      );
+                                    })()}
+                                  </td>
+                                )}
                                 <td>
                                   <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)' }}>
                                     {p.timeSchedule || 'Fresh Query'}
@@ -2685,7 +2687,7 @@ export default function VercelDashboard() {
                         /* PERSONAL TABLE ROWS */
                         filteredProjects.length === 0 ? (
                           <tr>
-                            <td colSpan={15} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
+                            <td colSpan={currentTab === 'running' ? 14 : 15} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
                                 <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--foreground)' }}>
                                   {currentTab === 'all'
@@ -2791,52 +2793,54 @@ export default function VercelDashboard() {
                                     </select>
                                   </div>
                                 </td>
-                                <td>
-                                  {(() => {
-                                    const effCStatus = getEffectiveCurrentStatus(p);
-                                    const cStatusLower = effCStatus.toLowerCase();
-                                    const cStatusClass =
-                                      cStatusLower === 'issue'
-                                        ? 'v-cstatus-issue'
-                                        : cStatusLower === 'wip'
-                                        ? 'v-cstatus-wip'
-                                        : cStatusLower === 'solved'
-                                        ? 'v-cstatus-solved'
-                                        : 'v-cstatus-all-sorted';
+                                {currentTab !== 'running' && (
+                                  <td>
+                                    {(() => {
+                                      const effCStatus = getEffectiveCurrentStatus(p);
+                                      const cStatusLower = effCStatus.toLowerCase();
+                                      const cStatusClass =
+                                        cStatusLower === 'issue'
+                                          ? 'v-cstatus-issue'
+                                          : cStatusLower === 'wip'
+                                          ? 'v-cstatus-wip'
+                                          : cStatusLower === 'solved'
+                                          ? 'v-cstatus-solved'
+                                          : 'v-cstatus-all-sorted';
 
-                                    return (
-                                      <div className={`v-cstatus-badge ${cStatusClass} ${savingCStatusId === p._id ? 'saving' : ''}`}>
-                                        {savingCStatusId === p._id ? (
-                                          <div className="status-saving-spinner"></div>
-                                        ) : savedCStatusSuccessId === p._id ? (
-                                          <Check size={11} color="#10b981" />
-                                        ) : (
-                                          <span className="v-cstatus-dot"></span>
-                                        )}
-                                        <select
-                                          disabled={savingCStatusId === p._id}
-                                          style={{
-                                            background: 'transparent',
-                                            border: 'none',
-                                            color: 'inherit',
-                                            outline: 'none',
-                                            cursor: savingCStatusId === p._id ? 'wait' : 'pointer',
-                                            fontFamily: 'inherit',
-                                            fontSize: '0.73rem',
-                                            fontWeight: 600,
-                                          }}
-                                          value={effCStatus}
-                                          onChange={(e) => handleQuickCurrentStatusChange(p._id, e.target.value)}
-                                        >
-                                          <option value="All Sorted">All Sorted</option>
-                                          <option value="Issue">Issue</option>
-                                          <option value="WIP">WIP</option>
-                                          <option value="Solved">Solved</option>
-                                        </select>
-                                      </div>
-                                    );
-                                  })()}
-                                </td>
+                                      return (
+                                        <div className={`v-cstatus-badge ${cStatusClass} ${savingCStatusId === p._id ? 'saving' : ''}`}>
+                                          {savingCStatusId === p._id ? (
+                                            <div className="status-saving-spinner"></div>
+                                          ) : savedCStatusSuccessId === p._id ? (
+                                            <Check size={11} color="#10b981" />
+                                          ) : (
+                                            <span className="v-cstatus-dot"></span>
+                                          )}
+                                          <select
+                                            disabled={savingCStatusId === p._id}
+                                            style={{
+                                              background: 'transparent',
+                                              border: 'none',
+                                              color: 'inherit',
+                                              outline: 'none',
+                                              cursor: savingCStatusId === p._id ? 'wait' : 'pointer',
+                                              fontFamily: 'inherit',
+                                              fontSize: '0.73rem',
+                                              fontWeight: 600,
+                                            }}
+                                            value={effCStatus}
+                                            onChange={(e) => handleQuickCurrentStatusChange(p._id, e.target.value)}
+                                          >
+                                            <option value="All Sorted">All Sorted</option>
+                                            <option value="Issue">Issue</option>
+                                            <option value="WIP">WIP</option>
+                                            <option value="Solved">Solved</option>
+                                          </select>
+                                        </div>
+                                      );
+                                    })()}
+                                  </td>
+                                )}
                                 <td>
                                   <span style={{ fontSize: '0.75rem', color: p.timeSchedule === 'Late' ? '#f5a623' : 'var(--accents-5)' }}>
                                     {p.timeSchedule || 'Fresh Query'}
