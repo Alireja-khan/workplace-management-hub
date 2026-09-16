@@ -507,8 +507,9 @@ export default function VercelDashboard() {
   const filteredTeamProjects = useMemo(() => {
     let res = teamProjects.filter((p) => {
       if (currentTab === 'running') {
-        const s = (p.orderStatus || '').toLowerCase();
-        if (s !== 'wip') return false;
+        const s = (p.orderStatus || 'Wip').toLowerCase();
+        const sch = (p.timeSchedule || '').toLowerCase();
+        if (s !== 'wip' && s !== 'issue' && !s.includes('need') && sch !== 'late') return false;
       } else if (currentTab !== 'all') {
         const isCurrentCalendarMonthTab = currentTab.toLowerCase() === currentCalendarMonth.toLowerCase();
         const pMonth = getMonthFromDate(p.assignDate, p.month);
@@ -1572,12 +1573,14 @@ export default function VercelDashboard() {
               <div className="sidebar-section">
                 <div className="sidebar-section-title">Team Views</div>
                 <button
-                  className={`sidebar-nav-item ${teamMemberFilter === 'All' && teamStatusFilter === 'All' && teamSalesFilter === 'All' && teamMonthFilter === 'All' ? 'active' : ''}`}
+                  className={`sidebar-nav-item ${currentTab === 'all' && teamMemberFilter === 'All' && teamSalesFilter === 'All' && statusFilter === 'all' ? 'active' : ''}`}
                   onClick={() => {
+                    setCurrentTab('all');
                     setTeamMemberFilter('All');
-                    setTeamStatusFilter('All');
                     setTeamSalesFilter('All');
-                    setTeamMonthFilter('All');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                    setScheduleFilter('all');
                   }}
                 >
                   <div className="sidebar-nav-left">
@@ -1588,17 +1591,89 @@ export default function VercelDashboard() {
                 </button>
 
                 <button
-                  className={`sidebar-nav-item ${teamStatusFilter === 'Wip' ? 'active' : ''}`}
-                  onClick={() => setTeamStatusFilter(teamStatusFilter === 'Wip' ? 'All' : 'Wip')}
+                  className={`sidebar-nav-item ${currentTab === 'running' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('running');
+                    setTeamMemberFilter('All');
+                    setTeamSalesFilter('All');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
                 >
                   <div className="sidebar-nav-left">
                     <Zap size={14} color="#38bdf8" />
-                    <span>WIP Queue</span>
+                    <span>Running Team Orders</span>
                   </div>
                   <span className="sidebar-count-badge" style={{ color: '#38bdf8', borderColor: 'rgba(56,189,248,0.3)' }}>
-                    {teamProjects.filter((p) => (p.orderStatus || '').toLowerCase() === 'wip').length}
+                    {teamRunningCount}
                   </span>
                 </button>
+
+                <button
+                  className={`sidebar-nav-item ${currentTab === 'stats' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('stats');
+                    setTeamMemberFilter('All');
+                    setTeamSalesFilter('All');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <BarChart3 size={14} color="#10b981" />
+                    <span>Stats & Analytics</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }}>
+                    Live
+                  </span>
+                </button>
+              </div>
+
+              {/* Team Months Section */}
+              <div className="sidebar-section">
+                <div className="sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Months</span>
+                  <button
+                    className="sidebar-expand-btn"
+                    onClick={() => setMonthsExpanded(!monthsExpanded)}
+                    title={monthsExpanded ? "Show less" : `Show all months (${availableMonths.length})`}
+                  >
+                    <ChevronDown size={14} style={{ transform: monthsExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+                  </button>
+                </div>
+                {displayedMonths.map((m) => {
+                  const isCurrentMonth = m.toLowerCase() === currentCalendarMonth.toLowerCase();
+                  const count = teamProjects.filter((p) => {
+                    const pMonth = getMonthFromDate(p.assignDate, p.month);
+                    if (isCurrentMonth) {
+                      return pMonth.toLowerCase() === m.toLowerCase() || (p.orderStatus !== 'Done' && p.orderStatus !== 'Delivered' && p.orderStatus !== 'Cancel');
+                    }
+                    return pMonth.toLowerCase() === m.toLowerCase();
+                  }).length;
+                  return (
+                    <button
+                      key={m}
+                      className={`sidebar-nav-item ${currentTab.toLowerCase() === m.toLowerCase() ? 'active' : ''}`}
+                      onClick={() => {
+                        setCurrentTab(m);
+                        setTeamMemberFilter('All');
+                        setTeamSalesFilter('All');
+                        setProfileFilter('all');
+                      }}
+                    >
+                      <div className="sidebar-nav-left">
+                        <Calendar size={14} />
+                        <span>{m}</span>
+                        {isCurrentMonth && (
+                          <span style={{ fontSize: '0.62rem', padding: '0.08rem 0.32rem', borderRadius: '3px', background: 'rgba(56,189,248,0.15)', color: '#38bdf8', fontWeight: 600, letterSpacing: '0.02em' }}>
+                            Current
+                          </span>
+                        )}
+                      </div>
+                      <span className="sidebar-count-badge">{count}</span>
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Team Members Filter Section */}
