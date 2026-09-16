@@ -2401,6 +2401,7 @@ export default function VercelDashboard() {
                           <th className="sortable" onClick={() => handleSort('estimatedDeliveryDate')}>Est. Deli</th>
                           <th>Deli Date</th>
                           <th>Order Status</th>
+                          <th>Current Status</th>
                           <th>Order Type</th>
                           <th>Sheet</th>
                           <th>Payout</th>
@@ -2435,7 +2436,7 @@ export default function VercelDashboard() {
                         /* TEAM TABLE ROWS */
                         filteredTeamProjects.length === 0 ? (
                           <tr>
-                            <td colSpan={16} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
+                            <td colSpan={17} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
                                 <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--foreground)' }}>
                                   No team orders found matching your filters.
@@ -2486,17 +2487,15 @@ export default function VercelDashboard() {
                                 <td className="mono-text" style={{ fontWeight: 600 }}>${gross.toFixed(2)}</td>
                                 <td className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>${net.toFixed(2)}</td>
                                 <td>
-                                  <div className="member-chip-wrapper">
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                                     {members.length > 0 ? (
-                                      members.map((m, idx) => (
-                                        <span key={idx} className="member-chip">
+                                      members.map((m) => (
+                                        <span key={m} style={{ fontSize: '0.7rem', background: 'var(--accents-1)', border: '1px solid var(--border-subtle)', padding: '0.1rem 0.4rem', borderRadius: 999 }}>
                                           {m}
                                         </span>
                                       ))
                                     ) : (
-                                      <span style={{ color: 'var(--accents-4)', fontStyle: 'italic', fontSize: '0.72rem' }}>
-                                        Unassigned
-                                      </span>
+                                      <span style={{ color: 'var(--accents-4)', fontSize: '0.75rem' }}>-</span>
                                     )}
                                   </div>
                                 </td>
@@ -2531,6 +2530,45 @@ export default function VercelDashboard() {
                                       <option value="Cancel">Cancel</option>
                                     </select>
                                   </div>
+                                </td>
+                                <td>
+                                  {(() => {
+                                    const effCStatus = getEffectiveCurrentStatus(p);
+                                    const cStatusLower = effCStatus.toLowerCase();
+                                    const cStatusClass =
+                                      cStatusLower === 'issue'
+                                        ? 'v-cstatus-issue'
+                                        : cStatusLower === 'wip'
+                                        ? 'v-cstatus-wip'
+                                        : cStatusLower === 'solved'
+                                        ? 'v-cstatus-solved'
+                                        : 'v-cstatus-all-sorted';
+
+                                    return (
+                                      <div className={`v-cstatus-badge ${cStatusClass}`}>
+                                        <span className="v-cstatus-dot"></span>
+                                        <select
+                                          style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: 'inherit',
+                                            outline: 'none',
+                                            cursor: 'pointer',
+                                            fontFamily: 'inherit',
+                                            fontSize: '0.73rem',
+                                            fontWeight: 600,
+                                          }}
+                                          value={effCStatus}
+                                          onChange={(e) => handleQuickUpdateTeamCurrentStatus(p._id, e.target.value)}
+                                        >
+                                          <option value="All Sorted">All Sorted</option>
+                                          <option value="Issue">Issue</option>
+                                          <option value="WIP">WIP</option>
+                                          <option value="Solved">Solved</option>
+                                        </select>
+                                      </div>
+                                    );
+                                  })()}
                                 </td>
                                 <td>
                                   <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)' }}>
