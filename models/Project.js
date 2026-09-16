@@ -37,9 +37,36 @@ const ProjectSchema = new mongoose.Schema(
       min: 0,
       default: 0,
     },
+    orderNumber: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    salesPerson: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    estimatedDeliveryDate: {
+      type: String,
+      default: '',
+    },
+    deliveryDate: {
+      type: String,
+      default: '',
+    },
+    remark: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    percentage: {
+      type: Number,
+      default: 0,
+    },
     orderStatus: {
       type: String,
-      enum: ['Wip', 'Done', 'Delivered', 'Issue', 'Cancel', 'Assigned'],
+      enum: ['Wip', 'Delivered', 'Done', 'NRA', 'Cancel', 'Need Requirements', 'Issue', 'Assigned'],
       default: 'Wip',
     },
     ourSubdomain: {
@@ -53,8 +80,8 @@ const ProjectSchema = new mongoose.Schema(
     },
     timeSchedule: {
       type: String,
-      enum: ['Complete', 'Late', 'Need domain', 'Repeat Order', 'Add-on', 'Regular'],
-      default: 'Complete',
+      default: 'Fresh Query',
+      trim: true,
     },
     clientDomain: {
       type: String,
@@ -104,4 +131,8 @@ ProjectSchema.virtual('netAmount').get(function () {
   return (this.amount || 0) * 0.8;
 });
 
-export default mongoose.models.Project || mongoose.model('Project', ProjectSchema);
+if (mongoose.models.Project) {
+  delete mongoose.models.Project;
+}
+
+export default mongoose.model('Project', ProjectSchema);

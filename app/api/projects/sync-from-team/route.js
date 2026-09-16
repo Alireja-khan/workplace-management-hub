@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
-import Project from '@/models/Project';
 import TeamProject from '@/models/TeamProject';
+import Project from '@/models/Project';
 import { getMonthFromDate } from '@/lib/dateUtils';
 
 function isMemberMatch(assignedMembers, targetName = 'Alireja') {
@@ -23,9 +23,19 @@ function isMemberMatch(assignedMembers, targetName = 'Alireja') {
   });
 }
 
-async function syncAllExistingTeamProjects(targetMemberName = 'Alireja') {
+export async function POST(request) {
   try {
+    await connectToDatabase();
+    
+    let targetMemberName = 'Alireja';
+    try {
+      const body = await request.json();
+      if (body.memberName) targetMemberName = body.memberName;
+    } catch (e) {}
+
     const teamProjects = await TeamProject.find({});
+    let syncedCount = 0;
+
     for (const teamOrder of teamProjects) {
       const members = Array.isArray(teamOrder.assignedMembers) ? teamOrder.assignedMembers : [];
       const clientUsername = teamOrder.clientUserId || 'client_user';
@@ -43,7 +53,6 @@ async function syncAllExistingTeamProjects(targetMemberName = 'Alireja') {
       const assignedToUser = isMemberMatch(members, targetMemberName);
 
       if (!assignedToUser) {
-        // If not assigned to this user, remove from personal workspace if previously synced
         if (existing) {
           await Project.findByIdAndDelete(existing._id);
         }
@@ -74,57 +83,16 @@ async function syncAllExistingTeamProjects(targetMemberName = 'Alireja') {
       } else {
         await Project.create(payload);
       }
+      syncedCount++;
     }
-  } catch (err) {
-    console.error('syncAllExistingTeamProjects error:', err);
-  }
-}
 
-// GET /api/projects - Retrieve all projects
-export async function GET(request) {
-  try {
-    await connectToDatabase();
-
-    // Auto-sync all existing team projects to personal workspace
-    await syncAllExistingTeamProjects();
-
-    const projects = await Project.find({}).sort({ createdAt: -1 });
-    // Normalize projects so month matches assignDate
-    const normalized = projects.map((p) => {
-      const obj = p.toObject ? p.toObject() : p;
-      if (obj.assignDate) {
-        obj.month = getMonthFromDate(obj.assignDate, obj.month);
-      }
-      return obj;
+    return NextResponse.json({
+      success: true,
+      message: `Successfully synced ${syncedCount} assigned team orders to personal workspace`,
+      syncedCount,
     });
-    return NextResponse.json({ success: true, count: normalized.length, data: normalized });
   } catch (error) {
-    console.error('API GET /api/projects error:', error);
+    console.error('sync-from-team error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  }
-}
-
-// POST /api/projects - Create a new project
-export async function POST(request) {
-  try {
-    await connectToDatabase();
-    const body = await request.json();
-
-    if (!body.clientUsername || !body.profileName) {
-      return NextResponse.json(
-        { success: false, error: 'Client username and profile name are required' },
-        { status: 400 }
-      );
-    }
-
-    if (body.assignDate) {
-      body.month = getMonthFromDate(body.assignDate, body.month);
-    }
-
-    const project = await Project.create(body);
-    return NextResponse.json({ success: true, data: project }, { status: 201 });
-  } catch (error) {
-    console.error('API POST /api/projects error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 400 });
   }
 }

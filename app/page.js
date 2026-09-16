@@ -180,11 +180,17 @@ export default function VercelDashboard() {
   const [formData, setFormData] = useState({
     assignDate: new Date().toISOString().split('T')[0],
     month: MONTH_LIST[new Date().getMonth()],
+    salesPerson: '',
     clientUsername: '',
+    orderNumber: '',
     profileName: '',
     instructionSheet: '',
     amount: '',
     orderStatus: 'Wip',
+    estimatedDeliveryDate: '',
+    deliveryDate: '',
+    remark: '',
+    percentage: '',
     ourSubdomain: '',
     deadline: '',
     timeSchedule: 'Fresh Query',
@@ -630,7 +636,7 @@ export default function VercelDashboard() {
 
     // Optimistic UI update
     setProjects((prev) =>
-      prev.map((p) => (p._id === projectId ? { ...p, orderorderStatus: newStatus } : p))
+      prev.map((p) => (p._id === projectId ? { ...p, orderStatus: newStatus } : p))
     );
     setSavingStatusId(projectId);
 
@@ -639,8 +645,8 @@ export default function VercelDashboard() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          orderorderStatus: newStatus,
-          marketplaceorderStatus: newStatus === 'Done' || newStatus === 'Delivered' ? 'Delivered' : 'Wip',
+          orderStatus: newStatus,
+          marketplaceStatus: newStatus === 'Done' || newStatus === 'Delivered' ? 'Delivered' : 'Wip',
         }),
       });
       const data = await res.json();
@@ -742,11 +748,17 @@ export default function VercelDashboard() {
     setFormData({
       assignDate: new Date().toISOString().split('T')[0],
       month: defaultMonth,
+      salesPerson: '',
       clientUsername: '',
+      orderNumber: '',
       profileName: '',
       instructionSheet: '',
       amount: '',
       orderStatus: 'Wip',
+      estimatedDeliveryDate: '',
+      deliveryDate: '',
+      remark: '',
+      percentage: '',
       ourSubdomain: '',
       deadline: '',
       timeSchedule: 'Fresh Query',
@@ -769,11 +781,17 @@ export default function VercelDashboard() {
     setFormData({
       assignDate: project.assignDate || '',
       month: resolvedMonth,
+      salesPerson: project.salesPerson || '',
       clientUsername: project.clientUsername || '',
+      orderNumber: project.orderNumber || '',
       profileName: project.profileName || '',
       instructionSheet: project.instructionSheet || '',
       amount: project.amount || '',
       orderStatus: project.orderStatus || 'Wip',
+      estimatedDeliveryDate: project.estimatedDeliveryDate || '',
+      deliveryDate: project.deliveryDate || '',
+      remark: project.remark || '',
+      percentage: project.percentage || '',
       ourSubdomain: project.ourSubdomain || '',
       deadline: project.deadline ? project.deadline.split('T')[0] : '',
       timeSchedule: project.timeSchedule || 'Fresh Query',
@@ -913,6 +931,7 @@ export default function VercelDashboard() {
           );
           showToast(`Updated team order: ${payload.orderNumber || payload.clientUserId}`);
           setIsTeamModalOpen(false);
+          fetchProjects();
         } else {
           showToast(data.error || 'Failed to update team order', 'error');
         }
@@ -927,6 +946,7 @@ export default function VercelDashboard() {
           setTeamProjects((prev) => [data.data, ...prev]);
           showToast(`Created team order: ${payload.orderNumber || payload.clientUserId}`);
           setIsTeamModalOpen(false);
+          fetchProjects();
         } else {
           showToast(data.error || 'Failed to create team order', 'error');
         }
@@ -966,6 +986,7 @@ export default function VercelDashboard() {
       const data = await res.json();
       if (data.success) {
         showToast(`Status updated to ${newStatus}`);
+        fetchProjects();
       }
     } catch (err) {
       showToast('Status update failed', 'error');
@@ -2321,18 +2342,18 @@ export default function VercelDashboard() {
                       <thead>
                         <tr>
                           <th className="sortable" onClick={() => handleSort('assignDate')}>Assign Date</th>
-                          <th className="sortable" onClick={() => handleSort('clientUsername')}>Client Username</th>
+                          <th className="sortable" onClick={() => handleSort('salesPerson')}>Sales Person</th>
                           <th className="sortable" onClick={() => handleSort('profileName')}>Profile</th>
-                          <th>Brief Doc</th>
+                          <th className="sortable" onClick={() => handleSort('clientUsername')}>Client User ID</th>
+                          <th className="sortable" onClick={() => handleSort('orderNumber')}>Order #</th>
                           <th className="sortable" onClick={() => handleSort('amount')}>Gross</th>
                           <th>Net (80%)</th>
+                          <th className="sortable" onClick={() => handleSort('estimatedDeliveryDate')}>Est. Deli</th>
+                          <th>Deli Date</th>
                           <th>Order Status</th>
-                          <th>Staging Subdomain</th>
-                          <th className="sortable" onClick={() => handleSort('deadline')}>Deadline</th>
                           <th>Order Type</th>
-                          <th>Live Domain</th>
-                          <th>Daily Update</th>
-                          <th>Review</th>
+                          <th>Sheet</th>
+                          <th>Remark</th>
                           <th style={{ textAlign: 'center' }}>Actions</th>
                         </tr>
                       </thead>
@@ -2504,18 +2525,34 @@ export default function VercelDashboard() {
                           filteredProjects.map((p) => {
                             const gross = parseFloat(p.amount) || 0;
                             const net = gross * 0.8;
+                            const statusLower = (p.orderStatus || 'Wip').toLowerCase();
                             const statusClass =
-                              p.orderStatus === 'Done'
+                              statusLower === 'done'
                                 ? 'v-status-done'
-                                : p.orderStatus === 'Delivered'
+                                : statusLower === 'delivered'
                                 ? 'v-status-delivered'
-                                : p.orderStatus === 'Issue' || p.orderStatus === 'Cancel'
+                                : statusLower === 'cancel'
+                                ? 'v-status-cancel'
+                                : statusLower === 'nra'
+                                ? 'v-status-nra'
+                                : statusLower.includes('need')
+                                ? 'v-status-need'
+                                : statusLower === 'issue'
                                 ? 'v-status-issue'
                                 : 'v-status-wip';
 
                             return (
                               <tr key={p._id}>
-                                <td className="mono-text" style={{ color: 'var(--accents-5)' }}>{p.assignDate || '-'}</td>
+                                <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
+                                  <div>{p.assignDate || '-'}</div>
+                                  <div style={{ fontSize: '0.65rem', color: 'var(--accents-4)' }}>{p.month || ''}</div>
+                                </td>
+                                <td>
+                                  <span style={{ fontWeight: 600 }}>{p.salesPerson || '-'}</span>
+                                </td>
+                                <td>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)' }}>{p.profileName || '-'}</span>
+                                </td>
                                 <td>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
                                     <span style={{ fontWeight: 600 }}>{p.clientUsername}</span>
@@ -2526,18 +2563,17 @@ export default function VercelDashboard() {
                                     )}
                                   </div>
                                 </td>
-                                <td>
-                                  <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)' }}>{p.profileName}</span>
-                                </td>
-                                <td>
-                                  {p.instructionSheet ? (
-                                    <a href={p.instructionSheet} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}>
-                                      <ExternalLink size={11} /> Brief
-                                    </a>
-                                  ) : '-'}
+                                <td className="mono-text" style={{ fontWeight: 600 }}>
+                                  {p.orderNumber || '-'}
                                 </td>
                                 <td className="mono-text" style={{ fontWeight: 600 }}>${gross.toFixed(2)}</td>
                                 <td className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>${net.toFixed(2)}</td>
+                                <td className="mono-text" style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : 'var(--accents-5)' }}>
+                                  {p.estimatedDeliveryDate || p.deadline || '-'}
+                                </td>
+                                <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
+                                  {p.deliveryDate || '-'}
+                                </td>
                                 <td>
                                   <div className={`v-status-badge ${statusClass} ${savingStatusId === p._id ? 'saving' : ''}`}>
                                     {savingStatusId === p._id ? (
@@ -2562,28 +2598,15 @@ export default function VercelDashboard() {
                                       value={p.orderStatus || 'Wip'}
                                       onChange={(e) => handleQuickStatusChange(p._id, e.target.value)}
                                     >
-                                      <option value="Done">Done</option>
                                       <option value="Wip">Wip</option>
                                       <option value="Delivered">Delivered</option>
-                                      <option value="Issue">Issue</option>
+                                      <option value="Done">Done</option>
+                                      <option value="NRA">NRA</option>
+                                      <option value="Need Requirements">Need Requirements</option>
                                       <option value="Cancel">Cancel</option>
+                                      <option value="Issue">Issue</option>
                                     </select>
                                   </div>
-                                </td>
-                                <td>
-                                  {p.ourSubdomain ? (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                      <a href={p.ourSubdomain} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}>
-                                        <Globe size={11} /> Staging
-                                      </a>
-                                      <button className="btn-v-ghost" style={{ padding: 2, cursor: 'pointer' }} onClick={() => copyToClipboard(p.ourSubdomain)} title="Copy URL">
-                                        <Copy size={11} />
-                                      </button>
-                                    </div>
-                                  ) : '-'}
-                                </td>
-                                <td className="mono-text" style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : 'var(--accents-5)' }}>
-                                  {p.deadline || '-'}
                                 </td>
                                 <td>
                                   <span style={{ fontSize: '0.75rem', color: p.timeSchedule === 'Late' ? '#f5a623' : 'var(--accents-5)' }}>
@@ -2591,23 +2614,14 @@ export default function VercelDashboard() {
                                   </span>
                                 </td>
                                 <td>
-                                  {p.clientDomain ? (
-                                    <a href={p.clientDomain} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}>
-                                      <Globe size={11} /> Live
+                                  {p.instructionSheet ? (
+                                    <a href={ensureValidUrl(p.instructionSheet)} target="_blank" rel="noreferrer" className="btn-v btn-v-secondary" style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}>
+                                      <ExternalLink size={11} /> Sheet
                                     </a>
                                   ) : '-'}
                                 </td>
-                                <td>
-                                  <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)', maxWidth: 120, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    {p.dailyUpdate || '-'}
-                                  </span>
-                                </td>
-                                <td>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                    {[1, 2, 3, 4, 5].map((s) => (
-                                      <Star key={s} size={11} color={s <= (p.review || 5) ? '#f5a623' : 'var(--accents-3)'} fill={s <= (p.review || 5) ? '#f5a623' : 'none'} />
-                                    ))}
-                                  </div>
+                                <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.75rem', color: 'var(--accents-5)' }}>
+                                  {p.remark || p.notes || '-'}
                                 </td>
                                 <td style={{ textAlign: 'center' }}>
                                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -2861,8 +2875,16 @@ export default function VercelDashboard() {
                       </select>
                     </div>
                     <div className="v-form-group">
-                      <label>Client Username *</label>
-                      <input type="text" className="v-input" placeholder="e.g. mharris4463" value={formData.clientUsername} onChange={(e) => setFormData({ ...formData, clientUsername: e.target.value })} required />
+                      <label>Sales Person</label>
+                      <input type="text" className="v-input" placeholder="e.g. Shuvo" value={formData.salesPerson} onChange={(e) => setFormData({ ...formData, salesPerson: e.target.value })} />
+                    </div>
+                    <div className="v-form-group">
+                      <label>Client Username / ID *</label>
+                      <input type="text" className="v-input" placeholder="e.g. darlanjoubert" value={formData.clientUsername} onChange={(e) => setFormData({ ...formData, clientUsername: e.target.value })} required />
+                    </div>
+                    <div className="v-form-group">
+                      <label>Order Number</label>
+                      <input type="text" className="v-input mono-text" placeholder="e.g. FO1705781001" value={formData.orderNumber} onChange={(e) => setFormData({ ...formData, orderNumber: e.target.value })} />
                     </div>
                     <div className="v-form-group">
                       <label>Profile Name *</label>
@@ -2870,7 +2892,7 @@ export default function VercelDashboard() {
                     </div>
                     <div className="v-form-group">
                       <label>Gross Amount ($) *</label>
-                      <input type="number" className="v-input" placeholder="e.g. 200" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} required />
+                      <input type="number" step="0.01" className="v-input mono-text" placeholder="e.g. 200" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} required />
                     </div>
                     <div className="v-form-group">
                       <label>Net Take-Home (80%)</label>
@@ -2882,11 +2904,21 @@ export default function VercelDashboard() {
                       <label>Order Status</label>
                       <select className="v-select" value={formData.orderStatus} onChange={(e) => setFormData({ ...formData, orderStatus: e.target.value })}>
                         <option value="Wip">Wip</option>
-                        <option value="Done">Done</option>
                         <option value="Delivered">Delivered</option>
-                        <option value="Issue">Issue</option>
+                        <option value="Done">Done</option>
+                        <option value="NRA">NRA</option>
+                        <option value="Need Requirements">Need Requirements</option>
                         <option value="Cancel">Cancel</option>
+                        <option value="Issue">Issue</option>
                       </select>
+                    </div>
+                    <div className="v-form-group">
+                      <label>Estimated Delivery Date</label>
+                      <input type="date" className="v-input" value={formData.estimatedDeliveryDate || formData.deadline} onChange={(e) => setFormData({ ...formData, estimatedDeliveryDate: e.target.value, deadline: e.target.value })} />
+                    </div>
+                    <div className="v-form-group">
+                      <label>Actual Delivery Date</label>
+                      <input type="date" className="v-input" value={formData.deliveryDate} onChange={(e) => setFormData({ ...formData, deliveryDate: e.target.value })} />
                     </div>
                     <div className="v-form-group">
                       <label>Order Type</label>
@@ -2896,37 +2928,21 @@ export default function VercelDashboard() {
                         <option value="Add-on">Add-on</option>
                       </select>
                     </div>
-                    <div className="v-form-group">
-                      <label>Deadline Date</label>
-                      <input type="date" className="v-input" value={formData.deadline} onChange={(e) => setFormData({ ...formData, deadline: e.target.value })} />
-                    </div>
-                    <div className="v-form-group">
-                      <label>Marketplace Status</label>
-                      <select className="v-select" value={formData.marketplaceStatus} onChange={(e) => setFormData({ ...formData, marketplaceStatus: e.target.value })}>
-                        <option value="Delivered">Delivered</option>
-                        <option value="Wip">Wip</option>
-                        <option value="Cancel">Cancel</option>
-                      </select>
-                    </div>
-                    <div className="v-form-group">
+                    <div className="v-form-group full">
                       <label>Instruction Sheet / Brief URL</label>
                       <input type="url" className="v-input" placeholder="https://docs.google.com/..." value={formData.instructionSheet} onChange={(e) => setFormData({ ...formData, instructionSheet: e.target.value })} />
                     </div>
                     <div className="v-form-group">
-                      <label>Our Staging Subdomain</label>
+                      <label>Staging Subdomain</label>
                       <input type="url" className="v-input" placeholder="https://client.wpcoreweb.com/" value={formData.ourSubdomain} onChange={(e) => setFormData({ ...formData, ourSubdomain: e.target.value })} />
                     </div>
                     <div className="v-form-group">
                       <label>Client Live Domain</label>
                       <input type="url" className="v-input" placeholder="https://clientdomain.com/" value={formData.clientDomain} onChange={(e) => setFormData({ ...formData, clientDomain: e.target.value })} />
                     </div>
-                    <div className="v-form-group">
-                      <label>Daily Update Note</label>
-                      <input type="text" className="v-input" placeholder="Current progress or solved revisions..." value={formData.dailyUpdate} onChange={(e) => setFormData({ ...formData, dailyUpdate: e.target.value })} />
-                    </div>
                     <div className="v-form-group full">
-                      <label>Backup & Developer Notes</label>
-                      <input type="text" className="v-input" placeholder="Backup location, assigned dev notes..." value={formData.backupInfo} onChange={(e) => setFormData({ ...formData, backupInfo: e.target.value })} />
+                      <label>Remark / Notes</label>
+                      <input type="text" className="v-input" placeholder="Special notes, instructions, or developer comments..." value={formData.notes || formData.remark} onChange={(e) => setFormData({ ...formData, notes: e.target.value, remark: e.target.value })} />
                     </div>
                   </div>
                 </div>

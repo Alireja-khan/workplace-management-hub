@@ -94,4 +94,8 @@ const TeamProjectSchema = new mongoose.Schema(
   }
 );
 
-export default mongoose.models.TeamProject || mongoose.model('TeamProject', TeamProjectSchema);
+if (mongoose.models.TeamProject) {
+  delete mongoose.models.TeamProject;
+}
+
+export default mongoose.model('TeamProject', TeamProjectSchema);
