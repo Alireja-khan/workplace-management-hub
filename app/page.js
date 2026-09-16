@@ -98,7 +98,7 @@ export default function VercelDashboard() {
   const [profilesExpanded, setProfilesExpanded] = useState(false);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentTab, setCurrentTab] = useState(() => MONTH_LIST[new Date().getMonth()]);
+  const [currentTab, setCurrentTab] = useState('running');
   const [currentView, setCurrentView] = useState('table'); // 'table' or 'kanban'
   const [searchQuery, setSearchQuery] = useState('');
   const [profileFilter, setProfileFilter] = useState('all');
@@ -228,15 +228,13 @@ export default function VercelDashboard() {
     setTheme(current);
   }, []);
 
-  // When switching to Team workspace mode, default to showing ALL team projects
+  // When switching workspace mode, default to showing WIP / Running orders table
   useEffect(() => {
-    if (workspaceMode === 'team') {
-      setCurrentTab('all');
-      setTeamMemberFilter('all');
-      setTeamSalesFilter('all');
-      setProfileFilter('all');
-      setStatusFilter('all');
-    }
+    setCurrentTab('running');
+    setTeamMemberFilter('all');
+    setTeamSalesFilter('all');
+    setProfileFilter('all');
+    setStatusFilter('all');
   }, [workspaceMode]);
 
   const toggleTheme = () => {
