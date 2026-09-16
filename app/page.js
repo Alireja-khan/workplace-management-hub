@@ -711,11 +711,10 @@ export default function VercelDashboard() {
     const prevProject = projects.find((p) => p._id === projectId);
     const prevStatus = prevProject ? prevProject.orderStatus : 'Wip';
 
-    // Optimistic UI update
+    // Optimistic UI update instantly
     setProjects((prev) =>
       prev.map((p) => (p._id === projectId ? { ...p, orderStatus: newStatus } : p))
     );
-    setSavingStatusId(projectId);
 
     try {
       const res = await fetch(`/api/projects/${projectId}`, {
@@ -729,19 +728,15 @@ export default function VercelDashboard() {
       const data = await res.json();
       if (data.success) {
         setProjects((prev) => prev.map((p) => (p._id === projectId ? data.data : p)));
-        setSavingStatusId(null);
-        setSavedStatusSuccessId(projectId);
         showToast(`Status updated to ${newStatus}`);
-        setTimeout(() => setSavedStatusSuccessId(null), 1800);
       } else {
         throw new Error(data.error || 'Update failed');
       }
     } catch (e) {
-      // Rollback
+      // Rollback on failure
       setProjects((prev) =>
         prev.map((p) => (p._id === projectId ? { ...p, orderStatus: prevStatus } : p))
       );
-      setSavingStatusId(null);
       showToast('Failed to update status', 'error');
     }
   };
@@ -755,10 +750,10 @@ export default function VercelDashboard() {
       solvedAt: newCStatus === 'Solved' ? new Date() : null,
     };
 
+    // Optimistic UI update instantly
     setProjects((prev) =>
       prev.map((p) => (p._id === projectId ? { ...p, ...payload } : p))
     );
-    setSavingCStatusId(projectId);
 
     try {
       const res = await fetch(`/api/projects/${projectId}`, {
@@ -769,10 +764,7 @@ export default function VercelDashboard() {
       const data = await res.json();
       if (data.success) {
         setProjects((prev) => prev.map((p) => (p._id === projectId ? data.data : p)));
-        setSavingCStatusId(null);
-        setSavedCStatusSuccessId(projectId);
-        showToast(`Current status updated to ${newCStatus}`);
-        setTimeout(() => setSavedCStatusSuccessId(null), 1800);
+        showToast(`Issue status updated to ${newCStatus}`);
       } else {
         throw new Error(data.error || 'Update failed');
       }
@@ -780,8 +772,7 @@ export default function VercelDashboard() {
       setProjects((prev) =>
         prev.map((p) => (p._id === projectId ? { ...p, currentStatus: prevCStatus } : p))
       );
-      setSavingCStatusId(null);
-      showToast('Failed to update current status', 'error');
+      showToast('Failed to update issue status', 'error');
     }
   };
 
@@ -2897,22 +2888,15 @@ export default function VercelDashboard() {
                                 </td>
                                 <td>
                                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                    <div className={`v-status-badge ${statusClass} ${savingStatusId === p._id ? 'saving' : ''}`}>
-                                      {savingStatusId === p._id ? (
-                                        <div className="status-saving-spinner"></div>
-                                      ) : savedStatusSuccessId === p._id ? (
-                                        <Check size={11} color="#10b981" />
-                                      ) : (
-                                        <span className="v-status-dot"></span>
-                                      )}
+                                    <div className={`v-status-badge ${statusClass}`}>
+                                      <span className="v-status-dot"></span>
                                       <select
-                                        disabled={savingStatusId === p._id}
                                         style={{
                                           background: 'transparent',
                                           border: 'none',
                                           color: 'inherit',
                                           outline: 'none',
-                                          cursor: savingStatusId === p._id ? 'wait' : 'pointer',
+                                          cursor: 'pointer',
                                           fontFamily: 'inherit',
                                           fontSize: '0.73rem',
                                           fontWeight: 600,
@@ -2968,22 +2952,15 @@ export default function VercelDashboard() {
                                             : 'v-cstatus-all-sorted';
 
                                         return (
-                                          <div className={`v-cstatus-badge ${cStatusClass} ${savingCStatusId === p._id ? 'saving' : ''}`}>
-                                            {savingCStatusId === p._id ? (
-                                              <div className="status-saving-spinner"></div>
-                                            ) : savedCStatusSuccessId === p._id ? (
-                                              <Check size={11} color="#10b981" />
-                                            ) : (
-                                              <span className="v-cstatus-dot"></span>
-                                            )}
+                                          <div className={`v-cstatus-badge ${cStatusClass}`}>
+                                            <span className="v-cstatus-dot"></span>
                                             <select
-                                              disabled={savingCStatusId === p._id}
                                               style={{
                                                 background: 'transparent',
                                                 border: 'none',
                                                 color: 'inherit',
                                                 outline: 'none',
-                                                cursor: savingCStatusId === p._id ? 'wait' : 'pointer',
+                                                cursor: 'pointer',
                                                 fontFamily: 'inherit',
                                                 fontSize: '0.73rem',
                                                 fontWeight: 600,
