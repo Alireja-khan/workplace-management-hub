@@ -147,6 +147,7 @@ export default function VercelDashboard() {
   const [isIssueNoteModalOpen, setIsIssueNoteModalOpen] = useState(false);
   const [issueNoteProject, setIssueNoteProject] = useState(null);
   const [issueNoteText, setIssueNoteText] = useState('');
+  const [issueNoteStatus, setIssueNoteStatus] = useState('Issue');
   const [isIssueNoteSaving, setIsIssueNoteSaving] = useState(false);
 
   const [teamFormData, setTeamFormData] = useState({
@@ -299,6 +300,7 @@ export default function VercelDashboard() {
   const openIssueNoteModal = (project) => {
     setIssueNoteProject(project);
     setIssueNoteText(project.issueNote || '');
+    setIssueNoteStatus(project.currentStatus || 'Issue');
     setIsIssueNoteModalOpen(true);
   };
 
@@ -306,6 +308,7 @@ export default function VercelDashboard() {
     setIsIssueNoteModalOpen(false);
     setIssueNoteProject(null);
     setIssueNoteText('');
+    setIssueNoteStatus('Issue');
   };
 
   const handleSaveIssueNote = async () => {
@@ -316,24 +319,30 @@ export default function VercelDashboard() {
         ? `/api/team-projects/${issueNoteProject._id}`
         : `/api/projects/${issueNoteProject._id}`;
 
+      const payload = {
+        issueNote: issueNoteText,
+        currentStatus: issueNoteStatus,
+        solvedAt: issueNoteStatus === 'Solved' ? new Date() : null,
+      };
+
       const res = await fetch(targetEndpoint, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ issueNote: issueNoteText }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
       if (data.success) {
         if (workspaceMode === 'team') {
           setTeamProjects((prev) =>
-            prev.map((p) => (p._id === issueNoteProject._id ? { ...p, issueNote: issueNoteText } : p))
+            prev.map((p) => (p._id === issueNoteProject._id ? { ...p, ...payload } : p))
           );
         } else {
           setProjects((prev) =>
-            prev.map((p) => (p._id === issueNoteProject._id ? { ...p, issueNote: issueNoteText } : p))
+            prev.map((p) => (p._id === issueNoteProject._id ? { ...p, ...payload } : p))
           );
         }
-        showToast('Issue note saved successfully!');
+        showToast('Issue note & status updated!');
         closeIssueNoteModal();
       } else {
         showToast(data.error || 'Failed to save issue note', 'error');
@@ -2556,7 +2565,6 @@ export default function VercelDashboard() {
                           <th className="sortable" onClick={() => handleSort('estimatedDeliveryDate')}>Est. Deli</th>
                           <th>Deli Date</th>
                           <th>Order Status</th>
-                          {currentTab !== 'running' && <th>Issue Status</th>}
                           <th>Order Type</th>
                           <th>Sheet</th>
                           <th>Payout</th>
@@ -2578,7 +2586,6 @@ export default function VercelDashboard() {
                           <th className="sortable" onClick={() => handleSort('estimatedDeliveryDate')}>Est. Deli</th>
                           <th>Deli Date</th>
                           <th>Order Status</th>
-                          {currentTab !== 'running' && <th>Issue Status</th>}
                           <th>Order Type</th>
                           <th>Sheet</th>
                           <th>Remark</th>
@@ -2591,7 +2598,7 @@ export default function VercelDashboard() {
                         /* TEAM TABLE ROWS */
                         filteredTeamProjects.length === 0 ? (
                           <tr>
-                            <td colSpan={currentTab === 'running' ? 16 : 17} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
+                            <td colSpan={16} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
                                 <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--foreground)' }}>
                                   No team orders found matching your filters.
@@ -2661,7 +2668,7 @@ export default function VercelDashboard() {
                                   {p.deliveryDate || '-'}
                                 </td>
                                 <td>
-                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                     <div className={`v-status-badge ${statusClass}`}>
                                       <span className="v-status-dot"></span>
                                       <select
@@ -2689,74 +2696,28 @@ export default function VercelDashboard() {
                                     {(() => {
                                       const effCStatus = getEffectiveCurrentStatus(p);
                                       const cStatusLower = effCStatus.toLowerCase();
-                                      const ordLower = (p.orderStatus || '').toLowerCase();
-                                      const showEye = cStatusLower === 'issue' || cStatusLower === 'wip' || ordLower === 'issue' || ordLower === 'wip';
-                                      if (!showEye || currentTab !== 'running') return null;
-                                      return (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            openIssueNoteModal(p);
-                                          }}
-                                          className="v-issue-eye-btn"
-                                          title={p.issueNote ? `View Issue Note: "${p.issueNote}"` : 'Add Issue Note'}
-                                        >
-                                          <Eye size={13} />
-                                          {p.issueNote ? <span className="v-issue-dot"></span> : null}
-                                        </button>
-                                      );
-                                    })()}
-                                  </div>
-                                </td>
-                                {currentTab !== 'running' && (
-                                  <td>
-                                    {(() => {
-                                      const effCStatus = getEffectiveCurrentStatus(p);
-                                      const cStatusLower = effCStatus.toLowerCase();
-                                      const ordLower = (p.orderStatus || '').toLowerCase();
+                                      if (cStatusLower === 'all sorted') return null;
 
-                                      const isDeliveredOrDone = ordLower === 'delivered' || ordLower === 'done';
-                                      const hasExplicitIssueStatus = cStatusLower === 'issue' || cStatusLower === 'wip' || cStatusLower === 'solved';
-                                      const showControl = isDeliveredOrDone || hasExplicitIssueStatus;
-
-                                      if (!showControl) {
-                                        return <span style={{ color: 'var(--accents-4)', fontSize: '0.8rem', paddingLeft: '0.5rem' }}>-</span>;
-                                      }
-
-                                      const cStatusClass =
+                                      const flagClass =
                                         cStatusLower === 'issue'
-                                          ? 'v-cstatus-issue'
+                                          ? 'v-issue-flag-issue'
                                           : cStatusLower === 'wip'
-                                          ? 'v-cstatus-wip'
-                                          : cStatusLower === 'solved'
-                                          ? 'v-cstatus-solved'
-                                          : 'v-cstatus-all-sorted';
+                                          ? 'v-issue-flag-wip'
+                                          : 'v-issue-flag-solved';
+
+                                      const flagLabel =
+                                        cStatusLower === 'issue'
+                                          ? 'Issue'
+                                          : cStatusLower === 'wip'
+                                          ? 'Issue WIP'
+                                          : 'Solved';
 
                                       return (
-                                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                          <div className={`v-cstatus-badge ${cStatusClass}`}>
-                                            <span className="v-cstatus-dot"></span>
-                                            <select
-                                              style={{
-                                                background: 'transparent',
-                                                border: 'none',
-                                                color: 'inherit',
-                                                outline: 'none',
-                                                cursor: 'pointer',
-                                                fontFamily: 'inherit',
-                                                fontSize: '0.73rem',
-                                                fontWeight: 600,
-                                              }}
-                                              value={effCStatus}
-                                              onChange={(e) => handleQuickUpdateTeamCurrentStatus(p._id, e.target.value)}
-                                            >
-                                              <option value="All Sorted">All Sorted</option>
-                                              <option value="Issue">Issue</option>
-                                              <option value="WIP">WIP</option>
-                                              <option value="Solved">Solved</option>
-                                            </select>
-                                          </div>
+                                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                          <span className={`v-issue-flag-badge ${flagClass}`}>
+                                            <span className="v-issue-flag-dot"></span>
+                                            {flagLabel}
+                                          </span>
                                           {(cStatusLower === 'issue' || cStatusLower === 'wip') && (
                                             <button
                                               type="button"
@@ -2774,8 +2735,8 @@ export default function VercelDashboard() {
                                         </div>
                                       );
                                     })()}
-                                  </td>
-                                )}
+                                  </div>
+                                </td>
                                 <td>
                                   <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)' }}>
                                     {p.timeSchedule || 'Fresh Query'}
@@ -2818,7 +2779,7 @@ export default function VercelDashboard() {
                         /* PERSONAL TABLE ROWS */
                         filteredProjects.length === 0 ? (
                           <tr>
-                            <td colSpan={currentTab === 'running' ? 14 : 15} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
+                            <td colSpan={14} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
                                 <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--foreground)' }}>
                                   {currentTab === 'all'
@@ -2891,7 +2852,7 @@ export default function VercelDashboard() {
                                   {p.deliveryDate || '-'}
                                 </td>
                                 <td>
-                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                     <div className={`v-status-badge ${statusClass}`}>
                                       <span className="v-status-dot"></span>
                                       <select
@@ -2920,74 +2881,28 @@ export default function VercelDashboard() {
                                     {(() => {
                                       const effCStatus = getEffectiveCurrentStatus(p);
                                       const cStatusLower = effCStatus.toLowerCase();
-                                      const ordLower = (p.orderStatus || '').toLowerCase();
-                                      const showEye = cStatusLower === 'issue' || cStatusLower === 'wip' || ordLower === 'issue' || ordLower === 'wip';
-                                      if (!showEye || currentTab !== 'running') return null;
-                                      return (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            openIssueNoteModal(p);
-                                          }}
-                                          className="v-issue-eye-btn"
-                                          title={p.issueNote ? `View Issue Note: "${p.issueNote}"` : 'Add Issue Note'}
-                                        >
-                                          <Eye size={13} />
-                                          {p.issueNote ? <span className="v-issue-dot"></span> : null}
-                                        </button>
-                                      );
-                                    })()}
-                                  </div>
-                                </td>
-                                {currentTab !== 'running' && (
-                                  <td>
-                                    {(() => {
-                                      const effCStatus = getEffectiveCurrentStatus(p);
-                                      const cStatusLower = effCStatus.toLowerCase();
-                                      const ordLower = (p.orderStatus || '').toLowerCase();
+                                      if (cStatusLower === 'all sorted') return null;
 
-                                      const isDeliveredOrDone = ordLower === 'delivered' || ordLower === 'done';
-                                      const hasExplicitIssueStatus = cStatusLower === 'issue' || cStatusLower === 'wip' || cStatusLower === 'solved';
-                                      const showControl = isDeliveredOrDone || hasExplicitIssueStatus;
-
-                                      if (!showControl) {
-                                        return <span style={{ color: 'var(--accents-4)', fontSize: '0.8rem', paddingLeft: '0.5rem' }}>-</span>;
-                                      }
-
-                                      const cStatusClass =
+                                      const flagClass =
                                         cStatusLower === 'issue'
-                                          ? 'v-cstatus-issue'
+                                          ? 'v-issue-flag-issue'
                                           : cStatusLower === 'wip'
-                                          ? 'v-cstatus-wip'
-                                          : cStatusLower === 'solved'
-                                          ? 'v-cstatus-solved'
-                                          : 'v-cstatus-all-sorted';
+                                          ? 'v-issue-flag-wip'
+                                          : 'v-issue-flag-solved';
+
+                                      const flagLabel =
+                                        cStatusLower === 'issue'
+                                          ? 'Issue'
+                                          : cStatusLower === 'wip'
+                                          ? 'Issue WIP'
+                                          : 'Solved';
 
                                       return (
-                                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                          <div className={`v-cstatus-badge ${cStatusClass}`}>
-                                            <span className="v-cstatus-dot"></span>
-                                            <select
-                                              style={{
-                                                background: 'transparent',
-                                                border: 'none',
-                                                color: 'inherit',
-                                                outline: 'none',
-                                                cursor: 'pointer',
-                                                fontFamily: 'inherit',
-                                                fontSize: '0.73rem',
-                                                fontWeight: 600,
-                                              }}
-                                              value={effCStatus}
-                                              onChange={(e) => handleQuickCurrentStatusChange(p._id, e.target.value)}
-                                            >
-                                              <option value="All Sorted">All Sorted</option>
-                                              <option value="Issue">Issue</option>
-                                              <option value="WIP">WIP</option>
-                                              <option value="Solved">Solved</option>
-                                            </select>
-                                          </div>
+                                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                          <span className={`v-issue-flag-badge ${flagClass}`}>
+                                            <span className="v-issue-flag-dot"></span>
+                                            {flagLabel}
+                                          </span>
                                           {(cStatusLower === 'issue' || cStatusLower === 'wip') && (
                                             <button
                                               type="button"
@@ -3005,8 +2920,8 @@ export default function VercelDashboard() {
                                         </div>
                                       );
                                     })()}
-                                  </td>
-                                )}
+                                  </div>
+                                </td>
                                 <td>
                                   <span style={{ fontSize: '0.75rem', color: p.timeSchedule === 'Late' ? '#f5a623' : 'var(--accents-5)' }}>
                                     {p.timeSchedule || 'Fresh Query'}
@@ -3497,13 +3412,29 @@ export default function VercelDashboard() {
               </div>
 
               <div className="v-modal-body" style={{ paddingTop: '1rem' }}>
+                <div className="v-form-group" style={{ marginBottom: 14 }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: 6, display: 'block', color: 'var(--accents-6)' }}>
+                    Issue Status
+                  </label>
+                  <select
+                    className="v-select"
+                    value={issueNoteStatus}
+                    onChange={(e) => setIssueNoteStatus(e.target.value)}
+                    style={{ width: '100%', fontSize: '0.84rem', padding: '0.5rem 0.75rem', borderRadius: 6 }}
+                  >
+                    <option value="Issue">Issue (Rose Red Flag)</option>
+                    <option value="WIP">Issue WIP (Amber Flag)</option>
+                    <option value="Solved">Solved (Cyan Solved Flag)</option>
+                    <option value="All Sorted">All Sorted (No Issue Flag)</option>
+                  </select>
+                </div>
                 <div className="v-form-group">
                   <label style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: 6, display: 'block', color: 'var(--accents-6)' }}>
                     Issue Description & Notes
                   </label>
                   <textarea
                     className="v-textarea"
-                    rows={5}
+                    rows={4}
                     value={issueNoteText}
                     onChange={(e) => setIssueNoteText(e.target.value)}
                     placeholder="Type what issue occurred, client instructions, or work-in-progress notes here..."
