@@ -421,7 +421,7 @@ export default function TeamWorkspaceView({
                     <th style={{ width: 100 }}>Est. Deli</th>
                     <th style={{ width: 100 }}>Deli Date</th>
                     <th style={{ width: 110 }}>Order Status</th>
-                    <th style={{ width: 120 }}>Current Status</th>
+                    <th style={{ width: 120 }}>Issue Status</th>
                     <th style={{ width: 90 }}>Sheet / Payout</th>
                     <th style={{ width: 150 }}>Remark</th>
                     <th style={{ width: 80, textAlign: 'right' }}>Actions</th>

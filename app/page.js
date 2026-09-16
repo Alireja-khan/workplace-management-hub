@@ -2377,7 +2377,7 @@ export default function VercelDashboard() {
                       value={currentStatusFilter}
                       onChange={(e) => setCurrentStatusFilter(e.target.value)}
                     >
-                      <option value="all">All Current Statuses</option>
+                      <option value="all">All Issue Statuses</option>
                       <option value="All Sorted">All Sorted</option>
                       <option value="Issue">Issue</option>
                       <option value="WIP">WIP</option>
@@ -2474,7 +2474,7 @@ export default function VercelDashboard() {
                           <th className="sortable" onClick={() => handleSort('estimatedDeliveryDate')}>Est. Deli</th>
                           <th>Deli Date</th>
                           <th>Order Status</th>
-                          {currentTab !== 'running' && <th>Current Status</th>}
+                          {currentTab !== 'running' && <th>Issue Status</th>}
                           <th>Order Type</th>
                           <th>Sheet</th>
                           <th>Payout</th>
@@ -2496,7 +2496,7 @@ export default function VercelDashboard() {
                           <th className="sortable" onClick={() => handleSort('estimatedDeliveryDate')}>Est. Deli</th>
                           <th>Deli Date</th>
                           <th>Order Status</th>
-                          {currentTab !== 'running' && <th>Current Status</th>}
+                          {currentTab !== 'running' && <th>Issue Status</th>}
                           <th>Order Type</th>
                           <th>Sheet</th>
                           <th>Remark</th>
@@ -3146,7 +3146,7 @@ export default function VercelDashboard() {
                       </select>
                     </div>
                     <div className="v-form-group">
-                      <label>Current Status</label>
+                      <label>Issue Status</label>
                       <select className="v-select" value={formData.currentStatus || 'All Sorted'} onChange={(e) => setFormData({ ...formData, currentStatus: e.target.value })}>
                         <option value="All Sorted">All Sorted</option>
                         <option value="Issue">Issue</option>

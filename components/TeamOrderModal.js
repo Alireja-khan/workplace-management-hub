@@ -346,7 +346,7 @@ export default function TeamOrderModal({
               </div>
 
               <div className="v-form-group">
-                <label>Current Status</label>
+                <label>Issue Status</label>
                 <select
                   className="v-select"
                   value={formData.currentStatus || 'All Sorted'}
