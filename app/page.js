@@ -725,8 +725,11 @@ export default function VercelDashboard() {
       orderStatus: newStatus,
       marketplaceStatus: newStatus === 'Done' || newStatus === 'Delivered' ? 'Delivered' : 'Wip',
     };
-    if (isIssue && (!prevProject?.currentStatus || prevProject.currentStatus === 'All Sorted')) {
+
+    if (isIssue) {
       payload.currentStatus = 'Issue';
+    } else if (prevProject?.orderStatus === 'Issue') {
+      payload.currentStatus = 'All Sorted';
     }
 
     // Optimistic UI update instantly
@@ -1102,8 +1105,11 @@ export default function VercelDashboard() {
       const prevProject = teamProjects.find((p) => p._id === id);
       const isIssue = newStatus.toLowerCase() === 'issue';
       const payload = { orderStatus: newStatus };
-      if (isIssue && (!prevProject?.currentStatus || prevProject.currentStatus === 'All Sorted')) {
+
+      if (isIssue) {
         payload.currentStatus = 'Issue';
+      } else if (prevProject?.orderStatus === 'Issue') {
+        payload.currentStatus = 'All Sorted';
       }
 
       setTeamProjects((prev) =>
@@ -2683,7 +2689,7 @@ export default function VercelDashboard() {
                                   {p.deliveryDate || '-'}
                                 </td>
                                 <td>
-                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
                                     <div className={`v-status-badge ${statusClass}`}>
                                       <span className="v-status-dot"></span>
                                       <select
@@ -2716,37 +2722,28 @@ export default function VercelDashboard() {
                                       const cStatusLower = effCStatus.toLowerCase();
                                       const orderStatusLower = (p.orderStatus || '').toLowerCase();
                                       const isIssueOrder = orderStatusLower === 'issue';
-                                      const isWipOrder = orderStatusLower === 'wip';
                                       const hasNote = Boolean(p.issueNote);
 
-                                      const shouldShowFlag = cStatusLower !== 'all sorted' || isIssueOrder;
-                                      const shouldShowEyeBtn = isIssueOrder || isWipOrder || cStatusLower === 'issue' || cStatusLower === 'wip' || hasNote;
+                                      // Show secondary flag ONLY if order status is NOT Issue and current status is wip or solved
+                                      const showSecondaryFlag = !isIssueOrder && (cStatusLower === 'wip' || cStatusLower === 'solved');
 
-                                      if (!shouldShowFlag && !shouldShowEyeBtn) return null;
+                                      // Eye button is shown ONLY if order status is Issue, or cStatus is issue/wip, or issueNote exists
+                                      const showEyeBtn = isIssueOrder || cStatusLower === 'issue' || cStatusLower === 'wip' || hasNote;
 
-                                      const flagClass =
-                                        cStatusLower === 'issue' || isIssueOrder
-                                          ? 'v-issue-flag-issue'
-                                          : cStatusLower === 'wip'
-                                          ? 'v-issue-flag-wip'
-                                          : 'v-issue-flag-solved';
+                                      if (!showSecondaryFlag && !showEyeBtn) return null;
 
-                                      const flagLabel =
-                                        cStatusLower === 'issue' || isIssueOrder
-                                          ? 'Issue'
-                                          : cStatusLower === 'wip'
-                                          ? 'Issue WIP'
-                                          : 'Solved';
+                                      const flagClass = cStatusLower === 'wip' ? 'v-issue-flag-wip' : 'v-issue-flag-solved';
+                                      const flagLabel = cStatusLower === 'wip' ? 'Issue WIP' : 'Solved';
 
                                       return (
                                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                          {shouldShowFlag && (
+                                          {showSecondaryFlag && (
                                             <span className={`v-issue-flag-badge ${flagClass}`}>
                                               <span className="v-issue-flag-dot"></span>
                                               {flagLabel}
                                             </span>
                                           )}
-                                          {shouldShowEyeBtn && (
+                                          {showEyeBtn && (
                                             <button
                                               type="button"
                                               onClick={(e) => {
@@ -2755,6 +2752,7 @@ export default function VercelDashboard() {
                                               }}
                                               className="v-issue-eye-btn"
                                               title={p.issueNote ? `View Issue Note: "${p.issueNote}"` : 'Add Issue Note'}
+                                              style={{ flexShrink: 0 }}
                                             >
                                               <Eye size={13} />
                                               {p.issueNote ? <span className="v-issue-dot"></span> : null}
@@ -2880,7 +2878,7 @@ export default function VercelDashboard() {
                                   {p.deliveryDate || '-'}
                                 </td>
                                 <td>
-                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
                                     <div className={`v-status-badge ${statusClass}`}>
                                       <span className="v-status-dot"></span>
                                       <select
@@ -2913,37 +2911,28 @@ export default function VercelDashboard() {
                                       const cStatusLower = effCStatus.toLowerCase();
                                       const orderStatusLower = (p.orderStatus || '').toLowerCase();
                                       const isIssueOrder = orderStatusLower === 'issue';
-                                      const isWipOrder = orderStatusLower === 'wip';
                                       const hasNote = Boolean(p.issueNote);
 
-                                      const shouldShowFlag = cStatusLower !== 'all sorted' || isIssueOrder;
-                                      const shouldShowEyeBtn = isIssueOrder || isWipOrder || cStatusLower === 'issue' || cStatusLower === 'wip' || hasNote;
+                                      // Show secondary flag ONLY if order status is NOT Issue and current status is wip or solved
+                                      const showSecondaryFlag = !isIssueOrder && (cStatusLower === 'wip' || cStatusLower === 'solved');
 
-                                      if (!shouldShowFlag && !shouldShowEyeBtn) return null;
+                                      // Eye button is shown ONLY if order status is Issue, or cStatus is issue/wip, or issueNote exists
+                                      const showEyeBtn = isIssueOrder || cStatusLower === 'issue' || cStatusLower === 'wip' || hasNote;
 
-                                      const flagClass =
-                                        cStatusLower === 'issue' || isIssueOrder
-                                          ? 'v-issue-flag-issue'
-                                          : cStatusLower === 'wip'
-                                          ? 'v-issue-flag-wip'
-                                          : 'v-issue-flag-solved';
+                                      if (!showSecondaryFlag && !showEyeBtn) return null;
 
-                                      const flagLabel =
-                                        cStatusLower === 'issue' || isIssueOrder
-                                          ? 'Issue'
-                                          : cStatusLower === 'wip'
-                                          ? 'Issue WIP'
-                                          : 'Solved';
+                                      const flagClass = cStatusLower === 'wip' ? 'v-issue-flag-wip' : 'v-issue-flag-solved';
+                                      const flagLabel = cStatusLower === 'wip' ? 'Issue WIP' : 'Solved';
 
                                       return (
                                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                          {shouldShowFlag && (
+                                          {showSecondaryFlag && (
                                             <span className={`v-issue-flag-badge ${flagClass}`}>
                                               <span className="v-issue-flag-dot"></span>
                                               {flagLabel}
                                             </span>
                                           )}
-                                          {shouldShowEyeBtn && (
+                                          {showEyeBtn && (
                                             <button
                                               type="button"
                                               onClick={(e) => {
@@ -2952,6 +2941,7 @@ export default function VercelDashboard() {
                                               }}
                                               className="v-issue-eye-btn"
                                               title={p.issueNote ? `View Issue Note: "${p.issueNote}"` : 'Add Issue Note'}
+                                              style={{ flexShrink: 0 }}
                                             >
                                               <Eye size={13} />
                                               {p.issueNote ? <span className="v-issue-dot"></span> : null}
