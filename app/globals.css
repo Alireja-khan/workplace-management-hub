@@ -1986,6 +1986,18 @@ body {
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
+.v-status-badge.v-status-issue,
+.v-status-issue {
+  background: rgba(244, 63, 94, 0.15);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.35);
+}
+
+.v-status-badge.v-status-issue .v-status-dot {
+  background: #f43f5e;
+  box-shadow: 0 0 6px rgba(244, 63, 94, 0.6);
+}
+
 .v-status-badge.v-status-need,
 .v-status-need {
   background: rgba(236, 72, 153, 0.12);

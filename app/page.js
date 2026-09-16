@@ -719,20 +719,26 @@ export default function VercelDashboard() {
   const handleQuickStatusChange = async (projectId, newStatus) => {
     const prevProject = projects.find((p) => p._id === projectId);
     const prevStatus = prevProject ? prevProject.orderStatus : 'Wip';
+    const isIssue = newStatus.toLowerCase() === 'issue';
+
+    const payload = {
+      orderStatus: newStatus,
+      marketplaceStatus: newStatus === 'Done' || newStatus === 'Delivered' ? 'Delivered' : 'Wip',
+    };
+    if (isIssue && (!prevProject?.currentStatus || prevProject.currentStatus === 'All Sorted')) {
+      payload.currentStatus = 'Issue';
+    }
 
     // Optimistic UI update instantly
     setProjects((prev) =>
-      prev.map((p) => (p._id === projectId ? { ...p, orderStatus: newStatus } : p))
+      prev.map((p) => (p._id === projectId ? { ...p, ...payload } : p))
     );
 
     try {
       const res = await fetch(`/api/projects/${projectId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderStatus: newStatus,
-          marketplaceStatus: newStatus === 'Done' || newStatus === 'Delivered' ? 'Delivered' : 'Wip',
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.success) {
@@ -1093,13 +1099,20 @@ export default function VercelDashboard() {
 
   const handleQuickUpdateTeamStatus = async (id, newStatus) => {
     try {
+      const prevProject = teamProjects.find((p) => p._id === id);
+      const isIssue = newStatus.toLowerCase() === 'issue';
+      const payload = { orderStatus: newStatus };
+      if (isIssue && (!prevProject?.currentStatus || prevProject.currentStatus === 'All Sorted')) {
+        payload.currentStatus = 'Issue';
+      }
+
       setTeamProjects((prev) =>
-        prev.map((p) => (p._id === id ? { ...p, orderStatus: newStatus } : p))
+        prev.map((p) => (p._id === id ? { ...p, ...payload } : p))
       );
       const res = await fetch(`/api/team-projects/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderStatus: newStatus }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.success) {
@@ -2626,6 +2639,8 @@ export default function VercelDashboard() {
                                 ? 'v-status-nra'
                                 : statusLower.includes('need')
                                 ? 'v-status-need'
+                                : statusLower === 'issue'
+                                ? 'v-status-issue'
                                 : 'v-status-wip';
 
                             return (
@@ -2699,17 +2714,25 @@ export default function VercelDashboard() {
                                     {(() => {
                                       const effCStatus = getEffectiveCurrentStatus(p);
                                       const cStatusLower = effCStatus.toLowerCase();
-                                      if (cStatusLower === 'all sorted') return null;
+                                      const orderStatusLower = (p.orderStatus || '').toLowerCase();
+                                      const isIssueOrder = orderStatusLower === 'issue';
+                                      const isWipOrder = orderStatusLower === 'wip';
+                                      const hasNote = Boolean(p.issueNote);
+
+                                      const shouldShowFlag = cStatusLower !== 'all sorted' || isIssueOrder;
+                                      const shouldShowEyeBtn = isIssueOrder || isWipOrder || cStatusLower === 'issue' || cStatusLower === 'wip' || hasNote;
+
+                                      if (!shouldShowFlag && !shouldShowEyeBtn) return null;
 
                                       const flagClass =
-                                        cStatusLower === 'issue'
+                                        cStatusLower === 'issue' || isIssueOrder
                                           ? 'v-issue-flag-issue'
                                           : cStatusLower === 'wip'
                                           ? 'v-issue-flag-wip'
                                           : 'v-issue-flag-solved';
 
                                       const flagLabel =
-                                        cStatusLower === 'issue'
+                                        cStatusLower === 'issue' || isIssueOrder
                                           ? 'Issue'
                                           : cStatusLower === 'wip'
                                           ? 'Issue WIP'
@@ -2717,11 +2740,13 @@ export default function VercelDashboard() {
 
                                       return (
                                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                          <span className={`v-issue-flag-badge ${flagClass}`}>
-                                            <span className="v-issue-flag-dot"></span>
-                                            {flagLabel}
-                                          </span>
-                                          {(cStatusLower === 'issue' || cStatusLower === 'wip') && (
+                                          {shouldShowFlag && (
+                                            <span className={`v-issue-flag-badge ${flagClass}`}>
+                                              <span className="v-issue-flag-dot"></span>
+                                              {flagLabel}
+                                            </span>
+                                          )}
+                                          {shouldShowEyeBtn && (
                                             <button
                                               type="button"
                                               onClick={(e) => {
@@ -2878,23 +2903,33 @@ export default function VercelDashboard() {
                                         <option value="NRA">NRA</option>
                                         <option value="Need Requirements">Need Requirements</option>
                                         <option value="Cancel">Cancel</option>
-                                        <option value="Issue">Issue</option>
+                                        {['delivered', 'done', 'issue'].includes((p.orderStatus || '').toLowerCase()) && (
+                                          <option value="Issue">Issue</option>
+                                        )}
                                       </select>
                                     </div>
                                     {(() => {
                                       const effCStatus = getEffectiveCurrentStatus(p);
                                       const cStatusLower = effCStatus.toLowerCase();
-                                      if (cStatusLower === 'all sorted') return null;
+                                      const orderStatusLower = (p.orderStatus || '').toLowerCase();
+                                      const isIssueOrder = orderStatusLower === 'issue';
+                                      const isWipOrder = orderStatusLower === 'wip';
+                                      const hasNote = Boolean(p.issueNote);
+
+                                      const shouldShowFlag = cStatusLower !== 'all sorted' || isIssueOrder;
+                                      const shouldShowEyeBtn = isIssueOrder || isWipOrder || cStatusLower === 'issue' || cStatusLower === 'wip' || hasNote;
+
+                                      if (!shouldShowFlag && !shouldShowEyeBtn) return null;
 
                                       const flagClass =
-                                        cStatusLower === 'issue'
+                                        cStatusLower === 'issue' || isIssueOrder
                                           ? 'v-issue-flag-issue'
                                           : cStatusLower === 'wip'
                                           ? 'v-issue-flag-wip'
                                           : 'v-issue-flag-solved';
 
                                       const flagLabel =
-                                        cStatusLower === 'issue'
+                                        cStatusLower === 'issue' || isIssueOrder
                                           ? 'Issue'
                                           : cStatusLower === 'wip'
                                           ? 'Issue WIP'
@@ -2902,11 +2937,13 @@ export default function VercelDashboard() {
 
                                       return (
                                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                          <span className={`v-issue-flag-badge ${flagClass}`}>
-                                            <span className="v-issue-flag-dot"></span>
-                                            {flagLabel}
-                                          </span>
-                                          {(cStatusLower === 'issue' || cStatusLower === 'wip') && (
+                                          {shouldShowFlag && (
+                                            <span className={`v-issue-flag-badge ${flagClass}`}>
+                                              <span className="v-issue-flag-dot"></span>
+                                              {flagLabel}
+                                            </span>
+                                          )}
+                                          {shouldShowEyeBtn && (
                                             <button
                                               type="button"
                                               onClick={(e) => {
