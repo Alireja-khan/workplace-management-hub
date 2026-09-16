@@ -31,6 +31,12 @@ export async function PUT(request, { params }) {
       body.month = getMonthFromDate(body.assignDate, body.month);
     }
 
+    if (body.currentStatus === 'Solved') {
+      body.solvedAt = new Date();
+    } else if (body.currentStatus && body.currentStatus !== 'Solved') {
+      body.solvedAt = null;
+    }
+
     const project = await Project.findByIdAndUpdate(params.id, body, {
       new: true,
       runValidators: true,

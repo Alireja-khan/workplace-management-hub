@@ -69,6 +69,15 @@ const ProjectSchema = new mongoose.Schema(
       enum: ['Wip', 'Delivered', 'Done', 'NRA', 'Cancel', 'Need Requirements', 'Issue', 'Assigned'],
       default: 'Wip',
     },
+    currentStatus: {
+      type: String,
+      enum: ['All Sorted', 'Issue', 'WIP', 'Solved'],
+      default: 'All Sorted',
+    },
+    solvedAt: {
+      type: Date,
+      default: null,
+    },
     ourSubdomain: {
       type: String,
       default: '',

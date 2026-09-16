@@ -69,6 +69,20 @@ const GoogleIcon = () => (
   </svg>
 );
 
+function getEffectiveCurrentStatus(p) {
+  const rawStatus = p?.currentStatus || 'All Sorted';
+  if (rawStatus === 'Solved' && p?.solvedAt) {
+    const solvedTime = new Date(p.solvedAt).getTime();
+    if (!isNaN(solvedTime)) {
+      const twoDaysInMs = 48 * 60 * 60 * 1000;
+      if (Date.now() - solvedTime >= twoDaysInMs) {
+        return 'All Sorted';
+      }
+    }
+  }
+  return rawStatus;
+}
+
 export default function VercelDashboard() {
   const { data: session, status } = useSession();
   const tableContainerRef = useRef(null);
@@ -89,6 +103,7 @@ export default function VercelDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [profileFilter, setProfileFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [currentStatusFilter, setCurrentStatusFilter] = useState('all');
   const [scheduleFilter, setScheduleFilter] = useState('all');
   const [sortConfig, setSortConfig] = useState({ key: 'assignDate', direction: 'desc' });
 
@@ -99,6 +114,8 @@ export default function VercelDashboard() {
   const [toastMessage, setToastMessage] = useState(null);
   const [savingStatusId, setSavingStatusId] = useState(null);
   const [savedStatusSuccessId, setSavedStatusSuccessId] = useState(null);
+  const [savingCStatusId, setSavingCStatusId] = useState(null);
+  const [savedCStatusSuccessId, setSavedCStatusSuccessId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Auth Modal States
@@ -187,6 +204,7 @@ export default function VercelDashboard() {
     instructionSheet: '',
     amount: '',
     orderStatus: 'Wip',
+    currentStatus: 'All Sorted',
     estimatedDeliveryDate: '',
     deliveryDate: '',
     remark: '',
@@ -589,6 +607,10 @@ export default function VercelDashboard() {
 
       if (profileFilter !== 'all' && p.profileName !== profileFilter) return false;
       if (statusFilter !== 'all' && (p.orderStatus || '').toLowerCase() !== statusFilter.toLowerCase()) return false;
+      if (currentStatusFilter !== 'all') {
+        const eff = getEffectiveCurrentStatus(p);
+        if (eff.toLowerCase() !== currentStatusFilter.toLowerCase()) return false;
+      }
       if (scheduleFilter !== 'all' && (p.timeSchedule || '').toLowerCase() !== scheduleFilter.toLowerCase()) return false;
 
       if (searchQuery.trim()) {
@@ -621,7 +643,7 @@ export default function VercelDashboard() {
     });
 
     return res;
-  }, [projects, currentTab, profileFilter, statusFilter, scheduleFilter, searchQuery, sortConfig]);
+  }, [projects, currentTab, profileFilter, statusFilter, currentStatusFilter, scheduleFilter, searchQuery, sortConfig]);
 
   const handleSort = (key) => {
     setSortConfig((prev) => ({
@@ -666,6 +688,45 @@ export default function VercelDashboard() {
       );
       setSavingStatusId(null);
       showToast('Failed to update status', 'error');
+    }
+  };
+
+  const handleQuickCurrentStatusChange = async (projectId, newCStatus) => {
+    const prevProject = projects.find((p) => p._id === projectId);
+    const prevCStatus = prevProject ? (prevProject.currentStatus || 'All Sorted') : 'All Sorted';
+
+    const payload = {
+      currentStatus: newCStatus,
+      solvedAt: newCStatus === 'Solved' ? new Date() : null,
+    };
+
+    setProjects((prev) =>
+      prev.map((p) => (p._id === projectId ? { ...p, ...payload } : p))
+    );
+    setSavingCStatusId(projectId);
+
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProjects((prev) => prev.map((p) => (p._id === projectId ? data.data : p)));
+        setSavingCStatusId(null);
+        setSavedCStatusSuccessId(projectId);
+        showToast(`Current status updated to ${newCStatus}`);
+        setTimeout(() => setSavedCStatusSuccessId(null), 1800);
+      } else {
+        throw new Error(data.error || 'Update failed');
+      }
+    } catch (e) {
+      setProjects((prev) =>
+        prev.map((p) => (p._id === projectId ? { ...p, currentStatus: prevCStatus } : p))
+      );
+      setSavingCStatusId(null);
+      showToast('Failed to update current status', 'error');
     }
   };
 
@@ -755,6 +816,7 @@ export default function VercelDashboard() {
       instructionSheet: '',
       amount: '',
       orderStatus: 'Wip',
+      currentStatus: 'All Sorted',
       estimatedDeliveryDate: '',
       deliveryDate: '',
       remark: '',
@@ -788,6 +850,7 @@ export default function VercelDashboard() {
       instructionSheet: project.instructionSheet || '',
       amount: project.amount || '',
       orderStatus: project.orderStatus || 'Wip',
+      currentStatus: project.currentStatus || 'All Sorted',
       estimatedDeliveryDate: project.estimatedDeliveryDate || '',
       deliveryDate: project.deliveryDate || '',
       remark: project.remark || '',
@@ -2228,12 +2291,24 @@ export default function VercelDashboard() {
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
                     >
-                      <option value="all">All Statuses</option>
+                      <option value="all">All Order Statuses</option>
                       <option value="Done">Done</option>
                       <option value="Wip">Wip</option>
                       <option value="Delivered">Delivered</option>
                       <option value="Issue">Issue</option>
                       <option value="Cancel">Cancel</option>
+                    </select>
+
+                    <select
+                      className="v-select"
+                      value={currentStatusFilter}
+                      onChange={(e) => setCurrentStatusFilter(e.target.value)}
+                    >
+                      <option value="all">All Current Statuses</option>
+                      <option value="All Sorted">All Sorted</option>
+                      <option value="Issue">Issue</option>
+                      <option value="WIP">WIP</option>
+                      <option value="Solved">Solved</option>
                     </select>
 
                     <select
@@ -2256,6 +2331,7 @@ export default function VercelDashboard() {
                     setSearchQuery('');
                     setProfileFilter('all');
                     setStatusFilter('all');
+                    setCurrentStatusFilter('all');
                     setScheduleFilter('all');
                     setTeamMemberFilter('all');
                     setTeamSalesFilter('all');
@@ -2346,6 +2422,7 @@ export default function VercelDashboard() {
                           <th className="sortable" onClick={() => handleSort('estimatedDeliveryDate')}>Est. Deli</th>
                           <th>Deli Date</th>
                           <th>Order Status</th>
+                          <th>Current Status</th>
                           <th>Order Type</th>
                           <th>Sheet</th>
                           <th>Remark</th>
@@ -2497,7 +2574,7 @@ export default function VercelDashboard() {
                         /* PERSONAL TABLE ROWS */
                         filteredProjects.length === 0 ? (
                           <tr>
-                            <td colSpan={14} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
+                            <td colSpan={15} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
                                 <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--foreground)' }}>
                                   {currentTab === 'all'
@@ -2602,6 +2679,52 @@ export default function VercelDashboard() {
                                       <option value="Issue">Issue</option>
                                     </select>
                                   </div>
+                                </td>
+                                <td>
+                                  {(() => {
+                                    const effCStatus = getEffectiveCurrentStatus(p);
+                                    const cStatusLower = effCStatus.toLowerCase();
+                                    const cStatusClass =
+                                      cStatusLower === 'issue'
+                                        ? 'v-cstatus-issue'
+                                        : cStatusLower === 'wip'
+                                        ? 'v-cstatus-wip'
+                                        : cStatusLower === 'solved'
+                                        ? 'v-cstatus-solved'
+                                        : 'v-cstatus-all-sorted';
+
+                                    return (
+                                      <div className={`v-cstatus-badge ${cStatusClass} ${savingCStatusId === p._id ? 'saving' : ''}`}>
+                                        {savingCStatusId === p._id ? (
+                                          <div className="status-saving-spinner"></div>
+                                        ) : savedCStatusSuccessId === p._id ? (
+                                          <Check size={11} color="#10b981" />
+                                        ) : (
+                                          <span className="v-cstatus-dot"></span>
+                                        )}
+                                        <select
+                                          disabled={savingCStatusId === p._id}
+                                          style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: 'inherit',
+                                            outline: 'none',
+                                            cursor: savingCStatusId === p._id ? 'wait' : 'pointer',
+                                            fontFamily: 'inherit',
+                                            fontSize: '0.73rem',
+                                            fontWeight: 600,
+                                          }}
+                                          value={effCStatus}
+                                          onChange={(e) => handleQuickCurrentStatusChange(p._id, e.target.value)}
+                                        >
+                                          <option value="All Sorted">All Sorted</option>
+                                          <option value="Issue">Issue</option>
+                                          <option value="WIP">WIP</option>
+                                          <option value="Solved">Solved</option>
+                                        </select>
+                                      </div>
+                                    );
+                                  })()}
                                 </td>
                                 <td>
                                   <span style={{ fontSize: '0.75rem', color: p.timeSchedule === 'Late' ? '#f5a623' : 'var(--accents-5)' }}>
@@ -2905,6 +3028,15 @@ export default function VercelDashboard() {
                         <option value="Need Requirements">Need Requirements</option>
                         <option value="Cancel">Cancel</option>
                         <option value="Issue">Issue</option>
+                      </select>
+                    </div>
+                    <div className="v-form-group">
+                      <label>Current Status</label>
+                      <select className="v-select" value={formData.currentStatus || 'All Sorted'} onChange={(e) => setFormData({ ...formData, currentStatus: e.target.value })}>
+                        <option value="All Sorted">All Sorted</option>
+                        <option value="Issue">Issue</option>
+                        <option value="WIP">WIP</option>
+                        <option value="Solved">Solved</option>
                       </select>
                     </div>
                     <div className="v-form-group">

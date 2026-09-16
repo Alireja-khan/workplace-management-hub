@@ -1993,6 +1993,76 @@ body {
   border: 1px solid rgba(236, 72, 153, 0.3);
 }
 
+/* ==========================================================================
+   Current Status Badge Styles (All Sorted, Issue, WIP, Solved)
+   ========================================================================== */
+.v-cstatus-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.18rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.v-cstatus-badge.saving {
+  opacity: 0.7;
+}
+
+.v-cstatus-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* All Sorted (Default: Emerald Green) */
+.v-cstatus-all-sorted {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+}
+.v-cstatus-all-sorted .v-cstatus-dot {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+/* Issue (Rose/Red) */
+.v-cstatus-issue {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+}
+.v-cstatus-issue .v-cstatus-dot {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+}
+
+/* WIP (Amber/Yellow) */
+.v-cstatus-wip {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+}
+.v-cstatus-wip .v-cstatus-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+}
+
+/* Solved (Sky/Cyan) */
+.v-cstatus-solved {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+}
+.v-cstatus-solved .v-cstatus-dot {
+  background: #38bdf8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
+}
+
 
 
 

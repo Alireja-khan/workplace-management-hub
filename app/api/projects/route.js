@@ -85,12 +85,22 @@ export async function GET(request) {
   try {
     await connectToDatabase();
 
+    // Auto-reset 'Solved' status back to 'All Sorted' if 2 days (48 hours) have passed without status changes
+    const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    await Project.updateMany(
+      { currentStatus: 'Solved', solvedAt: { $lte: twoDaysAgo } },
+      { $set: { currentStatus: 'All Sorted', solvedAt: null } }
+    );
+
     const projects = await Project.find({}).sort({ createdAt: -1 });
-    // Normalize projects so month matches assignDate
+    // Normalize projects so month matches assignDate and currentStatus defaults to 'All Sorted'
     const normalized = projects.map((p) => {
       const obj = p.toObject ? p.toObject() : p;
       if (obj.assignDate) {
         obj.month = getMonthFromDate(obj.assignDate, obj.month);
+      }
+      if (!obj.currentStatus) {
+        obj.currentStatus = 'All Sorted';
       }
       return obj;
     });
