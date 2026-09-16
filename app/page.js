@@ -2711,20 +2711,30 @@ export default function VercelDashboard() {
                                 </td>
                                 {currentTab !== 'running' && (
                                   <td>
-                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                      {(() => {
-                                        const effCStatus = getEffectiveCurrentStatus(p);
-                                        const cStatusLower = effCStatus.toLowerCase();
-                                        const cStatusClass =
-                                          cStatusLower === 'issue'
-                                            ? 'v-cstatus-issue'
-                                            : cStatusLower === 'wip'
-                                            ? 'v-cstatus-wip'
-                                            : cStatusLower === 'solved'
-                                            ? 'v-cstatus-solved'
-                                            : 'v-cstatus-all-sorted';
+                                    {(() => {
+                                      const effCStatus = getEffectiveCurrentStatus(p);
+                                      const cStatusLower = effCStatus.toLowerCase();
+                                      const ordLower = (p.orderStatus || '').toLowerCase();
 
-                                        return (
+                                      const isDeliveredOrDone = ordLower === 'delivered' || ordLower === 'done';
+                                      const hasExplicitIssueStatus = cStatusLower === 'issue' || cStatusLower === 'wip' || cStatusLower === 'solved';
+                                      const showControl = isDeliveredOrDone || hasExplicitIssueStatus;
+
+                                      if (!showControl) {
+                                        return <span style={{ color: 'var(--accents-4)', fontSize: '0.8rem', paddingLeft: '0.5rem' }}>-</span>;
+                                      }
+
+                                      const cStatusClass =
+                                        cStatusLower === 'issue'
+                                          ? 'v-cstatus-issue'
+                                          : cStatusLower === 'wip'
+                                          ? 'v-cstatus-wip'
+                                          : cStatusLower === 'solved'
+                                          ? 'v-cstatus-solved'
+                                          : 'v-cstatus-all-sorted';
+
+                                      return (
+                                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                                           <div className={`v-cstatus-badge ${cStatusClass}`}>
                                             <span className="v-cstatus-dot"></span>
                                             <select
@@ -2747,29 +2757,23 @@ export default function VercelDashboard() {
                                               <option value="Solved">Solved</option>
                                             </select>
                                           </div>
-                                        );
-                                      })()}
-                                      {(() => {
-                                        const effCStatus = getEffectiveCurrentStatus(p);
-                                        const cStatusLower = effCStatus.toLowerCase();
-                                        const showEye = cStatusLower === 'issue' || cStatusLower === 'wip';
-                                        if (!showEye) return null;
-                                        return (
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              openIssueNoteModal(p);
-                                            }}
-                                            className="v-issue-eye-btn"
-                                            title={p.issueNote ? `View Issue Note: "${p.issueNote}"` : 'Add Issue Note'}
-                                          >
-                                            <Eye size={13} />
-                                            {p.issueNote ? <span className="v-issue-dot"></span> : null}
-                                          </button>
-                                        );
-                                      })()}
-                                    </div>
+                                          {(cStatusLower === 'issue' || cStatusLower === 'wip') && (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                openIssueNoteModal(p);
+                                              }}
+                                              className="v-issue-eye-btn"
+                                              title={p.issueNote ? `View Issue Note: "${p.issueNote}"` : 'Add Issue Note'}
+                                            >
+                                              <Eye size={13} />
+                                              {p.issueNote ? <span className="v-issue-dot"></span> : null}
+                                            </button>
+                                          )}
+                                        </div>
+                                      );
+                                    })()}
                                   </td>
                                 )}
                                 <td>
@@ -2938,20 +2942,30 @@ export default function VercelDashboard() {
                                 </td>
                                 {currentTab !== 'running' && (
                                   <td>
-                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                      {(() => {
-                                        const effCStatus = getEffectiveCurrentStatus(p);
-                                        const cStatusLower = effCStatus.toLowerCase();
-                                        const cStatusClass =
-                                          cStatusLower === 'issue'
-                                            ? 'v-cstatus-issue'
-                                            : cStatusLower === 'wip'
-                                            ? 'v-cstatus-wip'
-                                            : cStatusLower === 'solved'
-                                            ? 'v-cstatus-solved'
-                                            : 'v-cstatus-all-sorted';
+                                    {(() => {
+                                      const effCStatus = getEffectiveCurrentStatus(p);
+                                      const cStatusLower = effCStatus.toLowerCase();
+                                      const ordLower = (p.orderStatus || '').toLowerCase();
 
-                                        return (
+                                      const isDeliveredOrDone = ordLower === 'delivered' || ordLower === 'done';
+                                      const hasExplicitIssueStatus = cStatusLower === 'issue' || cStatusLower === 'wip' || cStatusLower === 'solved';
+                                      const showControl = isDeliveredOrDone || hasExplicitIssueStatus;
+
+                                      if (!showControl) {
+                                        return <span style={{ color: 'var(--accents-4)', fontSize: '0.8rem', paddingLeft: '0.5rem' }}>-</span>;
+                                      }
+
+                                      const cStatusClass =
+                                        cStatusLower === 'issue'
+                                          ? 'v-cstatus-issue'
+                                          : cStatusLower === 'wip'
+                                          ? 'v-cstatus-wip'
+                                          : cStatusLower === 'solved'
+                                          ? 'v-cstatus-solved'
+                                          : 'v-cstatus-all-sorted';
+
+                                      return (
+                                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                                           <div className={`v-cstatus-badge ${cStatusClass}`}>
                                             <span className="v-cstatus-dot"></span>
                                             <select
@@ -2974,29 +2988,23 @@ export default function VercelDashboard() {
                                               <option value="Solved">Solved</option>
                                             </select>
                                           </div>
-                                        );
-                                      })()}
-                                      {(() => {
-                                        const effCStatus = getEffectiveCurrentStatus(p);
-                                        const cStatusLower = effCStatus.toLowerCase();
-                                        const showEye = cStatusLower === 'issue' || cStatusLower === 'wip';
-                                        if (!showEye) return null;
-                                        return (
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              openIssueNoteModal(p);
-                                            }}
-                                            className="v-issue-eye-btn"
-                                            title={p.issueNote ? `View Issue Note: "${p.issueNote}"` : 'Add Issue Note'}
-                                          >
-                                            <Eye size={13} />
-                                            {p.issueNote ? <span className="v-issue-dot"></span> : null}
-                                          </button>
-                                        );
-                                      })()}
-                                    </div>
+                                          {(cStatusLower === 'issue' || cStatusLower === 'wip') && (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                openIssueNoteModal(p);
+                                              }}
+                                              className="v-issue-eye-btn"
+                                              title={p.issueNote ? `View Issue Note: "${p.issueNote}"` : 'Add Issue Note'}
+                                            >
+                                              <Eye size={13} />
+                                              {p.issueNote ? <span className="v-issue-dot"></span> : null}
+                                            </button>
+                                          )}
+                                        </div>
+                                      );
+                                    })()}
                                   </td>
                                 )}
                                 <td>
