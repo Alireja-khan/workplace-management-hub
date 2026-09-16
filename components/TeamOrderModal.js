@@ -342,6 +342,9 @@ export default function TeamOrderModal({
                   <option value="NRA">NRA</option>
                   <option value="Need Requirements">Need Requirements</option>
                   <option value="Cancel">Cancel</option>
+                  {['delivered', 'done', 'issue'].includes((formData.orderStatus || '').toLowerCase()) && (
+                    <option value="Issue">Issue</option>
+                  )}
                 </select>
               </div>
 

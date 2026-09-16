@@ -2691,6 +2691,9 @@ export default function VercelDashboard() {
                                         <option value="NRA">NRA</option>
                                         <option value="Need Requirements">Need Requirements</option>
                                         <option value="Cancel">Cancel</option>
+                                        {['delivered', 'done', 'issue'].includes((p.orderStatus || '').toLowerCase()) && (
+                                          <option value="Issue">Issue</option>
+                                        )}
                                       </select>
                                     </div>
                                     {(() => {
@@ -3223,7 +3226,9 @@ export default function VercelDashboard() {
                         <option value="NRA">NRA</option>
                         <option value="Need Requirements">Need Requirements</option>
                         <option value="Cancel">Cancel</option>
-                        <option value="Issue">Issue</option>
+                        {['delivered', 'done', 'issue'].includes((formData.orderStatus || '').toLowerCase()) && (
+                          <option value="Issue">Issue</option>
+                        )}
                       </select>
                     </div>
                     <div className="v-form-group">

@@ -620,6 +620,11 @@ export default function TeamWorkspaceView({
                               {st}
                             </option>
                           ))}
+                          {['delivered', 'done', 'issue'].includes((p.status || p.orderStatus || '').toLowerCase()) && (
+                            <option value="Issue" style={{ background: 'var(--card-bg)', color: 'var(--geist-foreground)' }}>
+                              Issue
+                            </option>
+                          )}
                         </select>
                       </td>
 
