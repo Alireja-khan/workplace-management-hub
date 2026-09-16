@@ -381,9 +381,59 @@ export default function TeamWorkspaceView({
 
       {/* Main Content Area */}
       {isLoading ? (
-        <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-default)', borderRadius: 12, padding: '3rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.85rem' }}>
-          <div className="status-saving-spinner" style={{ width: 28, height: 28, borderWidth: 3 }} />
-          <span style={{ fontSize: '0.82rem', color: 'var(--accents-5)' }}>Loading EleSquad pipeline...</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div className="table-smart-wrapper">
+            <div className="table-sub-bar">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div className="sync-pulse-badge">
+                  <span className="sync-pulse-dot" />
+                  Syncing EleSquad pipeline & team orders...
+                </div>
+              </div>
+            </div>
+            <div className="v-table-container">
+              <table className="v-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 100 }}>Assign Date</th>
+                    <th style={{ width: 110 }}>Sales Person</th>
+                    <th style={{ width: 90 }}>Profile</th>
+                    <th style={{ width: 120 }}>Client ID</th>
+                    <th style={{ width: 130 }}>Order #</th>
+                    <th style={{ width: 90 }}>Gross</th>
+                    <th style={{ width: 90 }}>Net (80%)</th>
+                    <th style={{ width: 180 }}>Assigned Members</th>
+                    <th style={{ width: 100 }}>Est. Deli</th>
+                    <th style={{ width: 100 }}>Deli Date</th>
+                    <th style={{ width: 120 }}>Status</th>
+                    <th style={{ width: 90 }}>Sheet / Payout</th>
+                    <th style={{ width: 150 }}>Remark</th>
+                    <th style={{ width: 80, textAlign: 'center' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((row, idx) => (
+                    <tr key={row} className="skeleton-row">
+                      <td><div className="skeleton-shimmer" style={{ width: '75%', height: 12, animationDelay: `${idx * 0.04}s` }} /></td>
+                      <td><div className="skeleton-shimmer" style={{ width: '85%', height: 14, animationDelay: `${idx * 0.04 + 0.02}s` }} /></td>
+                      <td><div className="skeleton-shimmer" style={{ width: '65%', height: 12, animationDelay: `${idx * 0.04 + 0.04}s` }} /></td>
+                      <td><div className="skeleton-shimmer" style={{ width: 48, height: 20, borderRadius: 4, animationDelay: `${idx * 0.04}s` }} /></td>
+                      <td><div className="skeleton-shimmer" style={{ width: '60%', height: 14, animationDelay: `${idx * 0.04 + 0.03}s` }} /></td>
+                      <td><div className="skeleton-shimmer" style={{ width: '60%', height: 14, animationDelay: `${idx * 0.04 + 0.05}s` }} /></td>
+                      <td><div className="skeleton-shimmer" style={{ width: 70, height: 20, borderRadius: 999, animationDelay: `${idx * 0.04}s` }} /></td>
+                      <td><div className="skeleton-shimmer" style={{ width: 65, height: 20, borderRadius: 4, animationDelay: `${idx * 0.04 + 0.02}s` }} /></td>
+                      <td><div className="skeleton-shimmer" style={{ width: '75%', height: 12, animationDelay: `${idx * 0.04 + 0.04}s` }} /></td>
+                      <td><div className="skeleton-shimmer" style={{ width: '55%', height: 12, animationDelay: `${idx * 0.04 + 0.01}s` }} /></td>
+                      <td><div className="skeleton-shimmer" style={{ width: 48, height: 20, borderRadius: 4, animationDelay: `${idx * 0.04 + 0.03}s` }} /></td>
+                      <td><div className="skeleton-shimmer" style={{ width: '80%', height: 12, animationDelay: `${idx * 0.04 + 0.02}s` }} /></td>
+                      <td><div className="skeleton-shimmer" style={{ width: '65%', height: 12, animationDelay: `${idx * 0.04 + 0.04}s` }} /></td>
+                      <td style={{ textAlign: 'center' }}><div className="skeleton-shimmer" style={{ width: 55, height: 18, borderRadius: 4, animationDelay: `${idx * 0.04}s` }} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       ) : filteredProjects.length === 0 ? (
         <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-default)', borderRadius: 12, padding: '3.5rem 1rem', textAlign: 'center' }}>
