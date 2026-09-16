@@ -143,6 +143,12 @@ export default function VercelDashboard() {
   const [activeTeamProject, setActiveTeamProject] = useState(null);
   const [teamIsSubmitting, setTeamIsSubmitting] = useState(false);
 
+  // Issue Note Modal States
+  const [isIssueNoteModalOpen, setIsIssueNoteModalOpen] = useState(false);
+  const [issueNoteProject, setIssueNoteProject] = useState(null);
+  const [issueNoteText, setIssueNoteText] = useState('');
+  const [isIssueNoteSaving, setIsIssueNoteSaving] = useState(false);
+
   const [teamFormData, setTeamFormData] = useState({
     salesPerson: 'Shuvo',
     assignDate: new Date().toISOString().split('T')[0],
@@ -288,6 +294,56 @@ export default function VercelDashboard() {
   const showToast = (msg, type = 'success') => {
     setToastMessage({ text: msg, type });
     setTimeout(() => setToastMessage(null), 3200);
+  };
+
+  const openIssueNoteModal = (project) => {
+    setIssueNoteProject(project);
+    setIssueNoteText(project.issueNote || '');
+    setIsIssueNoteModalOpen(true);
+  };
+
+  const closeIssueNoteModal = () => {
+    setIsIssueNoteModalOpen(false);
+    setIssueNoteProject(null);
+    setIssueNoteText('');
+  };
+
+  const handleSaveIssueNote = async () => {
+    if (!issueNoteProject) return;
+    setIsIssueNoteSaving(true);
+    try {
+      const targetEndpoint = workspaceMode === 'team'
+        ? `/api/team-projects/${issueNoteProject._id}`
+        : `/api/projects/${issueNoteProject._id}`;
+
+      const res = await fetch(targetEndpoint, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ issueNote: issueNoteText }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        if (workspaceMode === 'team') {
+          setTeamProjects((prev) =>
+            prev.map((p) => (p._id === issueNoteProject._id ? { ...p, issueNote: issueNoteText } : p))
+          );
+        } else {
+          setProjects((prev) =>
+            prev.map((p) => (p._id === issueNoteProject._id ? { ...p, issueNote: issueNoteText } : p))
+          );
+        }
+        showToast('Issue note saved successfully!');
+        closeIssueNoteModal();
+      } else {
+        showToast(data.error || 'Failed to save issue note', 'error');
+      }
+    } catch (err) {
+      console.error('Save issue note error:', err);
+      showToast('Error saving issue note', 'error');
+    } finally {
+      setIsIssueNoteSaving(false);
+    }
   };
 
   // Team KPIs
@@ -2579,70 +2635,115 @@ export default function VercelDashboard() {
                                   {p.deliveryDate || '-'}
                                 </td>
                                 <td>
-                                  <div className={`v-status-badge ${statusClass}`}>
-                                    <span className="v-status-dot"></span>
-                                    <select
-                                      style={{
-                                        background: 'transparent',
-                                        border: 'none',
-                                        color: 'inherit',
-                                        outline: 'none',
-                                        cursor: 'pointer',
-                                        fontFamily: 'inherit',
-                                        fontSize: '0.73rem',
-                                        fontWeight: 600,
-                                      }}
-                                      value={p.orderStatus || 'Wip'}
-                                      onChange={(e) => handleQuickUpdateTeamStatus(p._id, e.target.value)}
-                                    >
-                                      <option value="Wip">Wip</option>
-                                      <option value="Delivered">Delivered</option>
-                                      <option value="Done">Done</option>
-                                      <option value="NRA">NRA</option>
-                                      <option value="Need Requirements">Need Requirements</option>
-                                      <option value="Cancel">Cancel</option>
-                                    </select>
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                    <div className={`v-status-badge ${statusClass}`}>
+                                      <span className="v-status-dot"></span>
+                                      <select
+                                        style={{
+                                          background: 'transparent',
+                                          border: 'none',
+                                          color: 'inherit',
+                                          outline: 'none',
+                                          cursor: 'pointer',
+                                          fontFamily: 'inherit',
+                                          fontSize: '0.73rem',
+                                          fontWeight: 600,
+                                        }}
+                                        value={p.orderStatus || 'Wip'}
+                                        onChange={(e) => handleQuickUpdateTeamStatus(p._id, e.target.value)}
+                                      >
+                                        <option value="Wip">Wip</option>
+                                        <option value="Delivered">Delivered</option>
+                                        <option value="Done">Done</option>
+                                        <option value="NRA">NRA</option>
+                                        <option value="Need Requirements">Need Requirements</option>
+                                        <option value="Cancel">Cancel</option>
+                                      </select>
+                                    </div>
+                                    {(() => {
+                                      const effCStatus = getEffectiveCurrentStatus(p);
+                                      const cStatusLower = effCStatus.toLowerCase();
+                                      const ordLower = (p.orderStatus || '').toLowerCase();
+                                      const showEye = cStatusLower === 'issue' || cStatusLower === 'wip' || ordLower === 'issue' || ordLower === 'wip';
+                                      if (!showEye || currentTab !== 'running') return null;
+                                      return (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            openIssueNoteModal(p);
+                                          }}
+                                          className="v-issue-eye-btn"
+                                          title={p.issueNote ? `View Issue Note: "${p.issueNote}"` : 'Add Issue Note'}
+                                        >
+                                          <Eye size={13} />
+                                          {p.issueNote ? <span className="v-issue-dot"></span> : null}
+                                        </button>
+                                      );
+                                    })()}
                                   </div>
                                 </td>
                                 {currentTab !== 'running' && (
                                   <td>
-                                    {(() => {
-                                      const effCStatus = getEffectiveCurrentStatus(p);
-                                      const cStatusLower = effCStatus.toLowerCase();
-                                      const cStatusClass =
-                                        cStatusLower === 'issue'
-                                          ? 'v-cstatus-issue'
-                                          : cStatusLower === 'wip'
-                                          ? 'v-cstatus-wip'
-                                          : cStatusLower === 'solved'
-                                          ? 'v-cstatus-solved'
-                                          : 'v-cstatus-all-sorted';
+                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                      {(() => {
+                                        const effCStatus = getEffectiveCurrentStatus(p);
+                                        const cStatusLower = effCStatus.toLowerCase();
+                                        const cStatusClass =
+                                          cStatusLower === 'issue'
+                                            ? 'v-cstatus-issue'
+                                            : cStatusLower === 'wip'
+                                            ? 'v-cstatus-wip'
+                                            : cStatusLower === 'solved'
+                                            ? 'v-cstatus-solved'
+                                            : 'v-cstatus-all-sorted';
 
-                                      return (
-                                        <div className={`v-cstatus-badge ${cStatusClass}`}>
-                                          <span className="v-cstatus-dot"></span>
-                                          <select
-                                            style={{
-                                              background: 'transparent',
-                                              border: 'none',
-                                              color: 'inherit',
-                                              outline: 'none',
-                                              cursor: 'pointer',
-                                              fontFamily: 'inherit',
-                                              fontSize: '0.73rem',
-                                              fontWeight: 600,
+                                        return (
+                                          <div className={`v-cstatus-badge ${cStatusClass}`}>
+                                            <span className="v-cstatus-dot"></span>
+                                            <select
+                                              style={{
+                                                background: 'transparent',
+                                                border: 'none',
+                                                color: 'inherit',
+                                                outline: 'none',
+                                                cursor: 'pointer',
+                                                fontFamily: 'inherit',
+                                                fontSize: '0.73rem',
+                                                fontWeight: 600,
+                                              }}
+                                              value={effCStatus}
+                                              onChange={(e) => handleQuickUpdateTeamCurrentStatus(p._id, e.target.value)}
+                                            >
+                                              <option value="All Sorted">All Sorted</option>
+                                              <option value="Issue">Issue</option>
+                                              <option value="WIP">WIP</option>
+                                              <option value="Solved">Solved</option>
+                                            </select>
+                                          </div>
+                                        );
+                                      })()}
+                                      {(() => {
+                                        const effCStatus = getEffectiveCurrentStatus(p);
+                                        const cStatusLower = effCStatus.toLowerCase();
+                                        const showEye = cStatusLower === 'issue' || cStatusLower === 'wip';
+                                        if (!showEye) return null;
+                                        return (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              openIssueNoteModal(p);
                                             }}
-                                            value={effCStatus}
-                                            onChange={(e) => handleQuickUpdateTeamCurrentStatus(p._id, e.target.value)}
+                                            className="v-issue-eye-btn"
+                                            title={p.issueNote ? `View Issue Note: "${p.issueNote}"` : 'Add Issue Note'}
                                           >
-                                            <option value="All Sorted">All Sorted</option>
-                                            <option value="Issue">Issue</option>
-                                            <option value="WIP">WIP</option>
-                                            <option value="Solved">Solved</option>
-                                          </select>
-                                        </div>
-                                      );
-                                    })()}
+                                            <Eye size={13} />
+                                            {p.issueNote ? <span className="v-issue-dot"></span> : null}
+                                          </button>
+                                        );
+                                      })()}
+                                    </div>
                                   </td>
                                 )}
                                 <td>
@@ -2760,85 +2861,130 @@ export default function VercelDashboard() {
                                   {p.deliveryDate || '-'}
                                 </td>
                                 <td>
-                                  <div className={`v-status-badge ${statusClass} ${savingStatusId === p._id ? 'saving' : ''}`}>
-                                    {savingStatusId === p._id ? (
-                                      <div className="status-saving-spinner"></div>
-                                    ) : savedStatusSuccessId === p._id ? (
-                                      <Check size={11} color="#10b981" />
-                                    ) : (
-                                      <span className="v-status-dot"></span>
-                                    )}
-                                    <select
-                                      disabled={savingStatusId === p._id}
-                                      style={{
-                                        background: 'transparent',
-                                        border: 'none',
-                                        color: 'inherit',
-                                        outline: 'none',
-                                        cursor: savingStatusId === p._id ? 'wait' : 'pointer',
-                                        fontFamily: 'inherit',
-                                        fontSize: '0.73rem',
-                                        fontWeight: 600,
-                                      }}
-                                      value={p.orderStatus || 'Wip'}
-                                      onChange={(e) => handleQuickStatusChange(p._id, e.target.value)}
-                                    >
-                                      <option value="Wip">Wip</option>
-                                      <option value="Delivered">Delivered</option>
-                                      <option value="Done">Done</option>
-                                      <option value="NRA">NRA</option>
-                                      <option value="Need Requirements">Need Requirements</option>
-                                      <option value="Cancel">Cancel</option>
-                                      <option value="Issue">Issue</option>
-                                    </select>
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                    <div className={`v-status-badge ${statusClass} ${savingStatusId === p._id ? 'saving' : ''}`}>
+                                      {savingStatusId === p._id ? (
+                                        <div className="status-saving-spinner"></div>
+                                      ) : savedStatusSuccessId === p._id ? (
+                                        <Check size={11} color="#10b981" />
+                                      ) : (
+                                        <span className="v-status-dot"></span>
+                                      )}
+                                      <select
+                                        disabled={savingStatusId === p._id}
+                                        style={{
+                                          background: 'transparent',
+                                          border: 'none',
+                                          color: 'inherit',
+                                          outline: 'none',
+                                          cursor: savingStatusId === p._id ? 'wait' : 'pointer',
+                                          fontFamily: 'inherit',
+                                          fontSize: '0.73rem',
+                                          fontWeight: 600,
+                                        }}
+                                        value={p.orderStatus || 'Wip'}
+                                        onChange={(e) => handleQuickStatusChange(p._id, e.target.value)}
+                                      >
+                                        <option value="Wip">Wip</option>
+                                        <option value="Delivered">Delivered</option>
+                                        <option value="Done">Done</option>
+                                        <option value="NRA">NRA</option>
+                                        <option value="Need Requirements">Need Requirements</option>
+                                        <option value="Cancel">Cancel</option>
+                                        <option value="Issue">Issue</option>
+                                      </select>
+                                    </div>
+                                    {(() => {
+                                      const effCStatus = getEffectiveCurrentStatus(p);
+                                      const cStatusLower = effCStatus.toLowerCase();
+                                      const ordLower = (p.orderStatus || '').toLowerCase();
+                                      const showEye = cStatusLower === 'issue' || cStatusLower === 'wip' || ordLower === 'issue' || ordLower === 'wip';
+                                      if (!showEye || currentTab !== 'running') return null;
+                                      return (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            openIssueNoteModal(p);
+                                          }}
+                                          className="v-issue-eye-btn"
+                                          title={p.issueNote ? `View Issue Note: "${p.issueNote}"` : 'Add Issue Note'}
+                                        >
+                                          <Eye size={13} />
+                                          {p.issueNote ? <span className="v-issue-dot"></span> : null}
+                                        </button>
+                                      );
+                                    })()}
                                   </div>
                                 </td>
                                 {currentTab !== 'running' && (
                                   <td>
-                                    {(() => {
-                                      const effCStatus = getEffectiveCurrentStatus(p);
-                                      const cStatusLower = effCStatus.toLowerCase();
-                                      const cStatusClass =
-                                        cStatusLower === 'issue'
-                                          ? 'v-cstatus-issue'
-                                          : cStatusLower === 'wip'
-                                          ? 'v-cstatus-wip'
-                                          : cStatusLower === 'solved'
-                                          ? 'v-cstatus-solved'
-                                          : 'v-cstatus-all-sorted';
+                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                      {(() => {
+                                        const effCStatus = getEffectiveCurrentStatus(p);
+                                        const cStatusLower = effCStatus.toLowerCase();
+                                        const cStatusClass =
+                                          cStatusLower === 'issue'
+                                            ? 'v-cstatus-issue'
+                                            : cStatusLower === 'wip'
+                                            ? 'v-cstatus-wip'
+                                            : cStatusLower === 'solved'
+                                            ? 'v-cstatus-solved'
+                                            : 'v-cstatus-all-sorted';
 
-                                      return (
-                                        <div className={`v-cstatus-badge ${cStatusClass} ${savingCStatusId === p._id ? 'saving' : ''}`}>
-                                          {savingCStatusId === p._id ? (
-                                            <div className="status-saving-spinner"></div>
-                                          ) : savedCStatusSuccessId === p._id ? (
-                                            <Check size={11} color="#10b981" />
-                                          ) : (
-                                            <span className="v-cstatus-dot"></span>
-                                          )}
-                                          <select
-                                            disabled={savingCStatusId === p._id}
-                                            style={{
-                                              background: 'transparent',
-                                              border: 'none',
-                                              color: 'inherit',
-                                              outline: 'none',
-                                              cursor: savingCStatusId === p._id ? 'wait' : 'pointer',
-                                              fontFamily: 'inherit',
-                                              fontSize: '0.73rem',
-                                              fontWeight: 600,
+                                        return (
+                                          <div className={`v-cstatus-badge ${cStatusClass} ${savingCStatusId === p._id ? 'saving' : ''}`}>
+                                            {savingCStatusId === p._id ? (
+                                              <div className="status-saving-spinner"></div>
+                                            ) : savedCStatusSuccessId === p._id ? (
+                                              <Check size={11} color="#10b981" />
+                                            ) : (
+                                              <span className="v-cstatus-dot"></span>
+                                            )}
+                                            <select
+                                              disabled={savingCStatusId === p._id}
+                                              style={{
+                                                background: 'transparent',
+                                                border: 'none',
+                                                color: 'inherit',
+                                                outline: 'none',
+                                                cursor: savingCStatusId === p._id ? 'wait' : 'pointer',
+                                                fontFamily: 'inherit',
+                                                fontSize: '0.73rem',
+                                                fontWeight: 600,
+                                              }}
+                                              value={effCStatus}
+                                              onChange={(e) => handleQuickCurrentStatusChange(p._id, e.target.value)}
+                                            >
+                                              <option value="All Sorted">All Sorted</option>
+                                              <option value="Issue">Issue</option>
+                                              <option value="WIP">WIP</option>
+                                              <option value="Solved">Solved</option>
+                                            </select>
+                                          </div>
+                                        );
+                                      })()}
+                                      {(() => {
+                                        const effCStatus = getEffectiveCurrentStatus(p);
+                                        const cStatusLower = effCStatus.toLowerCase();
+                                        const showEye = cStatusLower === 'issue' || cStatusLower === 'wip';
+                                        if (!showEye) return null;
+                                        return (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              openIssueNoteModal(p);
                                             }}
-                                            value={effCStatus}
-                                            onChange={(e) => handleQuickCurrentStatusChange(p._id, e.target.value)}
+                                            className="v-issue-eye-btn"
+                                            title={p.issueNote ? `View Issue Note: "${p.issueNote}"` : 'Add Issue Note'}
                                           >
-                                            <option value="All Sorted">All Sorted</option>
-                                            <option value="Issue">Issue</option>
-                                            <option value="WIP">WIP</option>
-                                            <option value="Solved">Solved</option>
-                                          </select>
-                                        </div>
-                                      );
-                                    })()}
+                                            <Eye size={13} />
+                                            {p.issueNote ? <span className="v-issue-dot"></span> : null}
+                                          </button>
+                                        );
+                                      })()}
+                                    </div>
                                   </td>
                                 )}
                                 <td>
@@ -3285,6 +3431,107 @@ export default function VercelDashboard() {
 
         {/* Shared Auth Modal */}
         {renderAuthModal()}
+
+        {/* ISSUE NOTE QUICK CHECK MODAL */}
+        {isIssueNoteModalOpen && issueNoteProject && (
+          <div className="v-modal-overlay" onClick={closeIssueNoteModal}>
+            <div
+              className="v-modal-dialog"
+              style={{ maxWidth: 500, width: '92%' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="v-modal-header" style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.85rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                      📝 Issue & WIP Note
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        padding: '0.15rem 0.55rem',
+                        borderRadius: 999,
+                        background:
+                          (issueNoteProject.currentStatus || 'WIP').toLowerCase() === 'issue'
+                            ? 'rgba(239, 68, 68, 0.15)'
+                            : 'rgba(245, 158, 11, 0.15)',
+                        color:
+                          (issueNoteProject.currentStatus || 'WIP').toLowerCase() === 'issue'
+                            ? '#ef4444'
+                            : '#f59e0b',
+                        border:
+                          (issueNoteProject.currentStatus || 'WIP').toLowerCase() === 'issue'
+                            ? '1px solid rgba(239, 68, 68, 0.3)'
+                            : '1px solid rgba(245, 158, 11, 0.3)',
+                      }}
+                    >
+                      {issueNoteProject.currentStatus || issueNoteProject.orderStatus || 'WIP'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--accents-5)', marginTop: 4 }}>
+                    Order #{issueNoteProject.orderNumber || '-'} • {issueNoteProject.clientUsername || issueNoteProject.clientUserId || 'Client'} ({issueNoteProject.profileName || 'Profile'})
+                  </div>
+                </div>
+                <button className="btn-v-ghost" onClick={closeIssueNoteModal}><X size={16} /></button>
+              </div>
+
+              <div className="v-modal-body" style={{ paddingTop: '1rem' }}>
+                <div className="v-form-group">
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: 6, display: 'block', color: 'var(--accents-6)' }}>
+                    Issue Description & Notes
+                  </label>
+                  <textarea
+                    className="v-textarea"
+                    rows={5}
+                    value={issueNoteText}
+                    onChange={(e) => setIssueNoteText(e.target.value)}
+                    placeholder="Type what issue occurred, client instructions, or work-in-progress notes here..."
+                    style={{
+                      width: '100%',
+                      fontSize: '0.84rem',
+                      lineHeight: 1.5,
+                      padding: '0.65rem 0.8rem',
+                      borderRadius: 8,
+                      background: 'var(--card-bg)',
+                      border: '1px solid var(--border-subtle)',
+                      color: 'var(--foreground)',
+                      resize: 'vertical',
+                    }}
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              <div className="v-modal-footer" style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn-v btn-v-secondary"
+                  onClick={closeIssueNoteModal}
+                  disabled={isIssueNoteSaving}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn-v btn-v-primary"
+                  onClick={handleSaveIssueNote}
+                  disabled={isIssueNoteSaving}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  {isIssueNoteSaving ? (
+                    <>
+                      <div className="status-saving-spinner" style={{ width: 13, height: 13 }} />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>Save Note</span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

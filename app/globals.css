@@ -2063,6 +2063,49 @@ body {
   box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
 }
 
+/* ==========================================================================
+   Eye Button for Issue/WIP Quick Note Modal
+   ========================================================================== */
+.v-issue-eye-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  background: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.v-issue-eye-btn:hover {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: rgba(56, 189, 248, 0.6);
+  transform: translateY(-1px) scale(1.06);
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.25);
+}
+
+.v-issue-eye-btn:active {
+  transform: scale(0.95);
+}
+
+.v-issue-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 7px;
+  height: 7px;
+  background-color: #f59e0b;
+  border-radius: 50%;
+  border: 1.5px solid var(--background);
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.8);
+}
+
+
 
 
 

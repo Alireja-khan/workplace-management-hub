@@ -59,6 +59,8 @@ async function syncTeamOrderToPersonal(teamOrder, targetMemberName = 'Alireja') 
       profileName: teamOrder.profileName || 'Team Project',
       amount: parseFloat(teamOrder.amount) || 0,
       orderStatus: teamOrder.orderStatus || 'Wip',
+      currentStatus: teamOrder.currentStatus || 'All Sorted',
+      issueNote: teamOrder.issueNote || '',
       estimatedDeliveryDate: teamOrder.estimatedDeliveryDate || '',
       deliveryDate: teamOrder.deliveryDate || '',
       instructionSheet: teamOrder.sheetLink || '',

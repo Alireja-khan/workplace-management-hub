@@ -74,6 +74,11 @@ const ProjectSchema = new mongoose.Schema(
       enum: ['All Sorted', 'Issue', 'WIP', 'Solved'],
       default: 'All Sorted',
     },
+    issueNote: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     solvedAt: {
       type: Date,
       default: null,
