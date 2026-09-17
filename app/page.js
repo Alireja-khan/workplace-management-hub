@@ -3705,8 +3705,8 @@ export default function VercelDashboard() {
 
         {/* Bulk Delete Confirmation Modal */}
         {isBulkDeleteModalOpen && (
-          <div className="v-modal-overlay">
-            <div className="v-modal" style={{ maxWidth: 400 }}>
+          <div className="v-modal-overlay" onClick={() => { setIsBulkDeleteModalOpen(false); setBulkDeleteConfirmText(''); }}>
+            <div className="v-modal-dialog" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
               <div className="v-modal-header" style={{ borderBottom: 'none', paddingBottom: 0 }}>
                 <h3 className="v-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#ef4444' }}>
                   <AlertCircle size={20} /> Bulk Delete Confirmation
