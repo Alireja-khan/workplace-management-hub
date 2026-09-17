@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import connectToDatabase from '@/lib/db';
 import Project from '@/models/Project';
 import TeamProject from '@/models/TeamProject';
@@ -23,7 +25,7 @@ function isMemberMatch(assignedMembers, targetName = 'Alireja') {
   });
 }
 
-async function syncAllExistingTeamProjects(targetMemberName = 'Alireja') {
+async function syncAllExistingTeamProjects(targetMemberName = 'Alireja', targetUserEmail = '') {
   try {
     const teamProjects = await TeamProject.find({});
     for (const teamOrder of teamProjects) {
@@ -34,16 +36,15 @@ async function syncAllExistingTeamProjects(targetMemberName = 'Alireja') {
 
       let existing = null;
       if (orderNumber) {
-        existing = await Project.findOne({ orderNumber });
+        existing = await Project.findOne({ orderNumber, userEmail: targetUserEmail.toLowerCase() });
       }
       if (!existing && clientUsername) {
-        existing = await Project.findOne({ clientUsername, assignDate });
+        existing = await Project.findOne({ clientUsername, assignDate, userEmail: targetUserEmail.toLowerCase() });
       }
 
       const assignedToUser = isMemberMatch(members, targetMemberName);
 
       if (!assignedToUser) {
-        // If not assigned to this user, remove from personal workspace if previously synced
         if (existing) {
           await Project.findByIdAndDelete(existing._id);
         }
@@ -51,7 +52,7 @@ async function syncAllExistingTeamProjects(targetMemberName = 'Alireja') {
       }
 
       const payload = {
-        userEmail: teamOrder.userEmail || 'alirejakhan36@gmail.com',
+        userEmail: targetUserEmail.toLowerCase() || teamOrder.userEmail || '',
         assignDate,
         month: getMonthFromDate(assignDate, teamOrder.month),
         clientUsername,
@@ -80,19 +81,26 @@ async function syncAllExistingTeamProjects(targetMemberName = 'Alireja') {
   }
 }
 
-// GET /api/projects - Retrieve all projects
+// GET /api/projects - Retrieve user-scoped projects
 export async function GET(request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !session.user.email) {
+      return NextResponse.json({ success: false, error: 'Unauthorized. Please sign in.' }, { status: 401 });
+    }
+
+    const userEmail = session.user.email.toLowerCase().trim();
+
     await connectToDatabase();
 
     // Auto-reset 'Solved' status back to 'All Sorted' if 2 days (48 hours) have passed without status changes
     const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
     await Project.updateMany(
-      { currentStatus: 'Solved', solvedAt: { $lte: twoDaysAgo } },
+      { userEmail, currentStatus: 'Solved', solvedAt: { $lte: twoDaysAgo } },
       { $set: { currentStatus: 'All Sorted', solvedAt: null } }
     );
 
-    const projects = await Project.find({}).sort({ createdAt: -1 });
+    const projects = await Project.find({ userEmail }).sort({ createdAt: -1 });
     // Normalize projects so month matches assignDate and currentStatus defaults to 'All Sorted'
     const normalized = projects.map((p) => {
       const obj = p.toObject ? p.toObject() : p;
@@ -111,9 +119,16 @@ export async function GET(request) {
   }
 }
 
-// POST /api/projects - Create a new project
+// POST /api/projects - Create a new project for logged in user
 export async function POST(request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !session.user.email) {
+      return NextResponse.json({ success: false, error: 'Unauthorized. Please sign in.' }, { status: 401 });
+    }
+
+    const userEmail = session.user.email.toLowerCase().trim();
+
     await connectToDatabase();
     const body = await request.json();
 
@@ -127,6 +142,8 @@ export async function POST(request) {
     if (body.assignDate) {
       body.month = getMonthFromDate(body.assignDate, body.month);
     }
+
+    body.userEmail = userEmail;
 
     const project = await Project.create(body);
     return NextResponse.json({ success: true, data: project }, { status: 201 });

@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import connectToDatabase from '@/lib/db';
 import TeamProject from '@/models/TeamProject';
 import Project from '@/models/Project';
@@ -23,9 +25,12 @@ function isMemberMatch(assignedMembers, targetName = 'Alireja') {
   });
 }
 
-async function syncTeamOrderToPersonal(teamOrder, targetMemberName = 'Alireja') {
+async function syncTeamOrderToPersonal(teamOrder, targetMemberName = 'Alireja', targetUserEmail = '') {
   try {
     if (!teamOrder) return;
+    const userEmail = targetUserEmail.toLowerCase() || teamOrder.userEmail || '';
+    if (!userEmail) return;
+
     const members = Array.isArray(teamOrder.assignedMembers) ? teamOrder.assignedMembers : [];
     
     const clientUsername = teamOrder.clientUserId || 'client_user';
@@ -34,10 +39,10 @@ async function syncTeamOrderToPersonal(teamOrder, targetMemberName = 'Alireja') 
 
     let existing = null;
     if (orderNumber) {
-      existing = await Project.findOne({ orderNumber });
+      existing = await Project.findOne({ orderNumber, userEmail });
     }
     if (!existing && clientUsername) {
-      existing = await Project.findOne({ clientUsername, assignDate });
+      existing = await Project.findOne({ clientUsername, assignDate, userEmail });
     }
 
     const assignedToUser = isMemberMatch(members, targetMemberName);
@@ -50,7 +55,7 @@ async function syncTeamOrderToPersonal(teamOrder, targetMemberName = 'Alireja') 
     }
 
     const payload = {
-      userEmail: teamOrder.userEmail || 'alirejakhan36@gmail.com',
+      userEmail,
       assignDate,
       month: getMonthFromDate(assignDate, teamOrder.month),
       clientUsername,
@@ -80,9 +85,14 @@ async function syncTeamOrderToPersonal(teamOrder, targetMemberName = 'Alireja') 
   }
 }
 
-// GET /api/team-projects - Retrieve all team projects
+// GET /api/team-projects - Retrieve team projects
 export async function GET(request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !session.user.email) {
+      return NextResponse.json({ success: false, error: 'Unauthorized. Please sign in.' }, { status: 401 });
+    }
+
     await connectToDatabase();
 
     // Auto-reset 'Solved' status back to 'All Sorted' if 2 days (48 hours) have passed without status changes
@@ -116,6 +126,13 @@ export async function GET(request) {
 // POST /api/team-projects - Create a new team project (or bulk array insert)
 export async function POST(request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !session.user.email) {
+      return NextResponse.json({ success: false, error: 'Unauthorized. Please sign in.' }, { status: 401 });
+    }
+
+    const userEmail = session.user.email.toLowerCase().trim();
+
     await connectToDatabase();
     const body = await request.json();
 
@@ -125,6 +142,7 @@ export async function POST(request) {
         const assignDate = item.assignDate || new Date().toISOString().split('T')[0];
         return {
           ...item,
+          userEmail,
           clientUserId: item.clientUserId || 'client_' + Math.floor(Math.random() * 10000),
           assignDate,
           month: getMonthFromDate(assignDate, item.month),
@@ -142,7 +160,7 @@ export async function POST(request) {
 
       // Auto sync each to personal projects
       for (const item of created) {
-        await syncTeamOrderToPersonal(item);
+        await syncTeamOrderToPersonal(item, session.user.name || 'Alireja', userEmail);
       }
 
       return NextResponse.json({ success: true, count: created.length, data: created }, { status: 201 });
@@ -160,6 +178,7 @@ export async function POST(request) {
     }
 
     const amt = parseFloat(body.amount) || 0;
+    body.userEmail = userEmail;
     body.amount = amt;
     body.netAmount = amt * 0.8;
     body.percentage = parseFloat(body.percentage) || 0;
@@ -174,7 +193,7 @@ export async function POST(request) {
     const project = await TeamProject.create(body);
 
     // Auto sync to personal projects
-    await syncTeamOrderToPersonal(project);
+    await syncTeamOrderToPersonal(project, session.user.name || 'Alireja', userEmail);
 
     return NextResponse.json({ success: true, data: project }, { status: 201 });
   } catch (error) {

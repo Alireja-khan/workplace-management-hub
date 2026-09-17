@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import connectToDatabase from '@/lib/db';
 import TeamProject from '@/models/TeamProject';
 import Project from '@/models/Project';
@@ -25,9 +27,16 @@ function isMemberMatch(assignedMembers, targetName = 'Alireja') {
 
 export async function POST(request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !session.user.email) {
+      return NextResponse.json({ success: false, error: 'Unauthorized. Please sign in.' }, { status: 401 });
+    }
+
+    const userEmail = session.user.email.toLowerCase().trim();
+
     await connectToDatabase();
     
-    let targetMemberName = 'Alireja';
+    let targetMemberName = session.user.name || 'Alireja';
     try {
       const body = await request.json();
       if (body.memberName) targetMemberName = body.memberName;
@@ -44,10 +53,10 @@ export async function POST(request) {
 
       let existing = null;
       if (orderNumber) {
-        existing = await Project.findOne({ orderNumber });
+        existing = await Project.findOne({ orderNumber, userEmail });
       }
       if (!existing && clientUsername) {
-        existing = await Project.findOne({ clientUsername, assignDate });
+        existing = await Project.findOne({ clientUsername, assignDate, userEmail });
       }
 
       const assignedToUser = isMemberMatch(members, targetMemberName);
@@ -60,7 +69,7 @@ export async function POST(request) {
       }
 
       const payload = {
-        userEmail: teamOrder.userEmail || 'alirejakhan36@gmail.com',
+        userEmail,
         assignDate,
         month: getMonthFromDate(assignDate, teamOrder.month),
         clientUsername,

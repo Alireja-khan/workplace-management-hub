@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import connectToDatabase from '@/lib/db';
 import TeamProject from '@/models/TeamProject';
 import Project from '@/models/Project';
@@ -23,9 +25,12 @@ function isMemberMatch(assignedMembers, targetName = 'Alireja') {
   });
 }
 
-async function syncTeamOrderToPersonal(teamOrder, targetMemberName = 'Alireja') {
+async function syncTeamOrderToPersonal(teamOrder, targetMemberName = 'Alireja', targetUserEmail = '') {
   try {
     if (!teamOrder) return;
+    const userEmail = targetUserEmail.toLowerCase() || teamOrder.userEmail || '';
+    if (!userEmail) return;
+
     const members = Array.isArray(teamOrder.assignedMembers) ? teamOrder.assignedMembers : [];
     
     const clientUsername = teamOrder.clientUserId || 'client_user';
@@ -34,10 +39,10 @@ async function syncTeamOrderToPersonal(teamOrder, targetMemberName = 'Alireja') 
 
     let existing = null;
     if (orderNumber) {
-      existing = await Project.findOne({ orderNumber });
+      existing = await Project.findOne({ orderNumber, userEmail });
     }
     if (!existing && clientUsername) {
-      existing = await Project.findOne({ clientUsername, assignDate });
+      existing = await Project.findOne({ clientUsername, assignDate, userEmail });
     }
 
     const assignedToUser = isMemberMatch(members, targetMemberName);
@@ -50,7 +55,7 @@ async function syncTeamOrderToPersonal(teamOrder, targetMemberName = 'Alireja') 
     }
 
     const payload = {
-      userEmail: teamOrder.userEmail || 'alirejakhan36@gmail.com',
+      userEmail,
       assignDate,
       month: getMonthFromDate(assignDate, teamOrder.month),
       clientUsername,
@@ -83,6 +88,11 @@ async function syncTeamOrderToPersonal(teamOrder, targetMemberName = 'Alireja') 
 // GET /api/team-projects/[id]
 export async function GET(request, { params }) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !session.user.email) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     await connectToDatabase();
     const project = await TeamProject.findById(params.id);
     if (!project) {
@@ -97,6 +107,12 @@ export async function GET(request, { params }) {
 // PUT /api/team-projects/[id]
 export async function PUT(request, { params }) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !session.user.email) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const userEmail = session.user.email.toLowerCase().trim();
+
     await connectToDatabase();
     const body = await request.json();
 
@@ -137,7 +153,7 @@ export async function PUT(request, { params }) {
     }
 
     // Auto sync updated team order to personal projects
-    await syncTeamOrderToPersonal(updated);
+    await syncTeamOrderToPersonal(updated, session.user.name || 'Alireja', userEmail);
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
@@ -148,6 +164,11 @@ export async function PUT(request, { params }) {
 // DELETE /api/team-projects/[id]
 export async function DELETE(request, { params }) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !session.user.email) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     await connectToDatabase();
     const deleted = await TeamProject.findByIdAndDelete(params.id);
     if (!deleted) {

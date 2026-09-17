@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import connectToDatabase from '@/lib/db';
 import Project from '@/models/Project';
 import { getMonthFromDate } from '@/lib/dateUtils';
@@ -6,8 +8,14 @@ import { getMonthFromDate } from '@/lib/dateUtils';
 // GET single project
 export async function GET(request, { params }) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !session.user.email) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const userEmail = session.user.email.toLowerCase().trim();
+
     await connectToDatabase();
-    const project = await Project.findById(params.id);
+    const project = await Project.findOne({ _id: params.id, userEmail });
     if (!project) {
       return NextResponse.json({ success: false, error: 'Project not found' }, { status: 404 });
     }
@@ -24,6 +32,12 @@ export async function GET(request, { params }) {
 // PUT / UPDATE project
 export async function PUT(request, { params }) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !session.user.email) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const userEmail = session.user.email.toLowerCase().trim();
+
     await connectToDatabase();
     const body = await request.json();
 
@@ -37,10 +51,16 @@ export async function PUT(request, { params }) {
       body.solvedAt = null;
     }
 
-    const project = await Project.findByIdAndUpdate(params.id, body, {
-      new: true,
-      runValidators: true,
-    });
+    body.userEmail = userEmail;
+
+    const project = await Project.findOneAndUpdate(
+      { _id: params.id, userEmail },
+      body,
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
 
     if (!project) {
       return NextResponse.json({ success: false, error: 'Project not found' }, { status: 404 });
@@ -60,8 +80,14 @@ export async function PUT(request, { params }) {
 // DELETE project
 export async function DELETE(request, { params }) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !session.user.email) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const userEmail = session.user.email.toLowerCase().trim();
+
     await connectToDatabase();
-    const deletedProject = await Project.findByIdAndDelete(params.id);
+    const deletedProject = await Project.findOneAndDelete({ _id: params.id, userEmail });
 
     if (!deletedProject) {
       return NextResponse.json({ success: false, error: 'Project not found' }, { status: 404 });

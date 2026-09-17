@@ -4,7 +4,7 @@ const ProjectSchema = new mongoose.Schema(
   {
     userEmail: {
       type: String,
-      default: 'alirejakhan36@gmail.com',
+      required: true,
       trim: true,
       lowercase: true,
     },

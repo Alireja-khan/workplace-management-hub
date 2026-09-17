@@ -228,11 +228,25 @@ export default function VercelDashboard() {
     notes: '',
   });
 
-  // Sync on Mount
+  // Sync on Mount & Handle Auth Errors from URL
   useEffect(() => {
     setMounted(true);
     const current = document.documentElement.getAttribute('data-theme') || localStorage.getItem('vercel_hub_theme') || 'dark';
     setTheme(current);
+
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const errorParam = params.get('error');
+      if (errorParam) {
+        setIsAuthModalOpen(true);
+        if (errorParam === 'OAuthSignin' || errorParam === 'OAuthCallback') {
+          setAuthError('Google sign-in is not configured on this server yet (GOOGLE_CLIENT_ID missing). Please sign in using your Email & Password.');
+        } else {
+          setAuthError(`Authentication error: ${errorParam}`);
+        }
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
   }, []);
 
   // When switching workspace mode, default to showing WIP / Running orders table
@@ -808,10 +822,15 @@ export default function VercelDashboard() {
       if (res?.error) {
         setAuthError(res.error || 'Invalid email or password');
       } else {
+        setAuthError('');
+        if (typeof window !== 'undefined') {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
         setIsAuthModalOpen(false);
         setAuthForm({ name: '', email: '', password: '' });
         showToast('Signed in successfully');
         fetchProjects();
+        fetchTeamProjects();
       }
     } catch (err) {
       setAuthError('An unexpected error occurred during sign in');
@@ -841,9 +860,14 @@ export default function VercelDashboard() {
           redirect: false,
         });
         if (!loginRes?.error) {
+          setAuthError('');
+          if (typeof window !== 'undefined') {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
           setIsAuthModalOpen(false);
           setAuthForm({ name: '', email: '', password: '' });
           fetchProjects();
+          fetchTeamProjects();
         } else {
           setAuthTab('signin');
         }
