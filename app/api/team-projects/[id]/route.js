@@ -8,7 +8,7 @@ import { getMonthFromDate } from '@/lib/dateUtils';
 
 function isMemberMatch(assignedMembers, targetName = 'Alireja') {
   if (!Array.isArray(assignedMembers) || assignedMembers.length === 0) return false;
-  if (!targetName) return true;
+  if (!targetName || targetName.trim() === '') return false;
 
   const targetLower = targetName.toLowerCase().trim();
   const targetFirstName = targetLower.split(' ')[0];
@@ -153,7 +153,7 @@ export async function PUT(request, { params }) {
     }
 
     // Auto sync updated team order to personal projects
-    await syncTeamOrderToPersonal(updated, session.user.name || 'Alireja', userEmail);
+    await syncTeamOrderToPersonal(updated, session.user.assignedName, userEmail);
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {

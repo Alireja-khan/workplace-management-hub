@@ -8,7 +8,7 @@ import { getMonthFromDate } from '@/lib/dateUtils';
 
 function isMemberMatch(assignedMembers, targetName = 'Alireja') {
   if (!Array.isArray(assignedMembers) || assignedMembers.length === 0) return false;
-  if (!targetName) return true;
+  if (!targetName || targetName.trim() === '') return false;
 
   const targetLower = targetName.toLowerCase().trim();
   const targetFirstName = targetLower.split(' ')[0];
@@ -36,7 +36,7 @@ export async function POST(request) {
 
     await connectToDatabase();
     
-    let targetMemberName = session.user.name || 'Alireja';
+    let targetMemberName = session.user.assignedName || '';
     try {
       const body = await request.json();
       if (body.memberName) targetMemberName = body.memberName;

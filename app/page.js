@@ -59,6 +59,7 @@ import { ensureValidUrl, parsePersonalSheetText, extractUrlFromHtmlOrText } from
 import LandingPage from '@/components/LandingPage';
 import TeamWorkspaceView from '@/components/TeamWorkspaceView';
 import TeamOrderModal from '@/components/TeamOrderModal';
+import AdminUsersView from '@/components/AdminUsersView';
 
 const GoogleIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24">
@@ -301,8 +302,13 @@ export default function VercelDashboard() {
 
   useEffect(() => {
     if (session?.user) {
-      fetchProjects();
-      fetchTeamProjects();
+      if (session.user.role !== 'Visitor') {
+        fetchProjects();
+        fetchTeamProjects();
+      } else {
+        setLoading(false);
+        setTeamLoading(false);
+      }
     }
   }, [session]);
 
@@ -1435,6 +1441,8 @@ export default function VercelDashboard() {
           }}
           theme={theme}
           toggleTheme={toggleTheme}
+          session={session}
+          onSignOut={() => signOut()}
         />
 
         {renderAuthModal()}
@@ -1488,24 +1496,41 @@ export default function VercelDashboard() {
               <Briefcase size={12} />
               <span>Personal</span>
             </button>
-            <button
-              className={`workspace-tab ${workspaceMode === 'team' ? 'active' : ''}`}
-              onClick={() => setWorkspaceMode('team')}
-            >
-              <Users size={12} />
-              <span>EleSquad</span>
-            </button>
+            {['Owner', 'Leader', 'Co-Leader', 'Member', 'admin'].includes(session?.user?.role) && (
+              <button
+                className={`workspace-tab ${workspaceMode === 'team' ? 'active' : ''}`}
+                onClick={() => setWorkspaceMode('team')}
+              >
+                <Users size={12} />
+                <span>EleSquad</span>
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Admin Dashboard Access */}
+        {['Owner', 'Leader', 'Co-Leader'].includes(session?.user?.role) && (
+          <div style={{ padding: '0 0.85rem 0.25rem 0.85rem', marginTop: '0.5rem' }}>
+            <button
+              className={`btn-v ${workspaceMode === 'admin' ? 'btn-v-primary' : 'btn-v-secondary'}`}
+              style={{ width: '100%', justifyContent: 'center', display: 'flex', gap: '0.5rem', padding: '0.5rem', fontSize: '0.78rem' }}
+              onClick={() => setWorkspaceMode('admin')}
+            >
+              <ShieldCheck size={14} /> Admin Panel
+            </button>
+          </div>
+        )}
 
         {workspaceMode === 'personal' ? (
           <>
             {/* Action Button inside Sidebar with comfortable eye contrast */}
-            <div style={{ padding: '0.85rem 0.85rem 0.25rem 0.85rem' }}>
-              <button className="sidebar-new-order-btn" onClick={openNewModal}>
-                <Plus size={14} /> New Order
-              </button>
-            </div>
+            {session?.user?.role !== 'Visitor' && (
+              <div style={{ padding: '0.85rem 0.85rem 0.25rem 0.85rem' }}>
+                <button className="sidebar-new-order-btn" onClick={openNewModal}>
+                  <Plus size={14} /> New Order
+                </button>
+              </div>
+            )}
 
             {/* Navigation Content */}
             <div className="sidebar-content">
@@ -1954,12 +1979,14 @@ export default function VercelDashboard() {
               >
                 <Briefcase size={12} style={{ marginRight: 4 }} /> Personal
               </button>
-              <button
-                className={`segmented-item ${workspaceMode === 'team' ? 'active' : ''}`}
-                onClick={() => setWorkspaceMode('team')}
-              >
-                <Users size={12} style={{ marginRight: 4 }} /> EleSquad
-              </button>
+              {['Owner', 'Leader', 'Co-Leader', 'Member', 'admin'].includes(session?.user?.role) && (
+                <button
+                  className={`segmented-item ${workspaceMode === 'team' ? 'active' : ''}`}
+                  onClick={() => setWorkspaceMode('team')}
+                >
+                  <Users size={12} style={{ marginRight: 4 }} /> EleSquad
+                </button>
+              )}
             </div>
 
             {/* View Switcher: Table / Kanban / Stats (Personal Mode) */}
@@ -2009,7 +2036,12 @@ export default function VercelDashboard() {
                   </div>
                 )}
                 <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>{session.user.name || 'Alireja Khan'}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>{session.user.name || 'Alireja Khan'}</span>
+                    <span style={{ fontSize: '0.5rem', padding: '0.1rem 0.3rem', borderRadius: 4, background: 'var(--border-default)', fontWeight: 700, textTransform: 'uppercase' }}>
+                      {session.user.role}
+                    </span>
+                  </div>
                   <span style={{ fontSize: '0.65rem', color: 'var(--accents-5)' }}>{session.user.email}</span>
                 </div>
                 <button className="btn-v-ghost" onClick={() => signOut()} title="Sign Out" style={{ padding: 3, marginLeft: 4, cursor: 'pointer' }}>
@@ -2043,8 +2075,9 @@ export default function VercelDashboard() {
           </div>
         </header>
 
-        {/* Dynamic Main View: Skeleton Loading OR Stats & Analytics OR Orders (Table / Kanban) */}
-        {(status === 'loading' || (workspaceMode === 'team' ? teamLoading : loading)) ? (
+        {workspaceMode === 'admin' ? (
+          <AdminUsersView />
+        ) : (status === 'loading' || (workspaceMode === 'team' ? teamLoading : loading)) ? (
           currentTab === 'stats' ? (
             /* Stats & Analytics Skeleton */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -2827,7 +2860,20 @@ export default function VercelDashboard() {
                         )
                       ) : (
                         /* PERSONAL TABLE ROWS */
-                        filteredProjects.length === 0 ? (
+                        session?.user?.role === 'Visitor' ? (
+                          <tr>
+                            <td colSpan={14} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
+                                <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                                  Dashboard Access Pending
+                                </span>
+                                <span style={{ fontSize: '0.85rem', color: 'var(--accents-5)', maxWidth: 450, lineHeight: 1.5 }}>
+                                  You are currently registered as a Visitor. Once an Admin assigns you a Member role, your data and orders will appear here automatically.
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : filteredProjects.length === 0 ? (
                           <tr>
                             <td colSpan={14} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>

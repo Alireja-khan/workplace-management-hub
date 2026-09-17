@@ -67,7 +67,8 @@ export const authOptions = {
               name: user.name || 'Google User',
               email,
               image: user.image || '',
-              role: 'admin',
+              role: 'Visitor',
+              assignedName: '',
             });
           } else if (user.image && !existingUser.image) {
             existingUser.image = user.image;
@@ -91,10 +92,20 @@ export const authOptions = {
     },
     async session({ session, token }) {
       if (session?.user) {
-        session.user.id = token.id || token.sub;
-        session.user.email = token.email;
-        session.user.name = token.name;
-        session.user.image = token.picture;
+        try {
+          await connectToDatabase();
+          const dbUser = await User.findById(token.id || token.sub);
+          session.user.id = token.id || token.sub;
+          session.user.email = token.email;
+          session.user.name = token.name;
+          session.user.image = token.picture;
+          session.user.role = dbUser?.role || 'Visitor';
+          session.user.assignedName = dbUser?.assignedName || '';
+        } catch (error) {
+          console.error('Session DB Fetch Error:', error);
+          session.user.role = 'Visitor';
+          session.user.assignedName = '';
+        }
       }
       return session;
     },

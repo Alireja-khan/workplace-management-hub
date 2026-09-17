@@ -28,10 +28,11 @@ import {
   FolderSync,
   HelpCircle,
   LogIn,
+  LogOut,
   Check
 } from 'lucide-react';
 
-export default function LandingPage({ onOpenAuth, theme, toggleTheme }) {
+export default function LandingPage({ onOpenAuth, theme, toggleTheme, session, onSignOut }) {
   const [activeFaq, setActiveFaq] = useState(null);
 
   const faqs = [
@@ -80,12 +81,33 @@ export default function LandingPage({ onOpenAuth, theme, toggleTheme }) {
             <button className="btn-v-icon" onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}>
               {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
             </button>
-            <button className="btn-v btn-v-secondary" onClick={() => onOpenAuth('signin')}>
-              <LogIn size={13} /> Sign In
-            </button>
-            <button className="btn-v btn-v-primary" onClick={() => onOpenAuth('signup')}>
-              Sign Up
-            </button>
+            {session?.user ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--input-bg)', padding: '0.3rem 0.65rem', borderRadius: 6, border: '1px solid var(--border-default)' }}>
+                {session.user.image ? (
+                  <img src={session.user.image} alt={session.user.name} style={{ width: 22, height: 22, borderRadius: '50%' }} />
+                ) : (
+                  <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'linear-gradient(135deg, #38bdf8, #10b981)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.68rem', fontWeight: 700 }}>
+                    {(session.user.name || 'V').slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>{session.user.name || 'Visitor'}</span>
+                  <span style={{ fontSize: '0.65rem', color: '#f5a623', fontWeight: 600 }}>Pending Approval</span>
+                </div>
+                <button className="btn-v-ghost" onClick={onSignOut} title="Sign Out" style={{ padding: 3, marginLeft: 4, cursor: 'pointer' }}>
+                  <LogOut size={13} />
+                </button>
+              </div>
+            ) : (
+              <>
+                <button className="btn-v btn-v-secondary" onClick={() => onOpenAuth('signin')}>
+                  <LogIn size={13} /> Sign In
+                </button>
+                <button className="btn-v btn-v-primary" onClick={() => onOpenAuth('signup')}>
+                  Sign Up
+                </button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -107,13 +129,21 @@ export default function LandingPage({ onOpenAuth, theme, toggleTheme }) {
           </p>
 
           <div className="landing-cta-group">
-            <button className="landing-btn-hero primary" onClick={() => onOpenAuth('signin')}>
-              <span>Open Personal Workspace</span>
-              <ArrowRight size={16} />
-            </button>
-            <button className="landing-btn-hero secondary" onClick={() => onOpenAuth('signup')}>
-              <span>Create Account</span>
-            </button>
+            {session?.user ? (
+              <button className="landing-btn-hero secondary" style={{ cursor: 'default' }}>
+                <span>Dashboard Access Pending...</span>
+              </button>
+            ) : (
+              <>
+                <button className="landing-btn-hero primary" onClick={() => onOpenAuth('signin')}>
+                  <span>Open Personal Workspace</span>
+                  <ArrowRight size={16} />
+                </button>
+                <button className="landing-btn-hero secondary" onClick={() => onOpenAuth('signup')}>
+                  <span>Create Account</span>
+                </button>
+              </>
+            )}
           </div>
 
           {/* Clean Neutral UI Mockup Preview */}

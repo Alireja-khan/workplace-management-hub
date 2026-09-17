@@ -8,7 +8,7 @@ import { getMonthFromDate } from '@/lib/dateUtils';
 
 function isMemberMatch(assignedMembers, targetName = 'Alireja') {
   if (!Array.isArray(assignedMembers) || assignedMembers.length === 0) return false;
-  if (!targetName) return true;
+  if (!targetName || targetName.trim() === '') return false;
 
   const targetLower = targetName.toLowerCase().trim();
   const targetFirstName = targetLower.split(' ')[0];
@@ -160,7 +160,7 @@ export async function POST(request) {
 
       // Auto sync each to personal projects
       for (const item of created) {
-        await syncTeamOrderToPersonal(item, session.user.name || 'Alireja', userEmail);
+        await syncTeamOrderToPersonal(item, session.user.assignedName, userEmail);
       }
 
       return NextResponse.json({ success: true, count: created.length, data: created }, { status: 201 });
@@ -193,7 +193,7 @@ export async function POST(request) {
     const project = await TeamProject.create(body);
 
     // Auto sync to personal projects
-    await syncTeamOrderToPersonal(project, session.user.name || 'Alireja', userEmail);
+    await syncTeamOrderToPersonal(project, session.user.assignedName, userEmail);
 
     return NextResponse.json({ success: true, data: project }, { status: 201 });
   } catch (error) {

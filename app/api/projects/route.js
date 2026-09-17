@@ -8,7 +8,7 @@ import { getMonthFromDate } from '@/lib/dateUtils';
 
 function isMemberMatch(assignedMembers, targetName = 'Alireja') {
   if (!Array.isArray(assignedMembers) || assignedMembers.length === 0) return false;
-  if (!targetName) return true;
+  if (!targetName) return false;
 
   const targetLower = targetName.toLowerCase().trim();
   const targetFirstName = targetLower.split(' ')[0];
@@ -25,7 +25,7 @@ function isMemberMatch(assignedMembers, targetName = 'Alireja') {
   });
 }
 
-async function syncAllExistingTeamProjects(targetMemberName = 'Alireja', targetUserEmail = '') {
+async function syncAllExistingTeamProjects(targetMemberName = '', targetUserEmail = '') {
   try {
     const teamProjects = await TeamProject.find({});
     for (const teamOrder of teamProjects) {
@@ -90,8 +90,14 @@ export async function GET(request) {
     }
 
     const userEmail = session.user.email.toLowerCase().trim();
+    const assignedName = session.user.assignedName || '';
 
     await connectToDatabase();
+
+    // Sync team projects to personal workspace for this user's assignedName
+    if (assignedName) {
+      await syncAllExistingTeamProjects(assignedName, userEmail);
+    }
 
     // Auto-reset 'Solved' status back to 'All Sorted' if 2 days (48 hours) have passed without status changes
     const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
