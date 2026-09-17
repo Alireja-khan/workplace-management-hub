@@ -413,12 +413,20 @@ export default function VercelDashboard() {
   const teamCurrentDeliveredCount = useMemo(() => {
     return teamProjects.filter(p => {
        const st = (p.orderStatus || '').toLowerCase();
-       const isDeliveredOrDone = st === 'delivered' || st === 'done';
+       const isDeliveredOrDone = st === 'delivered' || st === 'done' || st === 'issue';
        const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
        const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
        const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
        return isDeliveredOrDone && (delMonthStr === currentMonthIdx || (!delMonth && getMonthFromDate(p.assignDate, '').toLowerCase() === currentCalendarMonth.toLowerCase()));
     }).length;
+  }, [teamProjects, currentCalendarMonth]);
+
+  const teamCurrentCancelCount = useMemo(() => {
+    return teamProjects.filter(p => getMonthFromDate(p.assignDate, p.month).toLowerCase() === currentCalendarMonth.toLowerCase() && (p.orderStatus || '').toLowerCase() === 'cancel').length;
+  }, [teamProjects, currentCalendarMonth]);
+
+  const teamCurrentNeedReqCount = useMemo(() => {
+    return teamProjects.filter(p => getMonthFromDate(p.assignDate, p.month).toLowerCase() === currentCalendarMonth.toLowerCase() && (p.orderStatus || '').toLowerCase() === 'need requirements').length;
   }, [teamProjects, currentCalendarMonth]);
 
   const teamCarryCount = useMemo(() => {
@@ -639,18 +647,24 @@ export default function VercelDashboard() {
       if (currentTab === 'running') {
         const s = (p.orderStatus || 'Wip').toLowerCase();
         const sch = (p.timeSchedule || '').toLowerCase();
-        if (s !== 'wip' && s !== 'issue' && !s.includes('need') && sch !== 'late') return false;
+        if (s !== 'wip' && sch !== 'late') return false;
       } else if (currentTab === 'current_month_only') {
         const pMonth = getMonthFromDate(p.assignDate, p.month);
         if (pMonth.toLowerCase() !== currentCalendarMonth.toLowerCase()) return false;
       } else if (currentTab === 'current_delivered') {
         const st = (p.orderStatus || '').toLowerCase();
-        const isDeliveredOrDone = st === 'delivered' || st === 'done';
+        const isDeliveredOrDone = st === 'delivered' || st === 'done' || st === 'issue';
         const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
         const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
         const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
         const isCurrentMonth = delMonthStr === currentMonthIdx || (!delMonth && getMonthFromDate(p.assignDate, '').toLowerCase() === currentCalendarMonth.toLowerCase());
         if (!isDeliveredOrDone || !isCurrentMonth) return false;
+      } else if (currentTab === 'current_cancel') {
+        const pMonth = getMonthFromDate(p.assignDate, p.month);
+        if (pMonth.toLowerCase() !== currentCalendarMonth.toLowerCase() || (p.orderStatus || '').toLowerCase() !== 'cancel') return false;
+      } else if (currentTab === 'current_need_req') {
+        const pMonth = getMonthFromDate(p.assignDate, p.month);
+        if (pMonth.toLowerCase() !== currentCalendarMonth.toLowerCase() || (p.orderStatus || '').toLowerCase() !== 'need requirements') return false;
       } else if (currentTab === 'carry_orders') {
         const pMonth = getMonthFromDate(p.assignDate, p.month);
         if (pMonth.toLowerCase() === currentCalendarMonth.toLowerCase()) return false;
@@ -1910,6 +1924,44 @@ export default function VercelDashboard() {
                   </div>
                   <span className="sidebar-count-badge" style={{ color: '#8b5cf6', borderColor: 'rgba(139,92,246,0.3)' }}>
                     {teamCarryCount}
+                  </span>
+                </button>
+
+                <button
+                  className={`sidebar-nav-item ${currentTab === 'current_cancel' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('current_cancel');
+                    setTeamMemberFilter('All');
+                    setTeamSalesFilter('All');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <AlertCircle size={14} color="#ef4444" />
+                    <span>{currentCalendarMonth.substring(0, 3)} Cancel</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}>
+                    {teamCurrentCancelCount}
+                  </span>
+                </button>
+
+                <button
+                  className={`sidebar-nav-item ${currentTab === 'current_need_req' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('current_need_req');
+                    setTeamMemberFilter('All');
+                    setTeamSalesFilter('All');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <AlertCircle size={14} color="#eab308" />
+                    <span>{currentCalendarMonth.substring(0, 3)} Need Req</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#eab308', borderColor: 'rgba(234,179,8,0.3)' }}>
+                    {teamCurrentNeedReqCount}
                   </span>
                 </button>
 
