@@ -431,8 +431,8 @@ export default function VercelDashboard() {
   }, [teamProjects, currentCalendarMonth]);
 
   const teamCurrentNRACount = useMemo(() => {
-    return teamProjects.filter(p => getMonthFromDate(p.assignDate, p.month).toLowerCase() === currentCalendarMonth.toLowerCase() && (p.orderStatus || 'wip').toLowerCase() === 'nra').length;
-  }, [teamProjects, currentCalendarMonth]);
+    return teamProjects.filter(p => (p.orderStatus || 'wip').toLowerCase() === 'nra').length;
+  }, [teamProjects]);
 
   const teamCarryCount = useMemo(() => {
     return teamProjects.filter(p => {
@@ -672,8 +672,7 @@ export default function VercelDashboard() {
         const pMonth = getMonthFromDate(p.assignDate, p.month);
         if (pMonth.toLowerCase() !== currentCalendarMonth.toLowerCase() || (p.orderStatus || '').toLowerCase() !== 'need requirements') return false;
       } else if (currentTab === 'current_nra') {
-        const pMonth = getMonthFromDate(p.assignDate, p.month);
-        if (pMonth.toLowerCase() !== currentCalendarMonth.toLowerCase() || (p.orderStatus || '').toLowerCase() !== 'nra') return false;
+        if ((p.orderStatus || 'wip').toLowerCase() !== 'nra') return false;
       } else if (currentTab === 'carry_orders') {
         const pMonth = getMonthFromDate(p.assignDate, p.month);
         if (pMonth.toLowerCase() === currentCalendarMonth.toLowerCase()) return false;
@@ -1986,7 +1985,7 @@ export default function VercelDashboard() {
                 >
                   <div className="sidebar-nav-left">
                     <AlertCircle size={14} color="#f97316" />
-                    <span>{currentCalendarMonth.substring(0, 3)} NRA</span>
+                    <span>NRA</span>
                   </div>
                   <span className="sidebar-count-badge" style={{ color: '#f97316', borderColor: 'rgba(249,115,22,0.3)' }}>
                     {teamCurrentNRACount}
@@ -2025,7 +2024,7 @@ export default function VercelDashboard() {
                     <ChevronDown size={14} style={{ transform: teamMembersExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
                   </button>
                 </div>
-                {(teamMembersExpanded ? teamMemberList : []).map((m) => (
+                {(teamMembersExpanded ? teamMemberList : teamMemberList.slice(0, 3)).map((m) => (
                   <button
                     key={m}
                     className={`sidebar-nav-item ${teamMemberFilter.toLowerCase() === m.toLowerCase() ? 'active' : ''}`}
