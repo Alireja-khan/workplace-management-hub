@@ -141,6 +141,7 @@ export default function VercelDashboard() {
   const [teamSalesFilter, setTeamSalesFilter] = useState('all');
   const [teamMonthFilter, setTeamMonthFilter] = useState('all');
   const [teamYearFilter, setTeamYearFilter] = useState('all');
+  const [teamDateFilterType, setTeamDateFilterType] = useState('assign');
   const [teamViewMode, setTeamViewMode] = useState('table');
   const [teamMembersExpanded, setTeamMembersExpanded] = useState(false);
 
@@ -266,6 +267,9 @@ export default function VercelDashboard() {
     setCurrentTab('running');
     setTeamMemberFilter('all');
     setTeamSalesFilter('all');
+    setTeamYearFilter('all');
+    setTeamMonthFilter('all');
+    setTeamDateFilterType('assign');
     setProfileFilter('all');
     setStatusFilter('all');
   }, [workspaceMode]);
@@ -758,10 +762,25 @@ export default function VercelDashboard() {
         const pYear = getYearFromDate(p.assignDate);
         const pMonth = getMonthFromDate(p.assignDate, p.month);
         
-        if (teamYearFilter.toLowerCase() !== 'all' && pYear !== teamYearFilter) {
+        let targetYear = pYear;
+        let targetMonth = pMonth;
+
+        if (teamDateFilterType === 'delivery') {
+          if (!p.deliveryDate) {
+             // If they are explicitly filtering by delivery date year/month, but this order has no delivery date, hide it
+             if (teamYearFilter.toLowerCase() !== 'all' || teamMonthFilter.toLowerCase() !== 'all') {
+               return false;
+             }
+          } else {
+             targetYear = getYearFromDate(p.deliveryDate);
+             targetMonth = getMonthFromDate(p.deliveryDate, '');
+          }
+        }
+        
+        if (teamYearFilter.toLowerCase() !== 'all' && targetYear !== teamYearFilter) {
           return false;
         }
-        if (teamMonthFilter.toLowerCase() !== 'all' && pMonth.toLowerCase() !== teamMonthFilter.toLowerCase()) {
+        if (teamMonthFilter.toLowerCase() !== 'all' && targetMonth.toLowerCase() !== teamMonthFilter.toLowerCase()) {
           return false;
         }
       }
@@ -815,7 +834,7 @@ export default function VercelDashboard() {
     });
 
     return res;
-  }, [teamProjects, currentTab, teamMemberFilter, teamSalesFilter, teamMonthFilter, teamYearFilter, profileFilter, statusFilter, searchQuery, sortConfig, currentCalendarMonth, currentCalendarYear]);
+  }, [teamProjects, currentTab, teamMemberFilter, teamSalesFilter, teamMonthFilter, teamYearFilter, teamDateFilterType, profileFilter, statusFilter, searchQuery, sortConfig, currentCalendarMonth, currentCalendarYear]);
 
   // Status Distribution
   const statusStats = useMemo(() => {
@@ -2654,6 +2673,16 @@ export default function VercelDashboard() {
 
                 {workspaceMode === 'team' ? (
                   <>
+                    {/* Date Filter Type */}
+                    <select
+                      className="v-select"
+                      value={teamDateFilterType}
+                      onChange={(e) => setTeamDateFilterType(e.target.value)}
+                    >
+                      <option value="assign">Filter by: Assign Date</option>
+                      <option value="delivery">Filter by: Delivery Date</option>
+                    </select>
+
                     {/* Year Filter */}
                     <select
                       className="v-select"
@@ -2793,6 +2822,7 @@ export default function VercelDashboard() {
                     setTeamSalesFilter('all');
                     setTeamYearFilter('all');
                     setTeamMonthFilter('all');
+                    setTeamDateFilterType('assign');
                     setCurrentTab('all');
                   }}
                   title="Reset Filters"
