@@ -3298,7 +3298,7 @@ export default function VercelDashboard() {
         {/* Modal: Add/Edit Order */}
         {isModalOpen && (
           <div className="v-modal-overlay">
-            <div className="v-modal-dialog">
+            <div className="v-modal-dialog" style={{ maxWidth: 1000 }}>
               <div className="v-modal-header">
                 <span style={{ fontSize: '0.95rem', fontWeight: 600 }}>
                   {activeProject ? `Edit Order: ${activeProject.clientUsername}` : 'Create New Order'}
@@ -3346,7 +3346,7 @@ export default function VercelDashboard() {
                     />
                   </div>
 
-                  <div className="v-form-grid">
+                  <div className="v-form-grid-3">
                     <div className="v-form-group">
                       <label>Assign Date *</label>
                       <input
@@ -3371,19 +3371,19 @@ export default function VercelDashboard() {
                     </div>
                     <div className="v-form-group">
                       <label>Sales Person</label>
-                      <input type="text" className="v-input" placeholder="e.g. Shuvo" value={formData.salesPerson} onChange={(e) => setFormData({ ...formData, salesPerson: e.target.value })} />
+                      <input type="text" className="v-input" placeholder="e.g. Sales Name" value={formData.salesPerson} onChange={(e) => setFormData({ ...formData, salesPerson: e.target.value })} />
                     </div>
                     <div className="v-form-group">
                       <label>Client Username / ID *</label>
-                      <input type="text" className="v-input" placeholder="e.g. darlanjoubert" value={formData.clientUsername} onChange={(e) => setFormData({ ...formData, clientUsername: e.target.value })} required />
+                      <input type="text" className="v-input" placeholder="e.g. client123" value={formData.clientUsername} onChange={(e) => setFormData({ ...formData, clientUsername: e.target.value })} required />
                     </div>
                     <div className="v-form-group">
                       <label>Order Number</label>
-                      <input type="text" className="v-input mono-text" placeholder="e.g. FO1705781001" value={formData.orderNumber} onChange={(e) => setFormData({ ...formData, orderNumber: e.target.value })} />
+                      <input type="text" className="v-input mono-text" placeholder="e.g. ORD-001" value={formData.orderNumber} onChange={(e) => setFormData({ ...formData, orderNumber: e.target.value })} />
                     </div>
                     <div className="v-form-group">
                       <label>Profile Name *</label>
-                      <input type="text" className="v-input" placeholder="e.g. LeadsBridge, WpStellar" value={formData.profileName} onChange={(e) => setFormData({ ...formData, profileName: e.target.value })} required />
+                      <input type="text" className="v-input" placeholder="e.g. Profile 1" value={formData.profileName} onChange={(e) => setFormData({ ...formData, profileName: e.target.value })} required />
                     </div>
                     <div className="v-form-group">
                       <label>Gross Amount ($) *</label>

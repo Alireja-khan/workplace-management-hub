@@ -99,7 +99,7 @@ export default function TeamOrderModal({
 
   return (
     <div className="v-modal-overlay" onMouseDown={onClose}>
-      <div className="v-modal-dialog" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="v-modal-dialog" style={{ maxWidth: 1000 }} onMouseDown={(e) => e.stopPropagation()}>
         <div className="v-modal-header">
           <span style={{ fontSize: '0.95rem', fontWeight: 600 }}>
             {isEdit ? 'Edit Team Order' : 'Create New Team Order'}
@@ -149,7 +149,7 @@ export default function TeamOrderModal({
               />
             </div>
 
-            <div className="v-form-grid">
+            <div className="v-form-grid-3">
               <div className="v-form-group">
                 <label>Assign Date *</label>
                 <input
@@ -179,7 +179,7 @@ export default function TeamOrderModal({
                 <input
                   type="text"
                   className="v-input"
-                  placeholder="e.g. Shuvo"
+                  placeholder="e.g. Sales Name"
                   value={formData.salesPerson}
                   onChange={(e) => setFormData({ ...formData, salesPerson: e.target.value })}
                 />
@@ -190,7 +190,7 @@ export default function TeamOrderModal({
                 <input
                   type="text"
                   className="v-input"
-                  placeholder="e.g. darlanjoubert"
+                  placeholder="e.g. client123"
                   value={formData.clientUserId}
                   onChange={(e) => setFormData({ ...formData, clientUserId: e.target.value })}
                   required
@@ -202,7 +202,7 @@ export default function TeamOrderModal({
                 <input
                   type="text"
                   className="v-input mono-text"
-                  placeholder="e.g. FO1705781001"
+                  placeholder="e.g. ORD-001"
                   value={formData.orderNumber}
                   onChange={(e) => setFormData({ ...formData, orderNumber: e.target.value })}
                 />
@@ -213,7 +213,7 @@ export default function TeamOrderModal({
                 <input
                   type="text"
                   className="v-input"
-                  placeholder="e.g. wpstellar"
+                  placeholder="e.g. Profile 1"
                   value={formData.profileName}
                   onChange={(e) => setFormData({ ...formData, profileName: e.target.value })}
                 />
