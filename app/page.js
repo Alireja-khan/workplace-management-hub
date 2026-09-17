@@ -412,7 +412,7 @@ export default function VercelDashboard() {
 
   const teamCurrentDeliveredCount = useMemo(() => {
     return teamProjects.filter(p => {
-       const st = (p.orderStatus || '').toLowerCase();
+       const st = (p.orderStatus || 'wip').toLowerCase();
        const isDeliveredOrDone = st === 'delivered' || st === 'done' || st === 'issue';
        const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
        const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
@@ -422,11 +422,11 @@ export default function VercelDashboard() {
   }, [teamProjects, currentCalendarMonth]);
 
   const teamCurrentCancelCount = useMemo(() => {
-    return teamProjects.filter(p => getMonthFromDate(p.assignDate, p.month).toLowerCase() === currentCalendarMonth.toLowerCase() && (p.orderStatus || '').toLowerCase() === 'cancel').length;
+    return teamProjects.filter(p => getMonthFromDate(p.assignDate, p.month).toLowerCase() === currentCalendarMonth.toLowerCase() && (p.orderStatus || 'wip').toLowerCase() === 'cancel').length;
   }, [teamProjects, currentCalendarMonth]);
 
   const teamCurrentNeedReqCount = useMemo(() => {
-    return teamProjects.filter(p => getMonthFromDate(p.assignDate, p.month).toLowerCase() === currentCalendarMonth.toLowerCase() && (p.orderStatus || '').toLowerCase() === 'need requirements').length;
+    return teamProjects.filter(p => getMonthFromDate(p.assignDate, p.month).toLowerCase() === currentCalendarMonth.toLowerCase() && (p.orderStatus || 'wip').toLowerCase() === 'need requirements').length;
   }, [teamProjects, currentCalendarMonth]);
 
   const teamCarryCount = useMemo(() => {
@@ -434,7 +434,7 @@ export default function VercelDashboard() {
        const pMonth = getMonthFromDate(p.assignDate, p.month);
        if (pMonth.toLowerCase() === currentCalendarMonth.toLowerCase()) return false;
        
-       const st = (p.orderStatus || '').toLowerCase();
+       const st = (p.orderStatus || 'wip').toLowerCase();
        const isRunning = st !== 'done' && st !== 'delivered' && st !== 'cancel';
        
        const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
@@ -620,7 +620,7 @@ export default function VercelDashboard() {
 
   // Team Running Count
   const teamRunningCount = useMemo(() => {
-    return teamProjects.filter((p) => (p.orderStatus || '').toLowerCase() === 'wip').length;
+    return teamProjects.filter((p) => (p.orderStatus || 'wip').toLowerCase() === 'wip').length;
   }, [teamProjects]);
 
   // Team Monthly Stats for Analytics Page
