@@ -421,6 +421,23 @@ export default function VercelDashboard() {
     }).length;
   }, [teamProjects, currentCalendarMonth]);
 
+  const teamCarryCount = useMemo(() => {
+    return teamProjects.filter(p => {
+       const pMonth = getMonthFromDate(p.assignDate, p.month);
+       if (pMonth.toLowerCase() === currentCalendarMonth.toLowerCase()) return false;
+       
+       const st = (p.orderStatus || '').toLowerCase();
+       const isRunning = st !== 'done' && st !== 'delivered' && st !== 'cancel';
+       
+       const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
+       const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
+       const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
+       const deliveredThisMonth = (st === 'delivered' || st === 'done') && (delMonthStr === currentMonthIdx || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase()));
+       
+       return isRunning || deliveredThisMonth;
+    }).length;
+  }, [teamProjects, currentCalendarMonth]);
+
   // KPIs
   const kpis = useMemo(() => {
     let totalGross = 0;
@@ -634,6 +651,19 @@ export default function VercelDashboard() {
         const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
         const isCurrentMonth = delMonthStr === currentMonthIdx || (!delMonth && getMonthFromDate(p.assignDate, '').toLowerCase() === currentCalendarMonth.toLowerCase());
         if (!isDeliveredOrDone || !isCurrentMonth) return false;
+      } else if (currentTab === 'carry_orders') {
+        const pMonth = getMonthFromDate(p.assignDate, p.month);
+        if (pMonth.toLowerCase() === currentCalendarMonth.toLowerCase()) return false;
+        
+        const st = (p.orderStatus || '').toLowerCase();
+        const isRunning = st !== 'done' && st !== 'delivered' && st !== 'cancel';
+        
+        const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
+        const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
+        const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
+        const deliveredThisMonth = (st === 'delivered' || st === 'done') && (delMonthStr === currentMonthIdx || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase()));
+        
+        if (!isRunning && !deliveredThisMonth) return false;
       } else if (currentTab !== 'all') {
         const isCurrentCalendarMonthTab = currentTab.toLowerCase() === currentCalendarMonth.toLowerCase();
         const pMonth = getMonthFromDate(p.assignDate, p.month);
@@ -1861,6 +1891,25 @@ export default function VercelDashboard() {
                   </div>
                   <span className="sidebar-count-badge" style={{ color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }}>
                     {teamCurrentDeliveredCount}
+                  </span>
+                </button>
+
+                <button
+                  className={`sidebar-nav-item ${currentTab === 'carry_orders' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('carry_orders');
+                    setTeamMemberFilter('All');
+                    setTeamSalesFilter('All');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <Zap size={14} color="#8b5cf6" />
+                    <span>Carry Orders</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#8b5cf6', borderColor: 'rgba(139,92,246,0.3)' }}>
+                    {teamCarryCount}
                   </span>
                 </button>
 
