@@ -418,7 +418,7 @@ export default function VercelDashboard() {
        const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
        const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
        const pMonth = getMonthFromDate(p.assignDate, p.month);
-       return isDeliveredOrDone && (delMonthStr === currentMonthIdx || pMonth.toLowerCase() === currentCalendarMonth.toLowerCase());
+       return isDeliveredOrDone && (delMonthStr === currentMonthIdx || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase()));
     }).length;
   }, [teamProjects, currentCalendarMonth]);
 
@@ -430,7 +430,7 @@ export default function VercelDashboard() {
        const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
        const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
        const pMonth = getMonthFromDate(p.assignDate, p.month);
-       return isCancel && (delMonthStr === currentMonthIdx || pMonth.toLowerCase() === currentCalendarMonth.toLowerCase());
+       return isCancel && (delMonthStr === currentMonthIdx || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase()));
     }).length;
   }, [teamProjects, currentCalendarMonth]);
 
@@ -672,7 +672,7 @@ export default function VercelDashboard() {
         const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
         const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
         const pMonth = getMonthFromDate(p.assignDate, p.month);
-        const isCurrentMonth = delMonthStr === currentMonthIdx || pMonth.toLowerCase() === currentCalendarMonth.toLowerCase();
+        const isCurrentMonth = delMonthStr === currentMonthIdx || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase());
         if (!isDeliveredOrDone || !isCurrentMonth) return false;
       } else if (currentTab === 'current_cancel') {
         const st = (p.orderStatus || 'wip').toLowerCase();
@@ -681,7 +681,7 @@ export default function VercelDashboard() {
         const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
         const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
         const pMonth = getMonthFromDate(p.assignDate, p.month);
-        const isCurrentMonth = delMonthStr === currentMonthIdx || pMonth.toLowerCase() === currentCalendarMonth.toLowerCase();
+        const isCurrentMonth = delMonthStr === currentMonthIdx || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase());
         if (!isCurrentMonth) return false;
       } else if (currentTab === 'current_need_req') {
         const pMonth = getMonthFromDate(p.assignDate, p.month);
