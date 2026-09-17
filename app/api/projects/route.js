@@ -151,6 +151,26 @@ export async function POST(request) {
 
     body.userEmail = userEmail;
 
+    // Strict Duplication Check
+    if (body.assignDate && body.orderNumber && body.clientUsername) {
+      const amt = parseFloat(body.amount) || 0;
+      const duplicateQuery = {
+        assignDate: body.assignDate,
+        orderNumber: body.orderNumber,
+        amount: amt,
+        clientUsername: body.clientUsername,
+        userEmail: userEmail
+      };
+      
+      const existingOrder = await Project.findOne(duplicateQuery);
+      if (existingOrder) {
+        return NextResponse.json(
+          { success: false, error: 'This order already exists. (Exact match on Date, Order ID, Value, and Client)' },
+          { status: 400 }
+        );
+      }
+    }
+
     const project = await Project.create(body);
     return NextResponse.json({ success: true, data: project }, { status: 201 });
   } catch (error) {

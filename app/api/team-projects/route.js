@@ -156,14 +156,42 @@ export async function POST(request) {
                 : ['Alireja']),
         };
       });
-      const created = await TeamProject.insertMany(prepared);
+      const validToInsert = [];
+      let skippedCount = 0;
 
-      // Auto sync each to personal projects
-      for (const item of created) {
-        await syncTeamOrderToPersonal(item, session.user.assignedName, userEmail);
+      for (const item of prepared) {
+        if (item.assignDate && item.orderNumber && item.clientUserId) {
+          const duplicateQuery = {
+            assignDate: item.assignDate,
+            orderNumber: item.orderNumber,
+            amount: item.amount,
+            clientUserId: item.clientUserId,
+            assignedMembers: { $size: item.assignedMembers.length, $all: item.assignedMembers }
+          };
+          const existing = await TeamProject.findOne(duplicateQuery);
+          if (existing) {
+            skippedCount++;
+            continue; // Skip this duplicate
+          }
+        }
+        validToInsert.push(item);
       }
 
-      return NextResponse.json({ success: true, count: created.length, data: created }, { status: 201 });
+      let created = [];
+      if (validToInsert.length > 0) {
+        created = await TeamProject.insertMany(validToInsert);
+        // Auto sync each to personal projects
+        for (const item of created) {
+          await syncTeamOrderToPersonal(item, session.user.assignedName, userEmail);
+        }
+      }
+
+      return NextResponse.json({ 
+        success: true, 
+        count: created.length, 
+        skipped: skippedCount,
+        data: created 
+      }, { status: 201 });
     }
 
     if (!body.clientUserId) {
@@ -188,6 +216,31 @@ export async function POST(request) {
         .split(/[,/]/)
         .map((s) => s.trim())
         .filter(Boolean);
+    }
+
+    // Strict Duplication Check
+    // All 5 fields must match exactly to be considered a duplicate:
+    // 1. assignDate
+    // 2. orderNumber
+    // 3. amount
+    // 4. clientUserId
+    // 5. assignedMembers (arrays must contain same elements, or just do an exact match check)
+    if (body.assignDate && body.orderNumber && body.clientUserId) {
+      const duplicateQuery = {
+        assignDate: body.assignDate,
+        orderNumber: body.orderNumber,
+        amount: amt,
+        clientUserId: body.clientUserId,
+        assignedMembers: { $size: body.assignedMembers.length, $all: body.assignedMembers }
+      };
+      
+      const existingOrder = await TeamProject.findOne(duplicateQuery);
+      if (existingOrder) {
+        return NextResponse.json(
+          { success: false, error: 'This order already exists. (Exact match on Date, Order ID, Value, Client, and Assigned Members)' },
+          { status: 400 }
+        );
+      }
     }
 
     const project = await TeamProject.create(body);
