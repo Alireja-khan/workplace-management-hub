@@ -384,18 +384,38 @@ export default function VercelDashboard() {
   // Team KPIs
   const teamFinancialOverview = useMemo(() => {
     let wipNetValue = 0;
+    let deliveredGrossValue = 0;
     let deliveredNetValue = 0;
     teamProjects.forEach(p => {
       const status = (p.orderStatus || '').toLowerCase();
-      const net = parseFloat(p.netAmount) || (parseFloat(p.amount) * 0.8 || 0);
+      const gross = parseFloat(p.amount) || 0;
+      const net = parseFloat(p.netAmount) || (gross * 0.8 || 0);
+      
       if (status === 'wip') {
         wipNetValue += net;
       } else if (status === 'delivered' || status === 'done') {
-        deliveredNetValue += net;
+        const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
+        const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
+        const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
+        if (delMonthStr === currentMonthIdx || (!delMonth && getMonthFromDate(p.assignDate, '').toLowerCase() === currentCalendarMonth.toLowerCase())) {
+          deliveredGrossValue += gross;
+          deliveredNetValue += net;
+        }
       }
     });
-    return { wipNetValue, deliveredNetValue };
-  }, [teamProjects]);
+    return { wipNetValue, deliveredGrossValue, deliveredNetValue };
+  }, [teamProjects, currentCalendarMonth]);
+
+  const teamCurrentDeliveredCount = useMemo(() => {
+    return teamProjects.filter(p => {
+       const st = (p.orderStatus || '').toLowerCase();
+       const isDeliveredOrDone = st === 'delivered' || st === 'done';
+       const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
+       const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
+       const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
+       return isDeliveredOrDone && (delMonthStr === currentMonthIdx || (!delMonth && getMonthFromDate(p.assignDate, '').toLowerCase() === currentCalendarMonth.toLowerCase()));
+    }).length;
+  }, [teamProjects, currentCalendarMonth]);
 
   // KPIs
   const kpis = useMemo(() => {
@@ -599,6 +619,14 @@ export default function VercelDashboard() {
         const s = (p.orderStatus || 'Wip').toLowerCase();
         const sch = (p.timeSchedule || '').toLowerCase();
         if (s !== 'wip' && s !== 'issue' && !s.includes('need') && sch !== 'late') return false;
+      } else if (currentTab === 'current_delivered') {
+        const st = (p.orderStatus || '').toLowerCase();
+        const isDeliveredOrDone = st === 'delivered' || st === 'done';
+        const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
+        const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
+        const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
+        const isCurrentMonth = delMonthStr === currentMonthIdx || (!delMonth && getMonthFromDate(p.assignDate, '').toLowerCase() === currentCalendarMonth.toLowerCase());
+        if (!isDeliveredOrDone || !isCurrentMonth) return false;
       } else if (currentTab !== 'all') {
         const isCurrentCalendarMonthTab = currentTab.toLowerCase() === currentCalendarMonth.toLowerCase();
         const pMonth = getMonthFromDate(p.assignDate, p.month);
@@ -1397,7 +1425,7 @@ export default function VercelDashboard() {
                     type={showAuthPassword ? 'text' : 'password'}
                     className="v-input"
                     style={{ paddingRight: '2.5rem' }}
-                    placeholder="••••••••••••"
+                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                     value={authForm.password}
                     onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
                     required
@@ -1778,10 +1806,20 @@ export default function VercelDashboard() {
                 <div className="sidebar-nav-item" style={{ cursor: 'default' }}>
                   <div className="sidebar-nav-left">
                     <DollarSign size={14} color="#10b981" />
-                    <span style={{ fontSize: '0.8rem' }}>Delivered Net Value</span>
+                    <span style={{ fontSize: '0.8rem' }}>{currentCalendarMonth} Delivered (Gross)</span>
                   </div>
                   <span className="mono-text" style={{ fontSize: '0.75rem', fontWeight: 600, color: '#10b981' }}>
-                    ${teamFinancialOverview.deliveredNetValue.toFixed(2)}
+                    ${(teamFinancialOverview.deliveredGrossValue || 0).toFixed(2)}
+                  </span>
+                </div>
+                
+                <div className="sidebar-nav-item" style={{ cursor: 'default' }}>
+                  <div className="sidebar-nav-left">
+                    <DollarSign size={14} color="#10b981" />
+                    <span style={{ fontSize: '0.8rem' }}>{currentCalendarMonth} Delivered (Net)</span>
+                  </div>
+                  <span className="mono-text" style={{ fontSize: '0.75rem', fontWeight: 600, color: '#10b981' }}>
+                    ${(teamFinancialOverview.deliveredNetValue || 0).toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -1823,6 +1861,25 @@ export default function VercelDashboard() {
                   </div>
                   <span className="sidebar-count-badge" style={{ color: '#38bdf8', borderColor: 'rgba(56,189,248,0.3)' }}>
                     {teamRunningCount}
+                  </span>
+                </button>
+
+                <button
+                  className={`sidebar-nav-item ${currentTab === 'current_delivered' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('current_delivered');
+                    setTeamMemberFilter('All');
+                    setTeamSalesFilter('All');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <CheckCircle2 size={14} color="#10b981" />
+                    <span>{currentCalendarMonth} Delivered</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }}>
+                    {teamCurrentDeliveredCount}
                   </span>
                 </button>
 
@@ -1920,30 +1977,11 @@ export default function VercelDashboard() {
                 ))}
               </div>
 
-              {/* Sales Persons Filter Section */}
-              <div className="sidebar-section">
-                <div className="sidebar-section-title">Sales Persons</div>
-                {teamSalesList.map((sp) => (
-                  <button
-                    key={sp}
-                    className={`sidebar-nav-item ${teamSalesFilter.toLowerCase() === sp.toLowerCase() ? 'active' : ''}`}
-                    onClick={() => setTeamSalesFilter(teamSalesFilter.toLowerCase() === sp.toLowerCase() ? 'All' : sp)}
-                  >
-                    <div className="sidebar-nav-left">
-                      <Briefcase size={14} />
-                      <span style={{ maxWidth: 125, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sp}</span>
-                    </div>
-                    <span className="sidebar-count-badge">{teamSalesCounts[sp] || 0}</span>
-                  </button>
-                ))}
-              </div>
-
               {/* Team Status Filter Section */}
               <div className="sidebar-section">
                 <div className="sidebar-section-title">Team Status</div>
-                {['Wip', 'Delivered', 'Done', 'NRA', 'Need Requirements', 'Cancel'].map((st) => {
+                {['Done', 'NRA'].map((st) => {
                   const count = teamProjects.filter((p) => (p.orderStatus || '').toLowerCase() === st.toLowerCase()).length;
-                  if (count === 0 && st !== 'Wip' && st !== 'Done') return null;
                   return (
                     <button
                       key={st}
@@ -2381,7 +2419,7 @@ export default function VercelDashboard() {
                               <span style={{ fontWeight: 600 }}>{member}</span>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                 <span className="mono-text" style={{ fontWeight: 600 }}>${memberGross.toFixed(2)}</span>
-                                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)' }}>({count} orders • {pct}%)</span>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)' }}>({count} orders â€¢ {pct}%)</span>
                               </div>
                             </div>
                             <div className="progress-bar-bg">
@@ -2416,7 +2454,7 @@ export default function VercelDashboard() {
                               <span style={{ fontWeight: 600 }}>{sp}</span>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                 <span className="mono-text" style={{ fontWeight: 600 }}>${spGross.toFixed(2)}</span>
-                                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)' }}>({count} orders • {pct}%)</span>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)' }}>({count} orders â€¢ {pct}%)</span>
                               </div>
                             </div>
                             <div className="progress-bar-bg">
@@ -2480,7 +2518,7 @@ export default function VercelDashboard() {
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <span style={{ fontWeight: 600 }}>{m.month}</span>
                                 <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)' }}>
-                                  ({m.count} orders • {m.completed} completed)
+                                  ({m.count} orders â€¢ {m.completed} completed)
                                 </span>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -2656,7 +2694,7 @@ export default function VercelDashboard() {
                         : `${currentTab === 'all' ? 'All Orders' : currentTab === 'running' ? 'Running Orders' : `${currentTab} Orders`}: ${filteredProjects.length} Records`}
                     </span>
                     <span style={{ fontSize: '0.74rem', color: 'var(--accents-5)' }}>
-                      Scroll down to view orders • Table header stays pinned
+                      Scroll down to view orders â€¢ Table header stays pinned
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
@@ -3011,7 +3049,7 @@ export default function VercelDashboard() {
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
                                     <span style={{ fontWeight: 600 }}>{p.clientUsername}</span>
                                     {currentTab.toLowerCase() === currentCalendarMonth.toLowerCase() && p.month && p.month.toLowerCase() !== currentCalendarMonth.toLowerCase() && (
-                                      <span style={{ fontSize: '0.65rem', padding: '0.06rem 0.35rem', borderRadius: 3, background: 'rgba(56,189,248,0.12)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.25)', fontWeight: 500 }} title={`Assigned in ${p.month} • Running project`}>
+                                      <span style={{ fontSize: '0.65rem', padding: '0.06rem 0.35rem', borderRadius: 3, background: 'rgba(56,189,248,0.12)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.25)', fontWeight: 500 }} title={`Assigned in ${p.month} â€¢ Running project`}>
                                         from {p.month}
                                       </span>
                                     )}
@@ -3184,7 +3222,7 @@ export default function VercelDashboard() {
                                   </div>
 
                                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--accents-5)' }}>
-                                    <span>{p.salesPerson} • {p.profileName}</span>
+                                    <span>{p.salesPerson} â€¢ {p.profileName}</span>
                                     <span className="mono-text" style={{ color: '#38bdf8' }}>Net: ${net.toFixed(0)}</span>
                                   </div>
 
@@ -3331,7 +3369,7 @@ export default function VercelDashboard() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', fontWeight: 600, color: '#38bdf8' }}>
                         <Sparkles size={15} />
-                        <span>⚡ Smart Quick Auto-Fill (Copy & Paste Raw Text)</span>
+                        <span>âš¡ Smart Quick Auto-Fill (Copy & Paste Raw Text)</span>
                       </div>
                       {personalPasteSuccess && (
                         <span style={{ fontSize: '0.73rem', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -3572,7 +3610,7 @@ export default function VercelDashboard() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--foreground)' }}>
-                      📝 Issue & WIP Note
+                      ðŸ“ Issue & WIP Note
                     </span>
                     <span
                       style={{
@@ -3598,7 +3636,7 @@ export default function VercelDashboard() {
                     </span>
                   </div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--accents-5)', marginTop: 4 }}>
-                    Order #{issueNoteProject.orderNumber || '-'} • {issueNoteProject.clientUsername || issueNoteProject.clientUserId || 'Client'} ({issueNoteProject.profileName || 'Profile'})
+                    Order #{issueNoteProject.orderNumber || '-'} â€¢ {issueNoteProject.clientUsername || issueNoteProject.clientUserId || 'Client'} ({issueNoteProject.profileName || 'Profile'})
                   </div>
                 </div>
                 <button className="btn-v-ghost" onClick={closeIssueNoteModal}><X size={16} /></button>
