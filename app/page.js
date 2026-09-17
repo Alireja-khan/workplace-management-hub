@@ -54,7 +54,7 @@ import {
   ShieldCheck,
   Sparkles
 } from 'lucide-react';
-import { MONTH_LIST, getMonthFromDate } from '@/lib/dateUtils';
+import { MONTH_LIST, getMonthFromDate, getYearFromDate } from '@/lib/dateUtils';
 import { ensureValidUrl, parsePersonalSheetText, extractUrlFromHtmlOrText } from '@/lib/sheetParser';
 import LandingPage from '@/components/LandingPage';
 import TeamWorkspaceView from '@/components/TeamWorkspaceView';
@@ -90,6 +90,10 @@ export default function VercelDashboard() {
 
   const currentCalendarMonth = useMemo(() => {
     return MONTH_LIST[new Date().getMonth()];
+  }, []);
+
+  const currentCalendarYear = useMemo(() => {
+    return new Date().getFullYear().toString();
   }, []);
 
   const [theme, setTheme] = useState('dark');
@@ -136,6 +140,7 @@ export default function VercelDashboard() {
   const [teamMemberFilter, setTeamMemberFilter] = useState('all');
   const [teamSalesFilter, setTeamSalesFilter] = useState('all');
   const [teamMonthFilter, setTeamMonthFilter] = useState('all');
+  const [teamYearFilter, setTeamYearFilter] = useState('all');
   const [teamViewMode, setTeamViewMode] = useState('table');
   const [teamMembersExpanded, setTeamMembersExpanded] = useState(false);
 
@@ -407,36 +412,40 @@ export default function VercelDashboard() {
   }, [teamProjects, currentCalendarMonth]);
 
   const teamCurrentMonthOnlyCount = useMemo(() => {
-    return teamProjects.filter(p => getMonthFromDate(p.assignDate, p.month).toLowerCase() === currentCalendarMonth.toLowerCase()).length;
-  }, [teamProjects, currentCalendarMonth]);
+    return teamProjects.filter(p => getMonthFromDate(p.assignDate, p.month).toLowerCase() === currentCalendarMonth.toLowerCase() && getYearFromDate(p.assignDate) === currentCalendarYear).length;
+  }, [teamProjects, currentCalendarMonth, currentCalendarYear]);
 
   const teamCurrentDeliveredCount = useMemo(() => {
     return teamProjects.filter(p => {
        const st = (p.orderStatus || 'wip').toLowerCase();
        const isDeliveredOrDone = st === 'delivered' || st === 'done' || st === 'issue';
        const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
+       const delYear = p.deliveryDate ? getYearFromDate(p.deliveryDate) : null;
        const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
        const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
        const pMonth = getMonthFromDate(p.assignDate, p.month);
-       return isDeliveredOrDone && (delMonthStr === currentMonthIdx || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase()));
+       const pYear = getYearFromDate(p.assignDate);
+       return isDeliveredOrDone && ((delMonthStr === currentMonthIdx && delYear === currentCalendarYear) || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase() && pYear === currentCalendarYear));
     }).length;
-  }, [teamProjects, currentCalendarMonth]);
+  }, [teamProjects, currentCalendarMonth, currentCalendarYear]);
 
   const teamCurrentCancelCount = useMemo(() => {
     return teamProjects.filter(p => {
        const st = (p.orderStatus || 'wip').toLowerCase();
        const isCancel = st === 'cancel';
        const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
+       const delYear = p.deliveryDate ? getYearFromDate(p.deliveryDate) : null;
        const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
        const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
        const pMonth = getMonthFromDate(p.assignDate, p.month);
-       return isCancel && (delMonthStr === currentMonthIdx || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase()));
+       const pYear = getYearFromDate(p.assignDate);
+       return isCancel && ((delMonthStr === currentMonthIdx && delYear === currentCalendarYear) || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase() && pYear === currentCalendarYear));
     }).length;
-  }, [teamProjects, currentCalendarMonth]);
+  }, [teamProjects, currentCalendarMonth, currentCalendarYear]);
 
   const teamCurrentNeedReqCount = useMemo(() => {
-    return teamProjects.filter(p => getMonthFromDate(p.assignDate, p.month).toLowerCase() === currentCalendarMonth.toLowerCase() && (p.orderStatus || 'wip').toLowerCase() === 'need requirements').length;
-  }, [teamProjects, currentCalendarMonth]);
+    return teamProjects.filter(p => getMonthFromDate(p.assignDate, p.month).toLowerCase() === currentCalendarMonth.toLowerCase() && getYearFromDate(p.assignDate) === currentCalendarYear && (p.orderStatus || 'wip').toLowerCase() === 'need requirements').length;
+  }, [teamProjects, currentCalendarMonth, currentCalendarYear]);
 
   const teamCurrentNRACount = useMemo(() => {
     return teamProjects.filter(p => (p.orderStatus || 'wip').toLowerCase() === 'nra').length;
@@ -445,20 +454,22 @@ export default function VercelDashboard() {
   const teamCarryCount = useMemo(() => {
     return teamProjects.filter(p => {
        const pMonth = getMonthFromDate(p.assignDate, p.month);
-       if (pMonth.toLowerCase() === currentCalendarMonth.toLowerCase()) return false;
+       const pYear = getYearFromDate(p.assignDate);
+       if (pMonth.toLowerCase() === currentCalendarMonth.toLowerCase() && pYear === currentCalendarYear) return false;
        
        const st = (p.orderStatus || 'wip').toLowerCase();
        const isRunning = st !== 'done' && st !== 'delivered' && st !== 'cancel';
        
        const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
+       const delYear = p.deliveryDate ? getYearFromDate(p.deliveryDate) : null;
        const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
        const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
-       const deliveredThisMonth = (st === 'delivered' || st === 'done' || st === 'issue') && (delMonthStr === currentMonthIdx);
-       const cancelledThisMonth = st === 'cancel' && (delMonthStr === currentMonthIdx);
+       const deliveredThisMonth = (st === 'delivered' || st === 'done' || st === 'issue') && (delMonthStr === currentMonthIdx && delYear === currentCalendarYear);
+       const cancelledThisMonth = st === 'cancel' && (delMonthStr === currentMonthIdx && delYear === currentCalendarYear);
        
        return isRunning || deliveredThisMonth || cancelledThisMonth;
     }).length;
-  }, [teamProjects, currentCalendarMonth]);
+  }, [teamProjects, currentCalendarMonth, currentCalendarYear]);
 
   // KPIs
   const kpis = useMemo(() => {
@@ -571,6 +582,25 @@ export default function VercelDashboard() {
     return Object.keys(teamMemberCounts).sort((a, b) => teamMemberCounts[b] - teamMemberCounts[a]);
   }, [teamMemberCounts]);
 
+  const teamYearList = useMemo(() => {
+    const years = new Set();
+    teamProjects.forEach(p => {
+      const y = getYearFromDate(p.assignDate, null);
+      if (y) years.add(y);
+    });
+    return Array.from(years).sort((a, b) => b.localeCompare(a));
+  }, [teamProjects]);
+
+  const teamMonthList = useMemo(() => {
+    const months = new Set();
+    teamProjects.forEach(p => {
+      const m = getMonthFromDate(p.assignDate, p.month);
+      if (m) months.add(m);
+    });
+    // Sort by month index descending
+    return Array.from(months).sort((a, b) => MONTH_LIST.indexOf(b) - MONTH_LIST.indexOf(a));
+  }, [teamProjects]);
+
   // Team Sales Person Counts
   const teamSalesCounts = useMemo(() => {
     const counts = {};
@@ -664,54 +694,75 @@ export default function VercelDashboard() {
         if (s !== 'wip' && sch !== 'late') return false;
       } else if (currentTab === 'current_month_only') {
         const pMonth = getMonthFromDate(p.assignDate, p.month);
-        if (pMonth.toLowerCase() !== currentCalendarMonth.toLowerCase()) return false;
+        const pYear = getYearFromDate(p.assignDate);
+        if (pMonth.toLowerCase() !== currentCalendarMonth.toLowerCase() || pYear !== currentCalendarYear) return false;
       } else if (currentTab === 'current_delivered') {
         const st = (p.orderStatus || 'wip').toLowerCase();
         const isDeliveredOrDone = st === 'delivered' || st === 'done' || st === 'issue';
         const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
+        const delYearStr = p.deliveryDate ? getYearFromDate(p.deliveryDate) : null;
         const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
         const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
         const pMonth = getMonthFromDate(p.assignDate, p.month);
-        const isCurrentMonth = delMonthStr === currentMonthIdx || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase());
+        const pYear = getYearFromDate(p.assignDate);
+        const isCurrentMonth = (delMonthStr === currentMonthIdx && delYearStr === currentCalendarYear) || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase() && pYear === currentCalendarYear);
         if (!isDeliveredOrDone || !isCurrentMonth) return false;
       } else if (currentTab === 'current_cancel') {
         const st = (p.orderStatus || 'wip').toLowerCase();
         if (st !== 'cancel') return false;
         const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
+        const delYearStr = p.deliveryDate ? getYearFromDate(p.deliveryDate) : null;
         const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
         const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
         const pMonth = getMonthFromDate(p.assignDate, p.month);
-        const isCurrentMonth = delMonthStr === currentMonthIdx || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase());
+        const pYear = getYearFromDate(p.assignDate);
+        const isCurrentMonth = (delMonthStr === currentMonthIdx && delYearStr === currentCalendarYear) || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase() && pYear === currentCalendarYear);
         if (!isCurrentMonth) return false;
       } else if (currentTab === 'current_need_req') {
         const pMonth = getMonthFromDate(p.assignDate, p.month);
-        if (pMonth.toLowerCase() !== currentCalendarMonth.toLowerCase() || (p.orderStatus || '').toLowerCase() !== 'need requirements') return false;
+        const pYear = getYearFromDate(p.assignDate);
+        if (pMonth.toLowerCase() !== currentCalendarMonth.toLowerCase() || pYear !== currentCalendarYear || (p.orderStatus || '').toLowerCase() !== 'need requirements') return false;
       } else if (currentTab === 'current_nra') {
         if ((p.orderStatus || 'wip').toLowerCase() !== 'nra') return false;
       } else if (currentTab === 'carry_orders') {
         const pMonth = getMonthFromDate(p.assignDate, p.month);
-        if (pMonth.toLowerCase() === currentCalendarMonth.toLowerCase()) return false;
+        const pYear = getYearFromDate(p.assignDate);
+        if (pMonth.toLowerCase() === currentCalendarMonth.toLowerCase() && pYear === currentCalendarYear) return false;
         
         const st = (p.orderStatus || 'wip').toLowerCase();
         const isRunning = st !== 'done' && st !== 'delivered' && st !== 'cancel';
         
         const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
+        const delYearStr = p.deliveryDate ? getYearFromDate(p.deliveryDate) : null;
         const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
         const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
-        const deliveredThisMonth = (st === 'delivered' || st === 'done' || st === 'issue') && (delMonthStr === currentMonthIdx);
-        const cancelledThisMonth = st === 'cancel' && (delMonthStr === currentMonthIdx);
+        const deliveredThisMonth = (st === 'delivered' || st === 'done' || st === 'issue') && (delMonthStr === currentMonthIdx && delYearStr === currentCalendarYear);
+        const cancelledThisMonth = st === 'cancel' && (delMonthStr === currentMonthIdx && delYearStr === currentCalendarYear);
         
         if (!isRunning && !deliveredThisMonth && !cancelledThisMonth) return false;
       } else if (currentTab !== 'all') {
         const isCurrentCalendarMonthTab = currentTab.toLowerCase() === currentCalendarMonth.toLowerCase();
         const pMonth = getMonthFromDate(p.assignDate, p.month);
-        const isAssignedInThisMonth = pMonth.toLowerCase() === currentTab.toLowerCase();
+        const pYear = getYearFromDate(p.assignDate);
+        const isAssignedInThisMonth = pMonth.toLowerCase() === currentTab.toLowerCase() && pYear === currentCalendarYear;
 
         if (isCurrentCalendarMonthTab) {
           const isRunning = p.orderStatus !== 'Done' && p.orderStatus !== 'Delivered' && p.orderStatus !== 'Cancel';
           if (!isAssignedInThisMonth && !isRunning) return false;
         } else {
           if (!isAssignedInThisMonth) return false;
+        }
+      }
+
+      if (currentTab === 'all') {
+        const pYear = getYearFromDate(p.assignDate);
+        const pMonth = getMonthFromDate(p.assignDate, p.month);
+        
+        if (teamYearFilter.toLowerCase() !== 'all' && pYear !== teamYearFilter) {
+          return false;
+        }
+        if (teamMonthFilter.toLowerCase() !== 'all' && pMonth.toLowerCase() !== teamMonthFilter.toLowerCase()) {
+          return false;
         }
       }
 
@@ -764,7 +815,7 @@ export default function VercelDashboard() {
     });
 
     return res;
-  }, [teamProjects, currentTab, teamMemberFilter, teamSalesFilter, profileFilter, statusFilter, searchQuery, sortConfig, currentCalendarMonth]);
+  }, [teamProjects, currentTab, teamMemberFilter, teamSalesFilter, teamMonthFilter, teamYearFilter, profileFilter, statusFilter, searchQuery, sortConfig, currentCalendarMonth, currentCalendarYear]);
 
   // Status Distribution
   const statusStats = useMemo(() => {
@@ -2603,6 +2654,30 @@ export default function VercelDashboard() {
 
                 {workspaceMode === 'team' ? (
                   <>
+                    {/* Year Filter */}
+                    <select
+                      className="v-select"
+                      value={teamYearFilter}
+                      onChange={(e) => setTeamYearFilter(e.target.value)}
+                    >
+                      <option value="all">All Years</option>
+                      {teamYearList.map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+
+                    {/* Month Filter */}
+                    <select
+                      className="v-select"
+                      value={teamMonthFilter}
+                      onChange={(e) => setTeamMonthFilter(e.target.value)}
+                    >
+                      <option value="all">All Months</option>
+                      {teamMonthList.map((m) => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+
                     {/* Team Member Filter */}
                     <select
                       className="v-select"
@@ -2716,6 +2791,8 @@ export default function VercelDashboard() {
                     setScheduleFilter('all');
                     setTeamMemberFilter('all');
                     setTeamSalesFilter('all');
+                    setTeamYearFilter('all');
+                    setTeamMonthFilter('all');
                     setCurrentTab('all');
                   }}
                   title="Reset Filters"
