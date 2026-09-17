@@ -835,6 +835,7 @@ export default function VercelDashboard() {
       if (data.success) {
         showToast(`Successfully deleted ${data.deletedCount} team orders!`);
         fetchTeamProjects();
+        fetchProjects(); // Refresh personal projects
         setSelectedTeamOrders([]);
         setIsBulkDeleteModalOpen(false);
         setBulkDeleteConfirmText('');
@@ -1172,6 +1173,7 @@ export default function VercelDashboard() {
       if (data.success) {
         setTeamProjects((prev) => prev.filter((p) => p._id !== id));
         showToast('Team order deleted successfully');
+        fetchProjects(); // Refresh personal projects
       }
     } catch (err) {
       showToast('Delete failed', 'error');

@@ -174,6 +174,19 @@ export async function DELETE(request, { params }) {
     if (!deleted) {
       return NextResponse.json({ success: false, error: 'Team order not found' }, { status: 404 });
     }
+
+    // Also delete from personal workspace
+    const query = [];
+    if (deleted.orderNumber) {
+      query.push({ orderNumber: deleted.orderNumber });
+    }
+    if (deleted.clientUserId) {
+      query.push({ clientUsername: deleted.clientUserId, assignDate: deleted.assignDate });
+    }
+    if (query.length > 0) {
+      await Project.deleteMany({ $or: query });
+    }
+
     return NextResponse.json({ success: true, data: {} });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
