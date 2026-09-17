@@ -1850,7 +1850,7 @@ body {
 }
 
 /* ==========================================================================
-   Workspace Mode Switcher (Personal ↔ Team EleSquad)
+   Workspace Mode Switcher (Personal â†” Team EleSquad)
    ========================================================================== */
 .workspace-switcher {
   display: flex;
@@ -2176,24 +2176,16 @@ body {
   box-shadow: 0 0 5px rgba(56, 189, 248, 0.7);
 }
 
-
-
-
-
-
- 
- / *   T o a s t   A n i m a t i o n   * /  
- @ k e y f r a m e s   t o a s t S l i d e I n   {  
-     f r o m   {   t r a n s f o r m :   t r a n s l a t e Y ( 1 0 0 p x )   s c a l e ( 0 . 9 ) ;   o p a c i t y :   0 ;   }  
-     t o   {   t r a n s f o r m :   t r a n s l a t e Y ( 0 )   s c a l e ( 1 ) ;   o p a c i t y :   1 ;   }  
- }  
- @ k e y f r a m e s   t o a s t S l i d e O u t   {  
-     f r o m   {   t r a n s f o r m :   t r a n s l a t e Y ( 0 )   s c a l e ( 1 ) ;   o p a c i t y :   1 ;   }  
-     t o   {   t r a n s f o r m :   t r a n s l a t e Y ( 2 0 p x )   s c a l e ( 0 . 9 ) ;   o p a c i t y :   0 ;   }  
- }  
- . t o a s t - c o n t a i n e r   {  
-     a n i m a t i o n :   t o a s t S l i d e I n   0 . 3 5 s   c u b i c - b e z i e r ( 0 . 1 7 5 ,   0 . 8 8 5 ,   0 . 3 2 ,   1 . 2 7 5 )   f o r w a r d s ;  
-     t r a n s i t i o n :   a l l   0 . 3 s   e a s e ;  
- }  
-  
- 
+/* Toast Animation */
+@keyframes toastSlideIn {
+  from { transform: translateY(100px) scale(0.9); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes toastSlideOut {
+  from { transform: translateY(0) scale(1); opacity: 1; }
+  to { transform: translateY(20px) scale(0.9); opacity: 0; }
+}
+.toast-container {
+  animation: toastSlideIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  transition: all 0.3s ease;
+}
