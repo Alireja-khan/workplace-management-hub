@@ -453,9 +453,10 @@ export default function VercelDashboard() {
        const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
        const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
        const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
-       const deliveredThisMonth = (st === 'delivered' || st === 'done') && (delMonthStr === currentMonthIdx || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase()));
+       const deliveredThisMonth = (st === 'delivered' || st === 'done' || st === 'issue') && (delMonthStr === currentMonthIdx);
+       const cancelledThisMonth = st === 'cancel' && (delMonthStr === currentMonthIdx);
        
-       return isRunning || deliveredThisMonth;
+       return isRunning || deliveredThisMonth || cancelledThisMonth;
     }).length;
   }, [teamProjects, currentCalendarMonth]);
 
@@ -691,15 +692,16 @@ export default function VercelDashboard() {
         const pMonth = getMonthFromDate(p.assignDate, p.month);
         if (pMonth.toLowerCase() === currentCalendarMonth.toLowerCase()) return false;
         
-        const st = (p.orderStatus || '').toLowerCase();
+        const st = (p.orderStatus || 'wip').toLowerCase();
         const isRunning = st !== 'done' && st !== 'delivered' && st !== 'cancel';
         
         const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
         const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
         const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
-        const deliveredThisMonth = (st === 'delivered' || st === 'done') && (delMonthStr === currentMonthIdx || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase()));
+        const deliveredThisMonth = (st === 'delivered' || st === 'done' || st === 'issue') && (delMonthStr === currentMonthIdx);
+        const cancelledThisMonth = st === 'cancel' && (delMonthStr === currentMonthIdx);
         
-        if (!isRunning && !deliveredThisMonth) return false;
+        if (!isRunning && !deliveredThisMonth && !cancelledThisMonth) return false;
       } else if (currentTab !== 'all') {
         const isCurrentCalendarMonthTab = currentTab.toLowerCase() === currentCalendarMonth.toLowerCase();
         const pMonth = getMonthFromDate(p.assignDate, p.month);
