@@ -95,9 +95,7 @@ export async function GET(request) {
     await connectToDatabase();
 
     // Sync team projects to personal workspace for this user's assignedName
-    if (assignedName) {
-      await syncAllExistingTeamProjects(assignedName, userEmail);
-    }
+    // (Removed full sync on GET request for performance. Real-time sync handles this on POST/PUT/DELETE)
 
     // Auto-reset 'Solved' status back to 'All Sorted' if 2 days (48 hours) have passed without status changes
     const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
