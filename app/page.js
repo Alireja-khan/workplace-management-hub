@@ -137,7 +137,7 @@ export default function VercelDashboard() {
   const [teamSalesFilter, setTeamSalesFilter] = useState('all');
   const [teamMonthFilter, setTeamMonthFilter] = useState('all');
   const [teamViewMode, setTeamViewMode] = useState('table');
-  const [teamMembersExpanded, setTeamMembersExpanded] = useState(true);
+  const [teamMembersExpanded, setTeamMembersExpanded] = useState(false);
 
   // Team Modal States
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
@@ -430,6 +430,10 @@ export default function VercelDashboard() {
     return teamProjects.filter(p => getMonthFromDate(p.assignDate, p.month).toLowerCase() === currentCalendarMonth.toLowerCase() && (p.orderStatus || 'wip').toLowerCase() === 'need requirements').length;
   }, [teamProjects, currentCalendarMonth]);
 
+  const teamCurrentNRACount = useMemo(() => {
+    return teamProjects.filter(p => getMonthFromDate(p.assignDate, p.month).toLowerCase() === currentCalendarMonth.toLowerCase() && (p.orderStatus || 'wip').toLowerCase() === 'nra').length;
+  }, [teamProjects, currentCalendarMonth]);
+
   const teamCarryCount = useMemo(() => {
     return teamProjects.filter(p => {
        const pMonth = getMonthFromDate(p.assignDate, p.month);
@@ -667,6 +671,9 @@ export default function VercelDashboard() {
       } else if (currentTab === 'current_need_req') {
         const pMonth = getMonthFromDate(p.assignDate, p.month);
         if (pMonth.toLowerCase() !== currentCalendarMonth.toLowerCase() || (p.orderStatus || '').toLowerCase() !== 'need requirements') return false;
+      } else if (currentTab === 'current_nra') {
+        const pMonth = getMonthFromDate(p.assignDate, p.month);
+        if (pMonth.toLowerCase() !== currentCalendarMonth.toLowerCase() || (p.orderStatus || '').toLowerCase() !== 'nra') return false;
       } else if (currentTab === 'carry_orders') {
         const pMonth = getMonthFromDate(p.assignDate, p.month);
         if (pMonth.toLowerCase() === currentCalendarMonth.toLowerCase()) return false;
@@ -1903,7 +1910,7 @@ export default function VercelDashboard() {
                 >
                   <div className="sidebar-nav-left">
                     <CheckCircle2 size={14} color="#10b981" />
-                    <span>{currentCalendarMonth} Delivered</span>
+                    <span>{currentCalendarMonth.substring(0, 3)} Delivered</span>
                   </div>
                   <span className="sidebar-count-badge" style={{ color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }}>
                     {teamCurrentDeliveredCount}
@@ -1968,6 +1975,25 @@ export default function VercelDashboard() {
                 </button>
 
                 <button
+                  className={`sidebar-nav-item ${currentTab === 'current_nra' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('current_nra');
+                    setTeamMemberFilter('All');
+                    setTeamSalesFilter('All');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <AlertCircle size={14} color="#f97316" />
+                    <span>{currentCalendarMonth.substring(0, 3)} NRA</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#f97316', borderColor: 'rgba(249,115,22,0.3)' }}>
+                    {teamCurrentNRACount}
+                  </span>
+                </button>
+
+                <button
                   className={`sidebar-nav-item ${currentTab === 'stats' ? 'active' : ''}`}
                   onClick={() => {
                     setCurrentTab('stats');
@@ -1999,7 +2025,7 @@ export default function VercelDashboard() {
                     <ChevronDown size={14} style={{ transform: teamMembersExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
                   </button>
                 </div>
-                {(teamMembersExpanded ? teamMemberList : teamMemberList.slice(0, 4)).map((m) => (
+                {(teamMembersExpanded ? teamMemberList : []).map((m) => (
                   <button
                     key={m}
                     className={`sidebar-nav-item ${teamMemberFilter.toLowerCase() === m.toLowerCase() ? 'active' : ''}`}
@@ -2012,41 +2038,6 @@ export default function VercelDashboard() {
                     <span className="sidebar-count-badge">{teamMemberCounts[m] || 0}</span>
                   </button>
                 ))}
-              </div>
-
-              {/* Team Status Filter Section */}
-              <div className="sidebar-section">
-                <div className="sidebar-section-title">Team Status</div>
-                {['Done', 'NRA'].map((st) => {
-                  const count = teamProjects.filter((p) => (p.orderStatus || '').toLowerCase() === st.toLowerCase()).length;
-                  return (
-                    <button
-                      key={st}
-                      className={`sidebar-nav-item ${teamStatusFilter.toLowerCase() === st.toLowerCase() ? 'active' : ''}`}
-                      onClick={() => setTeamStatusFilter(teamStatusFilter.toLowerCase() === st.toLowerCase() ? 'All' : st)}
-                    >
-                      <div className="sidebar-nav-left">
-                        <span
-                          className="v-status-dot"
-                          style={{
-                            background:
-                              st === 'Wip'
-                                ? '#0284c7'
-                                : st === 'Done' || st === 'Delivered'
-                                ? '#10b981'
-                                : st === 'Cancel'
-                                ? '#ef4444'
-                                : st === 'NRA'
-                                ? '#a855f7'
-                                : '#eab308',
-                          }}
-                        ></span>
-                        <span>{st}</span>
-                      </div>
-                      <span className="sidebar-count-badge">{count}</span>
-                    </button>
-                  );
-                })}
               </div>
             </div>
           </>
