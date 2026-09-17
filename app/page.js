@@ -1476,9 +1476,14 @@ export default function VercelDashboard() {
     return (
       <div className="landing-root">
         {toastMessage && (
-          <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 9999 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--card-bg)', border: '1px solid var(--border-default)', color: 'var(--geist-foreground)', padding: '0.65rem 1.15rem', borderRadius: 6, fontSize: '0.82rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
-              <Check size={14} color="#10b981" /> {toastMessage.text}
+          <div className="toast-container" style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 9999 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', background: 'var(--card-bg)', border: `1px solid ${toastMessage.type === 'error' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`, color: 'var(--geist-foreground)', padding: '0.75rem 1.25rem', borderRadius: 8, fontSize: '0.85rem', fontWeight: 500, boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+              {toastMessage.type === 'error' ? (
+                <AlertCircle size={16} color="#ef4444" />
+              ) : (
+                <Check size={16} color="#10b981" />
+              )}
+              <span>{toastMessage.text}</span>
             </div>
           </div>
         )}
@@ -1505,9 +1510,14 @@ export default function VercelDashboard() {
     <div className="app-layout">
       {/* Toast Alert */}
       {toastMessage && (
-        <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 9999 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--card-bg)', border: '1px solid var(--border-default)', color: 'var(--geist-foreground)', padding: '0.65rem 1.15rem', borderRadius: 6, fontSize: '0.82rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
-            <Check size={14} color="#10b981" /> {toastMessage.text}
+        <div className="toast-container" style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 9999 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', background: 'var(--card-bg)', border: `1px solid ${toastMessage.type === 'error' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`, color: 'var(--geist-foreground)', padding: '0.75rem 1.25rem', borderRadius: 8, fontSize: '0.85rem', fontWeight: 500, boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+            {toastMessage.type === 'error' ? (
+              <AlertCircle size={16} color="#ef4444" />
+            ) : (
+              <Check size={16} color="#10b981" />
+            )}
+            <span>{toastMessage.text}</span>
           </div>
         </div>
       )}
