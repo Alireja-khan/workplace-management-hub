@@ -423,7 +423,15 @@ export default function VercelDashboard() {
   }, [teamProjects, currentCalendarMonth]);
 
   const teamCurrentCancelCount = useMemo(() => {
-    return teamProjects.filter(p => getMonthFromDate(p.assignDate, p.month).toLowerCase() === currentCalendarMonth.toLowerCase() && (p.orderStatus || 'wip').toLowerCase() === 'cancel').length;
+    return teamProjects.filter(p => {
+       const st = (p.orderStatus || 'wip').toLowerCase();
+       const isCancel = st === 'cancel';
+       const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
+       const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
+       const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
+       const pMonth = getMonthFromDate(p.assignDate, p.month);
+       return isCancel && (delMonthStr === currentMonthIdx || pMonth.toLowerCase() === currentCalendarMonth.toLowerCase());
+    }).length;
   }, [teamProjects, currentCalendarMonth]);
 
   const teamCurrentNeedReqCount = useMemo(() => {
@@ -666,8 +674,14 @@ export default function VercelDashboard() {
         const isCurrentMonth = delMonthStr === currentMonthIdx || pMonth.toLowerCase() === currentCalendarMonth.toLowerCase();
         if (!isDeliveredOrDone || !isCurrentMonth) return false;
       } else if (currentTab === 'current_cancel') {
+        const st = (p.orderStatus || 'wip').toLowerCase();
+        if (st !== 'cancel') return false;
+        const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
+        const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
+        const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
         const pMonth = getMonthFromDate(p.assignDate, p.month);
-        if (pMonth.toLowerCase() !== currentCalendarMonth.toLowerCase() || (p.orderStatus || '').toLowerCase() !== 'cancel') return false;
+        const isCurrentMonth = delMonthStr === currentMonthIdx || pMonth.toLowerCase() === currentCalendarMonth.toLowerCase();
+        if (!isCurrentMonth) return false;
       } else if (currentTab === 'current_need_req') {
         const pMonth = getMonthFromDate(p.assignDate, p.month);
         if (pMonth.toLowerCase() !== currentCalendarMonth.toLowerCase() || (p.orderStatus || '').toLowerCase() !== 'need requirements') return false;
@@ -2288,7 +2302,7 @@ export default function VercelDashboard() {
                         <th>{workspaceMode === 'team' ? 'Net (80%)' : 'Order Status'}</th>
                         <th>{workspaceMode === 'team' ? 'Assigned Member(s)' : 'Staging Subdomain'}</th>
                         <th>{workspaceMode === 'team' ? 'Est. Deli' : 'Deadline'}</th>
-                        <th>{workspaceMode === 'team' ? 'Deli Date' : 'Schedule'}</th>
+                        <th>{workspaceMode === 'team' ? 'Deli/Cancel' : 'Schedule'}</th>
                         <th>{workspaceMode === 'team' ? 'Status' : 'Live Domain'}</th>
                         <th>{workspaceMode === 'team' ? 'Sheet / Payout' : 'Daily Update'}</th>
                         <th>{workspaceMode === 'team' ? 'Remark' : 'Review'}</th>
@@ -2775,7 +2789,7 @@ export default function VercelDashboard() {
                           <th>Net (80%)</th>
                           <th>Assigned Member(s)</th>
                           <th className="sortable" onClick={() => handleSort('estimatedDeliveryDate')}>Est. Deli</th>
-                          <th>Deli Date</th>
+                          <th>Deli/Cancel</th>
                           <th>Order Status</th>
                           <th>Order Type</th>
                           <th>Sheet</th>
@@ -2796,7 +2810,7 @@ export default function VercelDashboard() {
                           <th className="sortable" onClick={() => handleSort('amount')}>Gross</th>
                           <th>Net (80%)</th>
                           <th className="sortable" onClick={() => handleSort('estimatedDeliveryDate')}>Est. Deli</th>
-                          <th>Deli Date</th>
+                          <th>Deli/Cancel</th>
                           <th>Order Status</th>
                           <th>Order Type</th>
                           <th>Sheet</th>
