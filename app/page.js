@@ -143,6 +143,12 @@ export default function VercelDashboard() {
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [activeTeamProject, setActiveTeamProject] = useState(null);
   const [teamIsSubmitting, setTeamIsSubmitting] = useState(false);
+  
+  // Bulk Delete States
+  const [selectedTeamOrders, setSelectedTeamOrders] = useState([]);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+  const [bulkDeleteConfirmText, setBulkDeleteConfirmText] = useState('');
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   // Issue Note Modal States
   const [isIssueNoteModalOpen, setIsIssueNoteModalOpen] = useState(false);
@@ -812,6 +818,48 @@ export default function VercelDashboard() {
       );
       showToast('Failed to update issue status', 'error');
     }
+  };
+
+  const handleBulkDelete = async () => {
+    const requiredText = `DELETE ${selectedTeamOrders.length} ORDERS`;
+    if (bulkDeleteConfirmText !== requiredText) return;
+
+    setIsBulkDeleting(true);
+    try {
+      const res = await fetch('/api/team-projects/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedTeamOrders })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Successfully deleted ${data.deletedCount} team orders!`);
+        fetchTeamProjects();
+        setSelectedTeamOrders([]);
+        setIsBulkDeleteModalOpen(false);
+        setBulkDeleteConfirmText('');
+      } else {
+        showToast(data.error || 'Failed to bulk delete', 'error');
+      }
+    } catch (err) {
+      showToast('Error during bulk deletion', 'error');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const toggleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedTeamOrders(filteredTeamProjects.map(p => p._id));
+    } else {
+      setSelectedTeamOrders([]);
+    }
+  };
+
+  const toggleSelectOrder = (id) => {
+    setSelectedTeamOrders(prev => 
+      prev.includes(id) ? prev.filter(orderId => orderId !== id) : [...prev, id]
+    );
   };
 
   // Auth Handlers
@@ -2630,6 +2678,17 @@ export default function VercelDashboard() {
                       /* TEAM TABLE HEADERS (Google Sheet Columns) */
                       <thead>
                         <tr>
+                          {['Owner', 'admin'].includes(session?.user?.role) && (
+                            <th style={{ width: 40, textAlign: 'center' }}>
+                              <input 
+                                type="checkbox" 
+                                checked={filteredTeamProjects.length > 0 && selectedTeamOrders.length === filteredTeamProjects.length}
+                                onChange={toggleSelectAll}
+                                style={{ cursor: 'pointer' }}
+                                title="Select All"
+                              />
+                            </th>
+                          )}
                           <th className="sortable" onClick={() => handleSort('assignDate')}>Assign Date</th>
                           <th className="sortable" onClick={() => handleSort('salesPerson')}>Sales Person</th>
                           <th className="sortable" onClick={() => handleSort('profileName')}>Profile</th>
@@ -2707,7 +2766,17 @@ export default function VercelDashboard() {
                                 : 'v-status-wip';
 
                             return (
-                              <tr key={p._id}>
+                              <tr key={p._id} className={selectedTeamOrders.includes(p._id) ? 'selected-row' : ''}>
+                                {['Owner', 'admin'].includes(session?.user?.role) && (
+                                  <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                                    <input 
+                                      type="checkbox"
+                                      checked={selectedTeamOrders.includes(p._id)}
+                                      onChange={() => toggleSelectOrder(p._id)}
+                                      style={{ cursor: 'pointer' }}
+                                    />
+                                  </td>
+                                )}
                                 <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
                                   <div>{p.assignDate || '-'}</div>
                                   <div style={{ fontSize: '0.65rem', color: 'var(--accents-4)' }}>{p.month || ''}</div>
@@ -3170,6 +3239,16 @@ export default function VercelDashboard() {
                                 draggable
                                 onDragStart={(e) => e.dataTransfer.setData('text/plain', p._id)}
                               >
+                                {['Owner', 'admin'].includes(session?.user?.role) && (
+                                  <div style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                                    <input 
+                                      type="checkbox"
+                                      checked={selectedTeamOrders.includes(p._id)}
+                                      onChange={() => toggleSelectOrder(p._id)}
+                                      style={{ cursor: 'pointer' }}
+                                    />
+                                  </div>
+                                )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
                                     <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{p.clientUsername}</span>
@@ -3580,6 +3659,103 @@ export default function VercelDashboard() {
                   ) : (
                     <span>Save Note</span>
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Bulk Action Bar for Team Workspace */}
+        {workspaceMode === 'team' && selectedTeamOrders.length > 0 && (
+          <div style={{
+            position: 'fixed',
+            bottom: '2rem',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'var(--card-bg)',
+            border: '1px solid var(--border-default)',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+            padding: '0.75rem 1.5rem',
+            borderRadius: 12,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1.5rem',
+            zIndex: 999
+          }}>
+            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--foreground)' }}>
+              {selectedTeamOrders.length} Order{selectedTeamOrders.length > 1 ? 's' : ''} Selected
+            </span>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button 
+                className="btn-v-ghost" 
+                onClick={() => setSelectedTeamOrders([])}
+                style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
+              >
+                Clear
+              </button>
+              <button 
+                className="btn-v btn-v-primary" 
+                style={{ background: '#ef4444', borderColor: '#ef4444', padding: '0.4rem 1rem', fontSize: '0.85rem' }}
+                onClick={() => setIsBulkDeleteModalOpen(true)}
+              >
+                <Trash2 size={14} style={{ marginRight: 6 }} /> Delete Selected
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Bulk Delete Confirmation Modal */}
+        {isBulkDeleteModalOpen && (
+          <div className="v-modal-overlay">
+            <div className="v-modal" style={{ maxWidth: 400 }}>
+              <div className="v-modal-header" style={{ borderBottom: 'none', paddingBottom: 0 }}>
+                <h3 className="v-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#ef4444' }}>
+                  <AlertCircle size={20} /> Bulk Delete Confirmation
+                </h3>
+                <button className="v-modal-close" onClick={() => { setIsBulkDeleteModalOpen(false); setBulkDeleteConfirmText(''); }}>
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="v-modal-body" style={{ paddingTop: '0.5rem' }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--accents-6)', lineHeight: 1.5, marginBottom: '1rem' }}>
+                  You are about to permanently delete <strong>{selectedTeamOrders.length} team order{selectedTeamOrders.length > 1 ? 's' : ''}</strong>. 
+                  This action <strong>cannot</strong> be undone and will remove these orders from all synced personal workspaces as well.
+                </p>
+                <div className="v-form-group">
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                    Type <code style={{ background: 'var(--accents-2)', padding: '2px 6px', borderRadius: 4, color: '#ef4444' }}>DELETE {selectedTeamOrders.length} ORDERS</code> to confirm
+                  </label>
+                  <input
+                    type="text"
+                    className="v-input"
+                    style={{ borderColor: bulkDeleteConfirmText === `DELETE ${selectedTeamOrders.length} ORDERS` ? '#10b981' : undefined }}
+                    placeholder={`DELETE ${selectedTeamOrders.length} ORDERS`}
+                    value={bulkDeleteConfirmText}
+                    onChange={(e) => setBulkDeleteConfirmText(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <div className="v-modal-footer" style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn-v btn-v-secondary"
+                  onClick={() => { setIsBulkDeleteModalOpen(false); setBulkDeleteConfirmText(''); }}
+                  disabled={isBulkDeleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn-v btn-v-primary"
+                  onClick={handleBulkDelete}
+                  disabled={isBulkDeleting || bulkDeleteConfirmText !== `DELETE ${selectedTeamOrders.length} ORDERS`}
+                  style={{ 
+                    background: bulkDeleteConfirmText === `DELETE ${selectedTeamOrders.length} ORDERS` ? '#ef4444' : 'var(--accents-3)', 
+                    borderColor: bulkDeleteConfirmText === `DELETE ${selectedTeamOrders.length} ORDERS` ? '#ef4444' : 'var(--border-subtle)',
+                    color: bulkDeleteConfirmText === `DELETE ${selectedTeamOrders.length} ORDERS` ? '#fff' : 'var(--accents-5)',
+                  }}
+                >
+                  {isBulkDeleting ? 'Deleting...' : 'Permanently Delete'}
                 </button>
               </div>
             </div>
