@@ -406,6 +406,10 @@ export default function VercelDashboard() {
     return { wipNetValue, deliveredGrossValue, deliveredNetValue };
   }, [teamProjects, currentCalendarMonth]);
 
+  const teamCurrentMonthOnlyCount = useMemo(() => {
+    return teamProjects.filter(p => getMonthFromDate(p.assignDate, p.month).toLowerCase() === currentCalendarMonth.toLowerCase()).length;
+  }, [teamProjects, currentCalendarMonth]);
+
   const teamCurrentDeliveredCount = useMemo(() => {
     return teamProjects.filter(p => {
        const st = (p.orderStatus || '').toLowerCase();
@@ -619,6 +623,9 @@ export default function VercelDashboard() {
         const s = (p.orderStatus || 'Wip').toLowerCase();
         const sch = (p.timeSchedule || '').toLowerCase();
         if (s !== 'wip' && s !== 'issue' && !s.includes('need') && sch !== 'late') return false;
+      } else if (currentTab === 'current_month_only') {
+        const pMonth = getMonthFromDate(p.assignDate, p.month);
+        if (pMonth.toLowerCase() !== currentCalendarMonth.toLowerCase()) return false;
       } else if (currentTab === 'current_delivered') {
         const st = (p.orderStatus || '').toLowerCase();
         const isDeliveredOrDone = st === 'delivered' || st === 'done';
@@ -1676,51 +1683,6 @@ export default function VercelDashboard() {
                 </button>
               </div>
 
-              {/* Month Section with Arrow Toggle (Current month ALWAYS visible by default) */}
-              <div className="sidebar-section">
-                <div className="sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Months</span>
-                  <button
-                    className="sidebar-expand-btn"
-                    onClick={() => setMonthsExpanded(!monthsExpanded)}
-                    title={monthsExpanded ? "Show less" : `Show all months (${availableMonths.length})`}
-                  >
-                    <ChevronDown size={14} style={{ transform: monthsExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
-                  </button>
-                </div>
-                {displayedMonths.map((m) => {
-                  const isCurrentMonth = m.toLowerCase() === currentCalendarMonth.toLowerCase();
-                  const count = projects.filter((p) => {
-                    const pMonth = getMonthFromDate(p.assignDate, p.month);
-                    if (isCurrentMonth) {
-                      return pMonth.toLowerCase() === m.toLowerCase() || (p.orderStatus !== 'Done' && p.orderStatus !== 'Delivered' && p.orderStatus !== 'Cancel');
-                    }
-                    return pMonth.toLowerCase() === m.toLowerCase();
-                  }).length;
-                  return (
-                    <button
-                      key={m}
-                      className={`sidebar-nav-item ${currentTab.toLowerCase() === m.toLowerCase() ? 'active' : ''}`}
-                      onClick={() => {
-                        setCurrentTab(m);
-                        setProfileFilter('all');
-                      }}
-                    >
-                      <div className="sidebar-nav-left">
-                        <Calendar size={14} />
-                        <span>{m}</span>
-                        {isCurrentMonth && (
-                          <span style={{ fontSize: '0.62rem', padding: '0.08rem 0.32rem', borderRadius: '3px', background: 'rgba(56,189,248,0.15)', color: '#38bdf8', fontWeight: 600, letterSpacing: '0.02em' }}>
-                            Current
-                          </span>
-                        )}
-                      </div>
-                      <span className="sidebar-count-badge">{count}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
               {/* Marketplace Profiles Section with Arrow Toggle (2 visible by default) */}
               <div className="sidebar-section">
                 <div className="sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1806,7 +1768,7 @@ export default function VercelDashboard() {
                 <div className="sidebar-nav-item" style={{ cursor: 'default' }}>
                   <div className="sidebar-nav-left">
                     <DollarSign size={14} color="#10b981" />
-                    <span style={{ fontSize: '0.8rem' }}>{currentCalendarMonth} Delivered (Gross)</span>
+                    <span style={{ fontSize: '0.8rem' }}>{currentCalendarMonth.substring(0, 3)} Delivered G</span>
                   </div>
                   <span className="mono-text" style={{ fontSize: '0.75rem', fontWeight: 600, color: '#10b981' }}>
                     ${(teamFinancialOverview.deliveredGrossValue || 0).toFixed(2)}
@@ -1816,7 +1778,7 @@ export default function VercelDashboard() {
                 <div className="sidebar-nav-item" style={{ cursor: 'default' }}>
                   <div className="sidebar-nav-left">
                     <DollarSign size={14} color="#10b981" />
-                    <span style={{ fontSize: '0.8rem' }}>{currentCalendarMonth} Delivered (Net)</span>
+                    <span style={{ fontSize: '0.8rem' }}>{currentCalendarMonth.substring(0, 3)} Delivered N</span>
                   </div>
                   <span className="mono-text" style={{ fontSize: '0.75rem', fontWeight: 600, color: '#10b981' }}>
                     ${(teamFinancialOverview.deliveredNetValue || 0).toFixed(2)}
@@ -1846,6 +1808,25 @@ export default function VercelDashboard() {
                 </button>
 
                 <button
+                  className={`sidebar-nav-item ${currentTab === 'current_month_only' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('current_month_only');
+                    setTeamMemberFilter('All');
+                    setTeamSalesFilter('All');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <LayoutDashboard size={14} color="#f5a623" />
+                    <span>{currentCalendarMonth.substring(0, 3)} Orders</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#f5a623', borderColor: 'rgba(245,166,35,0.3)' }}>
+                    {teamCurrentMonthOnlyCount}
+                  </span>
+                </button>
+
+                <button
                   className={`sidebar-nav-item ${currentTab === 'running' ? 'active' : ''}`}
                   onClick={() => {
                     setCurrentTab('running');
@@ -1857,7 +1838,7 @@ export default function VercelDashboard() {
                 >
                   <div className="sidebar-nav-left">
                     <Zap size={14} color="#38bdf8" />
-                    <span>Running Team Orders</span>
+                    <span>{currentCalendarMonth.substring(0, 3)} WIP</span>
                   </div>
                   <span className="sidebar-count-badge" style={{ color: '#38bdf8', borderColor: 'rgba(56,189,248,0.3)' }}>
                     {teamRunningCount}
@@ -1901,53 +1882,6 @@ export default function VercelDashboard() {
                     Live
                   </span>
                 </button>
-              </div>
-
-              {/* Team Months Section */}
-              <div className="sidebar-section">
-                <div className="sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Months</span>
-                  <button
-                    className="sidebar-expand-btn"
-                    onClick={() => setMonthsExpanded(!monthsExpanded)}
-                    title={monthsExpanded ? "Show less" : `Show all months (${availableMonths.length})`}
-                  >
-                    <ChevronDown size={14} style={{ transform: monthsExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
-                  </button>
-                </div>
-                {displayedMonths.map((m) => {
-                  const isCurrentMonth = m.toLowerCase() === currentCalendarMonth.toLowerCase();
-                  const count = teamProjects.filter((p) => {
-                    const pMonth = getMonthFromDate(p.assignDate, p.month);
-                    if (isCurrentMonth) {
-                      return pMonth.toLowerCase() === m.toLowerCase() || (p.orderStatus !== 'Done' && p.orderStatus !== 'Delivered' && p.orderStatus !== 'Cancel');
-                    }
-                    return pMonth.toLowerCase() === m.toLowerCase();
-                  }).length;
-                  return (
-                    <button
-                      key={m}
-                      className={`sidebar-nav-item ${currentTab.toLowerCase() === m.toLowerCase() ? 'active' : ''}`}
-                      onClick={() => {
-                        setCurrentTab(m);
-                        setTeamMemberFilter('All');
-                        setTeamSalesFilter('All');
-                        setProfileFilter('all');
-                      }}
-                    >
-                      <div className="sidebar-nav-left">
-                        <Calendar size={14} />
-                        <span>{m}</span>
-                        {isCurrentMonth && (
-                          <span style={{ fontSize: '0.62rem', padding: '0.08rem 0.32rem', borderRadius: '3px', background: 'rgba(56,189,248,0.15)', color: '#38bdf8', fontWeight: 600, letterSpacing: '0.02em' }}>
-                            Current
-                          </span>
-                        )}
-                      </div>
-                      <span className="sidebar-count-badge">{count}</span>
-                    </button>
-                  );
-                })}
               </div>
 
               {/* Team Members Filter Section */}
