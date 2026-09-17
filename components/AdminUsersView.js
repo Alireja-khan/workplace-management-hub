@@ -7,6 +7,8 @@ export default function AdminUsersView() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
+  const [availableMembers, setAvailableMembers] = useState([]);
+  const [isCustomName, setIsCustomName] = useState(false);
 
   const [editingUserId, setEditingUserId] = useState(null);
   const [editForm, setEditForm] = useState({ role: '', assignedName: '' });
@@ -30,6 +32,16 @@ export default function AdminUsersView() {
 
   useEffect(() => {
     fetchUsers();
+    
+    // Fetch available members
+    fetch('/api/team-projects/members')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setAvailableMembers(data.data);
+        }
+      })
+      .catch(err => console.error('Failed to fetch available members', err));
   }, []);
 
   const showToast = (msg, type = 'success') => {
@@ -40,6 +52,7 @@ export default function AdminUsersView() {
   const handleEditClick = (user) => {
     setEditingUserId(user._id);
     setEditForm({ role: user.role || 'Visitor', assignedName: user.assignedName || '' });
+    setIsCustomName(false);
   };
 
   const handleCancelEdit = () => {
@@ -124,14 +137,13 @@ export default function AdminUsersView() {
                   <th>User Profile</th>
                   <th>Email Address</th>
                   <th>Role</th>
-                  <th>Assigned Name</th>
                   <th style={{ textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan="5" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--accents-5)' }}>
+                    <td colSpan="4" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--accents-5)' }}>
                       No users found.
                     </td>
                   </tr>
@@ -154,37 +166,85 @@ export default function AdminUsersView() {
                       
                       <td>
                         {editingUserId === user._id ? (
-                          <select 
-                            className="v-select" 
-                            value={editForm.role}
-                            onChange={(e) => setEditForm({...editForm, role: e.target.value})}
-                          >
-                            <option value="Owner">Owner</option>
-                            <option value="Leader">Leader</option>
-                            <option value="Co-Leader">Co-Leader</option>
-                            <option value="Member">Member</option>
-                            <option value="Visitor">Visitor</option>
-                          </select>
-                        ) : (
-                          <span className="metric-badge blue" style={{ background: user.role === 'Visitor' ? 'var(--accents-2)' : undefined, color: user.role === 'Visitor' ? 'var(--accents-5)' : undefined }}>
-                            {user.role || 'Visitor'}
-                          </span>
-                        )}
-                      </td>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <select 
+                              className="v-select" 
+                              value={editForm.role}
+                              onChange={(e) => {
+                                const newRole = e.target.value;
+                                setEditForm({...editForm, role: newRole, assignedName: newRole === 'Visitor' ? '' : editForm.assignedName});
+                              }}
+                            >
+                              <option value="Owner">Owner</option>
+                              <option value="Leader">Leader</option>
+                              <option value="Co-Leader">Co-Leader</option>
+                              <option value="Member">Member</option>
+                              <option value="Visitor">Visitor</option>
+                            </select>
 
-                      <td>
-                        {editingUserId === user._id ? (
-                          <input 
-                            type="text" 
-                            className="v-input" 
-                            placeholder="e.g. Jasmin"
-                            value={editForm.assignedName}
-                            onChange={(e) => setEditForm({...editForm, assignedName: e.target.value})}
-                          />
+                            {editForm.role !== 'Visitor' && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
+                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--accents-5)' }}>Assign Name:</label>
+                                {!isCustomName ? (
+                                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <select 
+                                      className="v-select" 
+                                      style={{ flex: 1 }}
+                                      value={editForm.assignedName}
+                                      onChange={(e) => {
+                                        if (e.target.value === 'ADD_NEW_CUSTOM_NAME') {
+                                          setIsCustomName(true);
+                                          setEditForm({...editForm, assignedName: ''});
+                                        } else {
+                                          setEditForm({...editForm, assignedName: e.target.value});
+                                        }
+                                      }}
+                                    >
+                                      <option value="">-- Select Existing Name --</option>
+                                      {availableMembers.map(m => (
+                                        <option key={m} value={m}>{m}</option>
+                                      ))}
+                                      <option value="ADD_NEW_CUSTOM_NAME">+ Add New Name</option>
+                                    </select>
+                                  </div>
+                                ) : (
+                                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                    <input 
+                                      type="text" 
+                                      className="v-input" 
+                                      style={{ flex: 1 }}
+                                      placeholder="e.g. Jasmin"
+                                      value={editForm.assignedName}
+                                      onChange={(e) => setEditForm({...editForm, assignedName: e.target.value})}
+                                      autoFocus
+                                    />
+                                    <button 
+                                      className="btn-v-ghost" 
+                                      style={{ padding: 4 }}
+                                      onClick={() => {
+                                        setIsCustomName(false);
+                                        setEditForm({...editForm, assignedName: ''});
+                                      }}
+                                      title="Cancel Custom Name"
+                                    >
+                                      <X size={14} color="var(--accents-5)" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         ) : (
-                          <span style={{ fontWeight: user.assignedName ? 600 : 400, color: user.assignedName ? 'var(--foreground)' : 'var(--accents-5)', fontSize: '0.9rem' }}>
-                            {user.assignedName || 'Not assigned'}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span className="metric-badge blue" style={{ background: user.role === 'Visitor' ? 'var(--accents-2)' : undefined, color: user.role === 'Visitor' ? 'var(--accents-5)' : undefined }}>
+                              {user.role || 'Visitor'}
+                            </span>
+                            {user.role !== 'Visitor' && user.assignedName && (
+                              <span style={{ fontSize: '0.8rem', color: 'var(--accents-6)', fontWeight: 500 }}>
+                                as {user.assignedName}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </td>
 
