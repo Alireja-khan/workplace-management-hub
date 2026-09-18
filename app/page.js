@@ -172,14 +172,14 @@ export default function VercelDashboard() {
   const [isIssueNoteSaving, setIsIssueNoteSaving] = useState(false);
 
   const [teamFormData, setTeamFormData] = useState({
-    salesPerson: 'Shuvo',
+    salesPerson: '',
     assignDate: new Date().toISOString().split('T')[0],
     month: MONTH_LIST[new Date().getMonth()],
     profileName: '',
     clientUserId: '',
     orderNumber: '',
     amount: '',
-    assignedMembers: ['Alireja'],
+    assignedMembers: [],
     estimatedDeliveryDate: '',
     deadline: '',
     deliveryDate: '',
@@ -1417,14 +1417,14 @@ export default function VercelDashboard() {
   const openNewTeamModal = () => {
     setActiveTeamProject(null);
     setTeamFormData({
-      salesPerson: 'Shuvo',
+      salesPerson: '',
       assignDate: new Date().toISOString().split('T')[0],
       month: MONTH_LIST[new Date().getMonth()],
       profileName: '',
       clientUserId: '',
       orderNumber: '',
       amount: '',
-      assignedMembers: ['Alireja'],
+      assignedMembers: [],
       estimatedDeliveryDate: '',
       deliveryDate: '',
       remark: '',
@@ -1441,7 +1441,7 @@ export default function VercelDashboard() {
   const openEditTeamModal = (p) => {
     setActiveTeamProject(p);
     setTeamFormData({
-      salesPerson: p.salesPerson || 'Shuvo',
+      salesPerson: p.salesPerson || '',
       assignDate: p.assignDate || new Date().toISOString().split('T')[0],
       month: p.month || MONTH_LIST[new Date().getMonth()],
       profileName: p.profileName || '',
@@ -3817,15 +3817,7 @@ export default function VercelDashboard() {
                         )}
                       </select>
                     </div>
-                    <div className="v-form-group">
-                      <label>Issue Status</label>
-                      <select className="v-select" value={formData.currentStatus || 'All Sorted'} onChange={(e) => setFormData({ ...formData, currentStatus: e.target.value })}>
-                        <option value="All Sorted">All Sorted</option>
-                        <option value="Issue">Issue</option>
-                        <option value="WIP">WIP</option>
-                        <option value="Solved">Solved</option>
-                      </select>
-                    </div>
+
                     <div className="v-form-group">
                       <label>Deadline</label>
                       <input type="date" className="v-input" value={formData.deadline || ''} onChange={(e) => setFormData({ ...formData, deadline: e.target.value })} />
