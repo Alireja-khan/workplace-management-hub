@@ -134,12 +134,12 @@ export default function VercelDashboard() {
   // Workspace Mode: 'personal' (my-work-place) | 'team' (EleSquad SMT 2025-2026)
   const [workspaceMode, setWorkspaceMode] = useState('personal');
     const [personalSearchQuery, setPersonalSearchQuery] = useState('');
-  const [personalStatusFilter, setPersonalStatusFilter] = useState('All Statuses');
-  const [personalSalesFilter, setPersonalSalesFilter] = useState('All Sales');
-  const [personalProfileFilter, setPersonalProfileFilter] = useState('All Profiles');
-  const [personalMonthFilter, setPersonalMonthFilter] = useState(MONTH_LIST[new Date().getMonth()]);
-  const [personalYearFilter, setPersonalYearFilter] = useState(new Date().getFullYear().toString());
-  const [personalDateFilterType, setPersonalDateFilterType] = useState('Assign Date');
+  const [personalStatusFilter, setPersonalStatusFilter] = useState('all');
+  const [personalSalesFilter, setPersonalSalesFilter] = useState('all');
+  const [personalProfileFilter, setPersonalProfileFilter] = useState('all');
+  const [personalMonthFilter, setPersonalMonthFilter] = useState('all');
+  const [personalYearFilter, setPersonalYearFilter] = useState('all');
+  const [personalDateFilterType, setPersonalDateFilterType] = useState('assign');
 
   const [teamProjects, setTeamProjects] = useState([]);
   const [teamLoading, setTeamLoading] = useState(false);
@@ -1010,6 +1010,9 @@ export default function VercelDashboard() {
   const currentSalesFilter = isTeamMode ? teamSalesFilter : personalSalesFilter;
   const setCurrentSalesFilter = isTeamMode ? setTeamSalesFilter : setPersonalSalesFilter;
   const currentProfileFilter = isTeamMode ? profileFilter : personalProfileFilter;
+    const setCurrentProfileFilter = isTeamMode ? setProfileFilter : setPersonalProfileFilter;
+    const currentStatus = isTeamMode ? teamStatusFilter : personalStatusFilter;
+    const setCurrentStatus = isTeamMode ? setTeamStatusFilter : setPersonalStatusFilter;
   const setCurrentProfileFilter = isTeamMode ? setProfileFilter : setPersonalProfileFilter;
   const activeStatusFilter = isTeamMode ? statusFilter : personalStatusFilter;
   const setActiveStatusFilter = isTeamMode ? setStatusFilter : setPersonalStatusFilter;
@@ -2849,8 +2852,8 @@ export default function VercelDashboard() {
                         ? 'Search orders, client ID, order #, member, remark...'
                         : 'Search orders, clients, subdomains, notes...'
                     }
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    value={currentSearchQuery}
+                    onChange={(e) => setCurrentSearchQuery(e.target.value)}
                   />
                 </div>
 
@@ -2858,106 +2861,9 @@ export default function VercelDashboard() {
                   <>
                     {/* Date Filter Type */}
                     <select
-                      className="v-select"
-                      value={teamDateFilterType}
-                      onChange={(e) => setTeamDateFilterType(e.target.value)}
-                    >
-                      <option value="assign">Filter by: Assign Date</option>
-                      <option value="delivery">Filter by: Delivery Date</option>
-                    </select>
-
-                    {/* Year Filter */}
-                    <select
-                      className="v-select"
-                      value={teamYearFilter}
-                      onChange={(e) => setTeamYearFilter(e.target.value)}
-                    >
-                      <option value="all">All Years</option>
-                      {teamYearList.map((y) => (
-                        <option key={y} value={y}>{y}</option>
-                      ))}
-                    </select>
-
-                    {/* Month Filter */}
-                    <select
-                      className="v-select"
-                      value={teamMonthFilter}
-                      onChange={(e) => setTeamMonthFilter(e.target.value)}
-                    >
-                      <option value="all">All Months</option>
-                      {teamMonthList.map((m) => (
-                        <option key={m} value={m}>{m}</option>
-                      ))}
-                    </select>
-
-                    {/* Team Member Filter */}
-                    <select
-                      className="v-select"
-                      value={teamMemberFilter}
-                      onChange={(e) => setTeamMemberFilter(e.target.value)}
-                    >
-                      <option value="all">All Members ({teamMemberList.length})</option>
-                      {teamMemberList.map((m) => (
-                        <option key={m} value={m}>{m} ({teamMemberCounts[m] || 0})</option>
-                      ))}
-                    </select>
-
-                    {/* Sales Person Filter */}
-                    <select
-                      className="v-select"
-                      value={teamSalesFilter}
-                      onChange={(e) => setTeamSalesFilter(e.target.value)}
-                    >
-                      <option value="all">All Sales ({teamSalesList.length})</option>
-                      {teamSalesList.map((sp) => (
-                        <option key={sp} value={sp}>{sp} ({teamSalesCounts[sp] || 0})</option>
-                      ))}
-                    </select>
-
-                    {/* Profile Filter */}
-                    <select
-                      className="v-select"
-                      value={profileFilter}
-                      onChange={(e) => setProfileFilter(e.target.value)}
-                    >
-                      <option value="all">All Profiles ({teamUniqueProfiles.length})</option>
-                      {teamUniqueProfiles.map((p) => (
-                        <option key={p} value={p}>{p}</option>
-                      ))}
-                    </select>
-
-                    {/* Status Filter */}
-                    <select
-                      className="v-select"
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                    >
-                      <option value="all">All Statuses</option>
-                      <option value="Wip">Wip</option>
-                      <option value="Delivered">Delivered</option>
-                      <option value="Done">Done</option>
-                      <option value="NRA">NRA</option>
-                      <option value="Need Requirements">Need Requirements</option>
-                      <option value="Cancel">Cancel</option>
-                    </select>
-                  </>
-                ) : (
-                  <>
-                    <select
-                      className="v-select"
-                      value={profileFilter}
-                      onChange={(e) => setProfileFilter(e.target.value)}
-                    >
-                      <option value="all">All Profiles ({uniqueProfiles.length})</option>
-                      {uniqueProfiles.map((p) => (
-                        <option key={p} value={p}>{p}</option>
-                      ))}
-                    </select>
-
-                    <select
-                      className="v-select"
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
+        className="v-select"
+        value={currentStatus}
+        onChange={(e) => setCurrentStatus(e.target.value)}
                     >
                       <option value="all">All Order Statuses</option>
                       <option value="Done">Done</option>
@@ -2996,17 +2902,17 @@ export default function VercelDashboard() {
                 <button
                   className="btn-v btn-v-secondary"
                   onClick={() => {
-                    setSearchQuery('');
-                    setProfileFilter('all');
-                    setStatusFilter('all');
-                    setCurrentStatusFilter('all');
-                    setScheduleFilter('all');
-                    setTeamMemberFilter('all');
-                    setTeamSalesFilter('all');
-                    setTeamYearFilter('all');
-                    setTeamMonthFilter('all');
-                    setTeamDateFilterType('assign');
-                    setCurrentTab('all');
+                    setCurrentSearchQuery('');
+    setCurrentProfileFilter('all');
+    setCurrentStatus('all');
+    if (isTeamMode) {
+      setTeamMemberFilter('all');
+    }
+    setCurrentSalesFilter('all');
+    setCurrentYearFilter('all');
+    setCurrentMonthFilter('all');
+    setCurrentDateFilterType('assign');
+    setCurrentTab('all');
                   }}
                   title="Reset Filters"
                 >
