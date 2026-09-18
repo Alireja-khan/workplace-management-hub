@@ -270,16 +270,22 @@ export default function VercelDashboard() {
     }
   }, []);
 
-  // When switching workspace mode, default to showing WIP / Running orders table
+  // When switching workspace mode, default to showing WIP / Running orders table for team, All Orders for personal
   useEffect(() => {
-    setCurrentTab('running');
+    setCurrentTab(workspaceMode === 'team' ? 'running' : 'all');
     setTeamMemberFilter('all');
     setTeamSalesFilter('all');
+    setPersonalSalesFilter('all');
     setTeamYearFilter('all');
+    setPersonalYearFilter('all');
     setTeamMonthFilter('all');
+    setPersonalMonthFilter('all');
     setTeamDateFilterType('assign');
+    setPersonalDateFilterType('assign');
     setProfileFilter('all');
+    setPersonalProfileFilter('all');
     setStatusFilter('all');
+    setPersonalStatusFilter('all');
   }, [workspaceMode]);
 
   const toggleTheme = () => {
@@ -946,11 +952,7 @@ export default function VercelDashboard() {
         }
       }
 
-      if ('All Members'.toLowerCase() !== 'all') {
-        if (!Array.isArray(p.assignedMembers) || !p.assignedMembers.some((m) => m.toLowerCase() === 'All Members'.toLowerCase())) {
-          return false;
-        }
-      }
+
 
       if (personalSalesFilter.toLowerCase() !== 'all' && (p.salesPerson || '').toLowerCase() !== personalSalesFilter.toLowerCase()) {
         return false;
@@ -995,7 +997,7 @@ export default function VercelDashboard() {
     });
 
     return res;
-  }, [teamProjects, currentTab, 'All Members', personalSalesFilter, personalMonthFilter, personalYearFilter, personalDateFilterType, personalProfileFilter, personalStatusFilter, personalSearchQuery, sortConfig, currentCalendarMonth, currentCalendarYear, session?.user?.assignedName]);
+  }, [teamProjects, currentTab, personalSalesFilter, personalMonthFilter, personalYearFilter, personalDateFilterType, personalProfileFilter, personalStatusFilter, personalSearchQuery, sortConfig, currentCalendarMonth, currentCalendarYear, session?.user?.assignedName]);
 
   const isTeamMode = workspaceMode === 'team';
   const currentProjects = isTeamMode ? filteredTeamProjects : filteredPersonalProjects;
@@ -2066,7 +2068,7 @@ export default function VercelDashboard() {
             {/* Action Button inside Sidebar for Team */}
             <div style={{ padding: '0.85rem 0.85rem 0.25rem 0.85rem' }}>
               <button className="sidebar-new-order-btn" onClick={openNewTeamModal}>
-                <Plus size={14} /> Add Team Order
+                <Plus size={14} /> {workspaceMode === 'team' ? 'Add Team Order' : 'Add Order'}
               </button>
             </div>
 
@@ -2893,16 +2895,18 @@ export default function VercelDashboard() {
                     </select>
 
                     {/* Team Member Filter */}
-                    <select
-                      className="v-select"
-                      value={teamMemberFilter}
-                      onChange={(e) => setTeamMemberFilter(e.target.value)}
-                    >
-                      <option value="all">All Members ({teamMemberList.length})</option>
-                      {teamMemberList.map((m) => (
-                        <option key={m} value={m}>{m} ({teamMemberCounts[m] || 0})</option>
-                      ))}
-                    </select>
+                    {workspaceMode === 'team' && (
+                      <select
+                        className="v-select"
+                        value={teamMemberFilter}
+                        onChange={(e) => setTeamMemberFilter(e.target.value)}
+                      >
+                        <option value="all">All Members ({teamMemberList.length})</option>
+                        {teamMemberList.map((m) => (
+                          <option key={m} value={m}>{m} ({teamMemberCounts[m] || 0})</option>
+                        ))}
+                      </select>
+                    )}
 
                     {/* Sales Person Filter */}
                     <select
@@ -2999,15 +3003,22 @@ export default function VercelDashboard() {
                   className="btn-v btn-v-secondary"
                   onClick={() => {
                     setSearchQuery('');
+                    setPersonalSearchQuery('');
                     setProfileFilter('all');
+                    setPersonalProfileFilter('all');
                     setStatusFilter('all');
+                    setPersonalStatusFilter('all');
                     setCurrentStatusFilter('all');
                     setScheduleFilter('all');
                     setTeamMemberFilter('all');
                     setTeamSalesFilter('all');
+                    setPersonalSalesFilter('all');
                     setTeamYearFilter('all');
+                    setPersonalYearFilter('all');
                     setTeamMonthFilter('all');
+                    setPersonalMonthFilter('all');
                     setTeamDateFilterType('assign');
+                    setPersonalDateFilterType('assign');
                     setCurrentTab('all');
                   }}
                   title="Reset Filters"
@@ -3081,7 +3092,7 @@ export default function VercelDashboard() {
                           <th className="sortable" onClick={() => handleSort('orderNumber')}>Order #</th>
                           <th className="sortable" onClick={() => handleSort('amount')}>Gross</th>
                           <th>Net (80%)</th>
-                          <th>Assigned Member(s)</th>
+                          {workspaceMode === 'team' && <th>Assigned Member(s)</th>}
                           <th className="sortable" onClick={() => handleSort('estimatedDeliveryDate')}>Est. Deli</th>
                           <th>Deli/Cancel</th>
                           <th>Order Status</th>
@@ -3118,13 +3129,13 @@ export default function VercelDashboard() {
                         /* TEAM TABLE ROWS */
                         currentProjects.length === 0 ? (
                           <tr>
-                            <td colSpan={16} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
+                            <td colSpan={workspaceMode === 'team' ? 16 : 15} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--accents-5)' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
                                 <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--foreground)' }}>
-                                  No team orders found matching your filters.
+                                  {workspaceMode === 'team' ? 'No team orders found matching your filters.' : 'No personal orders found matching your filters.'}
                                 </span>
                                 <span style={{ fontSize: '0.78rem', color: 'var(--accents-4)' }}>
-                                  Click <button type="button" onClick={openNewTeamModal} style={{ color: '#38bdf8', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>+ Add Team Order</button> to create one.
+                                  Click <button type="button" onClick={openNewTeamModal} style={{ color: '#38bdf8', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>{workspaceMode === 'team' ? '+ Add Team Order' : '+ Add Order'}</button> to create one.
                                 </span>
                               </div>
                             </td>
@@ -3180,19 +3191,21 @@ export default function VercelDashboard() {
                                 </td>
                                 <td className="mono-text" style={{ fontWeight: 600 }}>${gross.toFixed(2)}</td>
                                 <td className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>${net.toFixed(2)}</td>
-                                <td>
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                                    {members.length > 0 ? (
-                                      members.map((m) => (
-                                        <span key={m} style={{ fontSize: '0.7rem', background: 'var(--accents-1)', border: '1px solid var(--border-subtle)', padding: '0.1rem 0.4rem', borderRadius: 999 }}>
-                                          {m}
-                                        </span>
-                                      ))
-                                    ) : (
-                                      <span style={{ color: 'var(--accents-4)', fontSize: '0.75rem' }}>-</span>
-                                    )}
-                                  </div>
-                                </td>
+                                {workspaceMode === 'team' && (
+                                  <td>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                      {members.length > 0 ? (
+                                        members.map((m) => (
+                                          <span key={m} style={{ fontSize: '0.7rem', background: 'var(--accents-1)', border: '1px solid var(--border-subtle)', padding: '0.1rem 0.4rem', borderRadius: 999 }}>
+                                            {m}
+                                          </span>
+                                        ))
+                                      ) : (
+                                        <span style={{ color: 'var(--accents-4)', fontSize: '0.75rem' }}>-</span>
+                                      )}
+                                    </div>
+                                  </td>
+                                )}
                                 <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
                                   {p.estimatedDeliveryDate || '-'}
                                 </td>
