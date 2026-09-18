@@ -399,11 +399,16 @@ export default function VercelDashboard() {
   };
 
   // Team KPIs
+  const baseProjects = useMemo(() => {
+    if (workspaceMode === 'team') return teamProjects;
+    return teamProjects.filter((p) => Array.isArray(p.assignedMembers) && p.assignedMembers.some(m => m.toLowerCase() === (session?.user?.assignedName || 'Alireja').toLowerCase()));
+  }, [teamProjects, workspaceMode, session?.user?.assignedName]);
+
   const teamFinancialOverview = useMemo(() => {
     let wipNetValue = 0;
     let deliveredGrossValue = 0;
     let deliveredNetValue = 0;
-    teamProjects.forEach(p => {
+    baseProjects.forEach(p => {
       const status = (p.orderStatus || '').toLowerCase();
       const gross = parseFloat(p.amount) || 0;
       const net = parseFloat(p.netAmount) || (gross * 0.8 || 0);
@@ -421,14 +426,14 @@ export default function VercelDashboard() {
       }
     });
     return { wipNetValue, deliveredGrossValue, deliveredNetValue };
-  }, [teamProjects, currentCalendarMonth]);
+  }, [baseProjects, currentCalendarMonth]);
 
   const teamCurrentMonthOnlyCount = useMemo(() => {
-    return teamProjects.filter(p => getMonthFromDate(p.assignDate, p.month).toLowerCase() === currentCalendarMonth.toLowerCase() && getYearFromDate(p.assignDate) === currentCalendarYear).length;
-  }, [teamProjects, currentCalendarMonth, currentCalendarYear]);
+    return baseProjects.filter(p => getMonthFromDate(p.assignDate, p.month).toLowerCase() === currentCalendarMonth.toLowerCase() && getYearFromDate(p.assignDate) === currentCalendarYear).length;
+  }, [baseProjects, currentCalendarMonth, currentCalendarYear]);
 
   const teamCurrentDeliveredCount = useMemo(() => {
-    return teamProjects.filter(p => {
+    return baseProjects.filter(p => {
        const st = (p.orderStatus || 'wip').toLowerCase();
        const isDeliveredOrDone = st === 'delivered' || st === 'done' || st === 'issue';
        const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
@@ -439,10 +444,10 @@ export default function VercelDashboard() {
        const pYear = getYearFromDate(p.assignDate);
        return isDeliveredOrDone && ((delMonthStr === currentMonthIdx && delYear === currentCalendarYear) || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase() && pYear === currentCalendarYear));
     }).length;
-  }, [teamProjects, currentCalendarMonth, currentCalendarYear]);
+  }, [baseProjects, currentCalendarMonth, currentCalendarYear]);
 
   const teamCurrentCancelCount = useMemo(() => {
-    return teamProjects.filter(p => {
+    return baseProjects.filter(p => {
        const st = (p.orderStatus || 'wip').toLowerCase();
        const isCancel = st === 'cancel';
        const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
@@ -453,18 +458,18 @@ export default function VercelDashboard() {
        const pYear = getYearFromDate(p.assignDate);
        return isCancel && ((delMonthStr === currentMonthIdx && delYear === currentCalendarYear) || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase() && pYear === currentCalendarYear));
     }).length;
-  }, [teamProjects, currentCalendarMonth, currentCalendarYear]);
+  }, [baseProjects, currentCalendarMonth, currentCalendarYear]);
 
   const teamCurrentNeedReqCount = useMemo(() => {
-    return teamProjects.filter(p => getMonthFromDate(p.assignDate, p.month).toLowerCase() === currentCalendarMonth.toLowerCase() && getYearFromDate(p.assignDate) === currentCalendarYear && (p.orderStatus || 'wip').toLowerCase() === 'need requirements').length;
-  }, [teamProjects, currentCalendarMonth, currentCalendarYear]);
+    return baseProjects.filter(p => getMonthFromDate(p.assignDate, p.month).toLowerCase() === currentCalendarMonth.toLowerCase() && getYearFromDate(p.assignDate) === currentCalendarYear && (p.orderStatus || 'wip').toLowerCase() === 'need requirements').length;
+  }, [baseProjects, currentCalendarMonth, currentCalendarYear]);
 
   const teamCurrentNRACount = useMemo(() => {
-    return teamProjects.filter(p => (p.orderStatus || 'wip').toLowerCase() === 'nra').length;
-  }, [teamProjects]);
+    return baseProjects.filter(p => (p.orderStatus || 'wip').toLowerCase() === 'nra').length;
+  }, [baseProjects]);
 
   const teamCarryCount = useMemo(() => {
-    return teamProjects.filter(p => {
+    return baseProjects.filter(p => {
        const pMonth = getMonthFromDate(p.assignDate, p.month);
        const pYear = getYearFromDate(p.assignDate);
        if (pMonth.toLowerCase() === currentCalendarMonth.toLowerCase() && pYear === currentCalendarYear) return false;
@@ -481,7 +486,7 @@ export default function VercelDashboard() {
        
        return isRunning || deliveredThisMonth || cancelledThisMonth;
     }).length;
-  }, [teamProjects, currentCalendarMonth, currentCalendarYear]);
+  }, [baseProjects, currentCalendarMonth, currentCalendarYear]);
 
   // KPIs
   const kpis = useMemo(() => {
@@ -676,8 +681,8 @@ export default function VercelDashboard() {
 
   // Team Running Count
   const teamRunningCount = useMemo(() => {
-    return teamProjects.filter((p) => (p.orderStatus || 'wip').toLowerCase() === 'wip').length;
-  }, [teamProjects]);
+    return baseProjects.filter((p) => (p.orderStatus || 'wip').toLowerCase() === 'wip').length;
+  }, [baseProjects]);
 
   // Team Monthly Stats for Analytics Page
   const teamMonthStats = useMemo(() => {
@@ -2100,7 +2105,7 @@ export default function VercelDashboard() {
 
               {/* Team Views */}
               <div className="sidebar-section">
-                <div className="sidebar-section-title">Team Views</div>
+                <div className="sidebar-section-title">{workspaceMode === "team" ? "TEAM VIEWS" : "YOUR ORDER VIEWS"}</div>
                 <button
                   className={`sidebar-nav-item ${currentTab === 'all' && teamMemberFilter === 'All' && teamSalesFilter === 'All' && statusFilter === 'all' ? 'active' : ''}`}
                   onClick={() => {
@@ -2114,7 +2119,7 @@ export default function VercelDashboard() {
                 >
                   <div className="sidebar-nav-left">
                     <LayoutDashboard size={14} />
-                    <span>All Team Orders</span>
+                    <span>{workspaceMode === "team" ? "All Team Orders" : "Your All Orders"}</span>
                   </div>
                   <span className="sidebar-count-badge">{teamProjects.length}</span>
                 </button>
@@ -2273,7 +2278,8 @@ export default function VercelDashboard() {
               </div>
 
               {/* Team Members Filter Section */}
-              <div className="sidebar-section">
+              {workspaceMode === "team" && (
+                <div className="sidebar-section">
                 <div className="sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>Assigned Members</span>
                   <button
@@ -2298,6 +2304,7 @@ export default function VercelDashboard() {
                   </button>
                 ))}
               </div>
+                )}
             </div>
           </>
         )}
