@@ -3099,7 +3099,7 @@ export default function VercelDashboard() {
                           <th>Sheet</th>
                           <th>Payout</th>
                           <th>Note</th>
-                          <th style={{ textAlign: 'center' }}>Actions</th>
+                          {['Owner', 'admin'].includes(session?.user?.role) && <th style={{ textAlign: 'center' }}>Actions</th>}
                         </tr>
                       </thead>
                     ) : (
@@ -3120,7 +3120,7 @@ export default function VercelDashboard() {
                           <th>Order Type</th>
                           <th>Sheet</th>
                           <th>Remark</th>
-                          <th style={{ textAlign: 'center' }}>Actions</th>
+                          {['Owner', 'admin'].includes(session?.user?.role) && <th style={{ textAlign: 'center' }}>Actions</th>}
                         </tr>
                       </thead>
                     )}
@@ -3315,16 +3315,18 @@ export default function VercelDashboard() {
                                 <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.75rem', color: 'var(--accents-5)' }}>
                                   {p.note || '-'}
                                 </td>
-                                <td style={{ textAlign: 'center' }}>
-                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                    <button className="btn-v-ghost" style={{ padding: 4 }} onClick={() => openEditTeamModal(p)} title="Edit Order">
-                                      <Edit2 size={13} />
-                                    </button>
-                                    <button className="btn-v-ghost" style={{ padding: 4, color: '#ef4444' }} onClick={() => handleTeamDelete(p._id)} title="Delete Order">
-                                      <Trash2 size={13} />
-                                    </button>
-                                  </div>
-                                </td>
+                                {['Owner', 'admin'].includes(session?.user?.role) && (
+                                  <td style={{ textAlign: 'center' }}>
+                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                      <button className="btn-v-ghost" style={{ padding: 4 }} onClick={() => openEditTeamModal(p)} title="Edit Order">
+                                        <Edit2 size={13} />
+                                      </button>
+                                      <button className="btn-v-ghost" style={{ padding: 4, color: '#ef4444' }} onClick={() => handleTeamDelete(p._id)} title="Delete Order">
+                                        <Trash2 size={13} />
+                                      </button>
+                                    </div>
+                                  </td>
+                                )}
                               </tr>
                             );
                           })
@@ -3512,19 +3514,21 @@ export default function VercelDashboard() {
                                 <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.75rem', color: 'var(--accents-5)' }}>
                                   {p.remark || p.notes || '-'}
                                 </td>
-                                <td style={{ textAlign: 'center' }}>
-                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                    <button className="btn-v-ghost" style={{ padding: 4 }} onClick={() => openDetailModal(p)} title="View Details">
-                                      <Eye size={13} />
-                                    </button>
-                                    <button className="btn-v-ghost" style={{ padding: 4 }} onClick={() => openEditModal(p)} title="Edit Order">
-                                      <Edit2 size={13} />
-                                    </button>
-                                    <button className="btn-v-ghost" style={{ padding: 4, color: '#ee0000' }} onClick={() => handleDelete(p._id, p.clientUsername)} title="Delete Order">
-                                      <Trash2 size={13} />
-                                    </button>
-                                  </div>
-                                </td>
+                                {['Owner', 'admin'].includes(session?.user?.role) && (
+                                  <td style={{ textAlign: 'center' }}>
+                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                      <button className="btn-v-ghost" style={{ padding: 4 }} onClick={() => openDetailModal(p)} title="View Details">
+                                        <Eye size={13} />
+                                      </button>
+                                      <button className="btn-v-ghost" style={{ padding: 4 }} onClick={() => openEditModal(p)} title="Edit Order">
+                                        <Edit2 size={13} />
+                                      </button>
+                                      <button className="btn-v-ghost" style={{ padding: 4, color: '#ee0000' }} onClick={() => handleDelete(p._id, p.clientUsername)} title="Delete Order">
+                                        <Trash2 size={13} />
+                                      </button>
+                                    </div>
+                                  </td>
+                                )}
                               </tr>
                             );
                           })
