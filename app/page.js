@@ -610,19 +610,16 @@ export default function VercelDashboard() {
     teamProjects.forEach(p => {
       const y = getYearFromDate(p.assignDate, null);
       if (y) years.add(y);
+      const dy = getYearFromDate(p.deliveryDate, null);
+      if (dy) years.add(dy);
     });
+    years.add(new Date().getFullYear().toString());
     return Array.from(years).sort((a, b) => b.localeCompare(a));
   }, [teamProjects]);
 
   const teamMonthList = useMemo(() => {
-    const months = new Set();
-    teamProjects.forEach(p => {
-      const m = getMonthFromDate(p.assignDate, p.month);
-      if (m) months.add(m);
-    });
-    // Sort by month index descending
-    return Array.from(months).sort((a, b) => MONTH_LIST.indexOf(b) - MONTH_LIST.indexOf(a));
-  }, [teamProjects]);
+    return [...MONTH_LIST].reverse();
+  }, []);
 
   // Team Sales Person Counts
   const teamSalesCounts = useMemo(() => {
