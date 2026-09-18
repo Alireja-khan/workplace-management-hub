@@ -133,6 +133,14 @@ export default function VercelDashboard() {
 
   // Workspace Mode: 'personal' (my-work-place) | 'team' (EleSquad SMT 2025-2026)
   const [workspaceMode, setWorkspaceMode] = useState('personal');
+    const [personalSearchQuery, setPersonalSearchQuery] = useState('');
+  const [personalStatusFilter, setPersonalStatusFilter] = useState('All Statuses');
+  const [personalSalesFilter, setPersonalSalesFilter] = useState('All Sales');
+  const [personalProfileFilter, setPersonalProfileFilter] = useState('All Profiles');
+  const [personalMonthFilter, setPersonalMonthFilter] = useState(MONTH_LIST[new Date().getMonth()]);
+  const [personalYearFilter, setPersonalYearFilter] = useState(new Date().getFullYear().toString());
+  const [personalDateFilterType, setPersonalDateFilterType] = useState('Assign Date');
+
   const [teamProjects, setTeamProjects] = useState([]);
   const [teamLoading, setTeamLoading] = useState(false);
   const [teamSearchQuery, setTeamSearchQuery] = useState('');
@@ -835,6 +843,172 @@ export default function VercelDashboard() {
 
     return res;
   }, [teamProjects, currentTab, teamMemberFilter, teamSalesFilter, teamMonthFilter, teamYearFilter, teamDateFilterType, profileFilter, statusFilter, searchQuery, sortConfig, currentCalendarMonth, currentCalendarYear]);
+
+  const filteredPersonalProjects = useMemo(() => {
+    let res = teamProjects.filter((p) => {
+      if (currentTab === 'running') {
+        const s = (p.orderStatus || 'Wip').toLowerCase();
+        const sch = (p.timeSchedule || '').toLowerCase();
+        if (s !== 'wip' && sch !== 'late') return false;
+      } else if (currentTab === 'current_month_only') {
+        const pMonth = getMonthFromDate(p.assignDate, p.month);
+        const pYear = getYearFromDate(p.assignDate);
+        if (pMonth.toLowerCase() !== currentCalendarMonth.toLowerCase() || pYear !== currentCalendarYear) return false;
+      } else if (currentTab === 'current_delivered') {
+        const st = (p.orderStatus || 'wip').toLowerCase();
+        const isDeliveredOrDone = st === 'delivered' || st === 'done' || st === 'issue';
+        const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
+        const delYearStr = p.deliveryDate ? getYearFromDate(p.deliveryDate) : null;
+        const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
+        const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
+        const pMonth = getMonthFromDate(p.assignDate, p.month);
+        const pYear = getYearFromDate(p.assignDate);
+        const isCurrentMonth = (delMonthStr === currentMonthIdx && delYearStr === currentCalendarYear) || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase() && pYear === currentCalendarYear);
+        if (!isDeliveredOrDone || !isCurrentMonth) return false;
+      } else if (currentTab === 'current_cancel') {
+        const st = (p.orderStatus || 'wip').toLowerCase();
+        if (st !== 'cancel') return false;
+        const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
+        const delYearStr = p.deliveryDate ? getYearFromDate(p.deliveryDate) : null;
+        const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
+        const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
+        const pMonth = getMonthFromDate(p.assignDate, p.month);
+        const pYear = getYearFromDate(p.assignDate);
+        const isCurrentMonth = (delMonthStr === currentMonthIdx && delYearStr === currentCalendarYear) || (!delMonth && pMonth.toLowerCase() === currentCalendarMonth.toLowerCase() && pYear === currentCalendarYear);
+        if (!isCurrentMonth) return false;
+      } else if (currentTab === 'current_need_req') {
+        const pMonth = getMonthFromDate(p.assignDate, p.month);
+        const pYear = getYearFromDate(p.assignDate);
+        if (pMonth.toLowerCase() !== currentCalendarMonth.toLowerCase() || pYear !== currentCalendarYear || (p.orderStatus || '').toLowerCase() !== 'need requirements') return false;
+      } else if (currentTab === 'current_nra') {
+        if ((p.orderStatus || 'wip').toLowerCase() !== 'nra') return false;
+      } else if (currentTab === 'carry_orders') {
+        const pMonth = getMonthFromDate(p.assignDate, p.month);
+        const pYear = getYearFromDate(p.assignDate);
+        if (pMonth.toLowerCase() === currentCalendarMonth.toLowerCase() && pYear === currentCalendarYear) return false;
+        
+        const st = (p.orderStatus || 'wip').toLowerCase();
+        const isRunning = st !== 'done' && st !== 'delivered' && st !== 'cancel';
+        
+        const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
+        const delYearStr = p.deliveryDate ? getYearFromDate(p.deliveryDate) : null;
+        const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
+        const delMonthStr = delMonth ? parseInt(delMonth, 10) : -1;
+        const deliveredThisMonth = (st === 'delivered' || st === 'done' || st === 'issue') && (delMonthStr === currentMonthIdx && delYearStr === currentCalendarYear);
+        const cancelledThisMonth = st === 'cancel' && (delMonthStr === currentMonthIdx && delYearStr === currentCalendarYear);
+        
+        if (!isRunning && !deliveredThisMonth && !cancelledThisMonth) return false;
+      } else if (currentTab !== 'all') {
+        const isCurrentCalendarMonthTab = currentTab.toLowerCase() === currentCalendarMonth.toLowerCase();
+        const pMonth = getMonthFromDate(p.assignDate, p.month);
+        const pYear = getYearFromDate(p.assignDate);
+        const isAssignedInThisMonth = pMonth.toLowerCase() === currentTab.toLowerCase() && pYear === currentCalendarYear;
+
+        if (isCurrentCalendarMonthTab) {
+          const isRunning = p.orderStatus !== 'Done' && p.orderStatus !== 'Delivered' && p.orderStatus !== 'Cancel';
+          if (!isAssignedInThisMonth && !isRunning) return false;
+        } else {
+          if (!isAssignedInThisMonth) return false;
+        }
+      }
+
+      if (currentTab === 'all') {
+        const pYear = getYearFromDate(p.assignDate);
+        const pMonth = getMonthFromDate(p.assignDate, p.month);
+        
+        let targetYear = pYear;
+        let targetMonth = pMonth;
+
+        if (personalDateFilterType === 'delivery') {
+          if (!p.deliveryDate) {
+             // If they are explicitly filtering by delivery date year/month, but this order has no delivery date, hide it
+             if (personalYearFilter.toLowerCase() !== 'all' || personalMonthFilter.toLowerCase() !== 'all') {
+               return false;
+             }
+          } else {
+             targetYear = getYearFromDate(p.deliveryDate);
+             targetMonth = getMonthFromDate(p.deliveryDate, '');
+          }
+        }
+        
+        if (personalYearFilter.toLowerCase() !== 'all' && targetYear !== personalYearFilter) {
+          return false;
+        }
+        if (personalMonthFilter.toLowerCase() !== 'all' && targetMonth.toLowerCase() !== personalMonthFilter.toLowerCase()) {
+          return false;
+        }
+      }
+
+      if ('All Members'.toLowerCase() !== 'all') {
+        if (!Array.isArray(p.assignedMembers) || !p.assignedMembers.some((m) => m.toLowerCase() === 'All Members'.toLowerCase())) {
+          return false;
+        }
+      }
+
+      if (personalSalesFilter.toLowerCase() !== 'all' && (p.salesPerson || '').toLowerCase() !== personalSalesFilter.toLowerCase()) {
+        return false;
+      }
+
+      if (personalProfileFilter.toLowerCase() !== 'all' && (p.profileName || '').toLowerCase() !== personalProfileFilter.toLowerCase()) {
+        return false;
+      }
+
+      if (personalStatusFilter.toLowerCase() !== 'all' && (p.orderStatus || '').toLowerCase() !== personalStatusFilter.toLowerCase()) {
+        return false;
+      }
+
+      if (personalSearchQuery.trim()) {
+        const q = personalSearchQuery.toLowerCase();
+        const matchClient = (p.clientUserId || '').toLowerCase().includes(q);
+        const matchOrder = (p.orderNumber || '').toLowerCase().includes(q);
+        const matchProfile = (p.profileName || '').toLowerCase().includes(q);
+        const matchSales = (p.salesPerson || '').toLowerCase().includes(q);
+        const matchRemark = (p.remark || '').toLowerCase().includes(q);
+        const matchNotes = (p.notes || '').toLowerCase().includes(q);
+        const matchMembers = Array.isArray(p.assignedMembers) && p.assignedMembers.some((m) => m.toLowerCase().includes(q));
+        if (!matchClient && !matchOrder && !matchProfile && !matchSales && !matchRemark && !matchNotes && !matchMembers) return false;
+      }
+
+      return true;
+    });
+
+    res.sort((a, b) => {
+      let vA = a[sortConfig.key];
+      let vB = b[sortConfig.key];
+      if (sortConfig.key === 'amount' || sortConfig.key === 'netAmount') {
+        vA = parseFloat(vA) || 0;
+        vB = parseFloat(vB) || 0;
+      } else {
+        vA = (vA || '').toString().toLowerCase();
+        vB = (vB || '').toString().toLowerCase();
+      }
+      if (vA < vB) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (vA > vB) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return res;
+  }, [teamProjects, currentTab, 'All Members', personalSalesFilter, personalMonthFilter, personalYearFilter, personalDateFilterType, personalProfileFilter, personalStatusFilter, personalSearchQuery, sortConfig, currentCalendarMonth, currentCalendarYear, session?.user?.assignedName]);
+
+  const isTeamMode = workspaceMode === 'team';
+  const currentProjects = isTeamMode ? filteredTeamProjects : filteredPersonalProjects;
+  const currentSearchQuery = isTeamMode ? searchQuery : personalSearchQuery;
+  const setCurrentSearchQuery = isTeamMode ? setSearchQuery : setPersonalSearchQuery;
+  const currentDateFilterType = isTeamMode ? teamDateFilterType : personalDateFilterType;
+  const setCurrentDateFilterType = isTeamMode ? setTeamDateFilterType : setPersonalDateFilterType;
+  const currentYearFilter = isTeamMode ? teamYearFilter : personalYearFilter;
+  const setCurrentYearFilter = isTeamMode ? setTeamYearFilter : setPersonalYearFilter;
+  const currentMonthFilter = isTeamMode ? teamMonthFilter : personalMonthFilter;
+  const setCurrentMonthFilter = isTeamMode ? setTeamMonthFilter : setPersonalMonthFilter;
+  const currentSalesFilter = isTeamMode ? teamSalesFilter : personalSalesFilter;
+  const setCurrentSalesFilter = isTeamMode ? setTeamSalesFilter : setPersonalSalesFilter;
+  const currentProfileFilter = isTeamMode ? profileFilter : personalProfileFilter;
+  const setCurrentProfileFilter = isTeamMode ? setProfileFilter : setPersonalProfileFilter;
+  const activeStatusFilter = isTeamMode ? statusFilter : personalStatusFilter;
+  const setActiveStatusFilter = isTeamMode ? setStatusFilter : setPersonalStatusFilter;
+  const currentMemberFilter = isTeamMode ? teamMemberFilter : 'All Members';
+  const setCurrentMemberFilter = isTeamMode ? setTeamMemberFilter : () => {};
+
 
   // Status Distribution
   const statusStats = useMemo(() => {
@@ -1754,7 +1928,7 @@ export default function VercelDashboard() {
           </div>
         )}
 
-        {workspaceMode === 'personal' ? (
+        {false ? (
           <>
             {/* Action Button inside Sidebar with comfortable eye contrast */}
             {session?.user?.role !== 'Visitor' && (
@@ -2507,7 +2681,7 @@ export default function VercelDashboard() {
 
             {/* Analytics Grid: Breakdowns */}
             <div className="analytics-grid">
-              {workspaceMode === 'team' ? (
+              {true ? (
                 <>
                   {/* Team Member Workload Breakdown */}
                   <div className="analytics-card">
@@ -2671,7 +2845,7 @@ export default function VercelDashboard() {
                   />
                 </div>
 
-                {workspaceMode === 'team' ? (
+                {true ? (
                   <>
                     {/* Date Filter Type */}
                     <select
@@ -2874,7 +3048,7 @@ export default function VercelDashboard() {
 
                 <div className="v-table-container" ref={tableContainerRef}>
                   <table className="v-table">
-                    {workspaceMode === 'team' ? (
+                    {true ? (
                       /* TEAM TABLE HEADERS (Google Sheet Columns) */
                       <thead>
                         <tr>
@@ -2929,7 +3103,7 @@ export default function VercelDashboard() {
                       </thead>
                     )}
                     <tbody>
-                      {workspaceMode === 'team' ? (
+                      {true ? (
                         /* TEAM TABLE ROWS */
                         filteredTeamProjects.length === 0 ? (
                           <tr>
@@ -3865,7 +4039,7 @@ export default function VercelDashboard() {
           </div>
         )}
         {/* Bulk Action Bar for Team Workspace */}
-        {workspaceMode === 'team' && selectedTeamOrders.length > 0 && (
+        {selectedTeamOrders.length > 0 && (
           <div style={{
             position: 'fixed',
             bottom: '2rem',
