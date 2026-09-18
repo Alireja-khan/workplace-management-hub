@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import connectToDatabase from '@/lib/db';
 import User from '@/models/User';
+import { syncUserProjects } from '@/lib/syncUtils';
 
 export async function GET(request) {
   try {
@@ -58,6 +59,11 @@ export async function PUT(request) {
 
     if (!updatedUser) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
+    }
+
+    if (assignedName !== undefined) {
+      // Background sync, no need to await if we don't want to block, but awaiting ensures consistency
+      await syncUserProjects(assignedName, updatedUser.email);
     }
 
     return NextResponse.json({ success: true, data: updatedUser });
