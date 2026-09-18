@@ -181,6 +181,7 @@ export default function VercelDashboard() {
     amount: '',
     assignedMembers: ['Alireja'],
     estimatedDeliveryDate: '',
+    deadline: '',
     deliveryDate: '',
     remark: '',
     orderStatus: 'Wip',
@@ -3090,6 +3091,7 @@ export default function VercelDashboard() {
                           <th className="sortable" onClick={() => handleSort('amount')}>Gross</th>
                           <th>Net (80%)</th>
                           {workspaceMode === 'team' && <th>Assigned Member(s)</th>}
+                          <th className="sortable" onClick={() => handleSort('deadline')}>Deadline</th>
                           <th className="sortable" onClick={() => handleSort('estimatedDeliveryDate')}>Est. Deli</th>
                           <th>Deli/Cancel</th>
                           <th>Order Status</th>
@@ -3111,6 +3113,7 @@ export default function VercelDashboard() {
                           <th className="sortable" onClick={() => handleSort('orderNumber')}>Order #</th>
                           <th className="sortable" onClick={() => handleSort('amount')}>Gross</th>
                           <th>Net (80%)</th>
+                          <th className="sortable" onClick={() => handleSort('deadline')}>Deadline</th>
                           <th className="sortable" onClick={() => handleSort('estimatedDeliveryDate')}>Est. Deli</th>
                           <th>Deli/Cancel</th>
                           <th>Order Status</th>
@@ -3203,6 +3206,9 @@ export default function VercelDashboard() {
                                     </div>
                                   </td>
                                 )}
+                                <td className="mono-text" style={{ color: p.deadline ? '#ef4444' : 'var(--accents-5)' }}>
+                                  {p.deadline || '-'}
+                                </td>
                                 <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
                                   {p.estimatedDeliveryDate || '-'}
                                 </td>
@@ -3405,8 +3411,11 @@ export default function VercelDashboard() {
                                 </td>
                                 <td className="mono-text" style={{ fontWeight: 600 }}>${gross.toFixed(2)}</td>
                                 <td className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>${net.toFixed(2)}</td>
+                                <td className="mono-text" style={{ color: p.deadline ? '#ef4444' : 'var(--accents-5)' }}>
+                                  {p.deadline || '-'}
+                                </td>
                                 <td className="mono-text" style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : 'var(--accents-5)' }}>
-                                  {p.estimatedDeliveryDate || p.deadline || '-'}
+                                  {p.estimatedDeliveryDate || '-'}
                                 </td>
                                 <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
                                   {p.deliveryDate || '-'}
@@ -3812,8 +3821,12 @@ export default function VercelDashboard() {
                       </select>
                     </div>
                     <div className="v-form-group">
+                      <label>Deadline</label>
+                      <input type="date" className="v-input" value={formData.deadline || ''} onChange={(e) => setFormData({ ...formData, deadline: e.target.value })} />
+                    </div>
+                    <div className="v-form-group">
                       <label>Estimated Delivery Date</label>
-                      <input type="date" className="v-input" value={formData.estimatedDeliveryDate || formData.deadline} onChange={(e) => setFormData({ ...formData, estimatedDeliveryDate: e.target.value, deadline: e.target.value })} />
+                      <input type="date" className="v-input" value={formData.estimatedDeliveryDate} onChange={(e) => setFormData({ ...formData, estimatedDeliveryDate: e.target.value })} />
                     </div>
                     <div className="v-form-group">
                       <label>Actual Delivery Date</label>

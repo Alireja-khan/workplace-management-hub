@@ -46,6 +46,10 @@ const TeamProjectSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    deadline: {
+      type: String,
+      default: '',
+    },
     deliveryDate: {
       type: String,
       default: '',
