@@ -3084,17 +3084,17 @@ export default function VercelDashboard() {
                             </th>
                           )}
                           <th className="sortable" onClick={() => handleSort('assignDate')}>Assign Date</th>
-                          <th className="sortable" onClick={() => handleSort('salesPerson')}>Sales Person</th>
-                          <th className="sortable" onClick={() => handleSort('profileName')}>Profile</th>
+                          <th className="sortable" style={{ maxWidth: 90 }} onClick={() => handleSort('salesPerson')}>Sales Person</th>
+                          <th className="sortable" style={{ maxWidth: 90 }} onClick={() => handleSort('profileName')}>Profile</th>
                           <th className="sortable" onClick={() => handleSort('clientUserId')}>Client User ID</th>
                           <th className="sortable" onClick={() => handleSort('orderNumber')}>Order #</th>
                           <th className="sortable" onClick={() => handleSort('amount')}>Gross</th>
                           <th>Net (80%)</th>
-                          {workspaceMode === 'team' && <th>Assigned Member(s)</th>}
+                          {workspaceMode === 'team' && <th style={{ maxWidth: 110 }}>Assigned</th>}
+                          <th>Order Status</th>
                           <th className="sortable" onClick={() => handleSort('deadline')}>Deadline</th>
                           <th className="sortable" onClick={() => handleSort('estimatedDeliveryDate')}>Est. Deli</th>
                           <th>Deli/Cancel</th>
-                          <th>Order Status</th>
                           <th>Order Type</th>
                           <th>Sheet</th>
                           <th>Payout</th>
@@ -3107,16 +3107,16 @@ export default function VercelDashboard() {
                       <thead>
                         <tr>
                           <th className="sortable" onClick={() => handleSort('assignDate')}>Assign Date</th>
-                          <th className="sortable" onClick={() => handleSort('salesPerson')}>Sales Person</th>
-                          <th className="sortable" onClick={() => handleSort('profileName')}>Profile</th>
+                          <th className="sortable" style={{ maxWidth: 90 }} onClick={() => handleSort('salesPerson')}>Sales Person</th>
+                          <th className="sortable" style={{ maxWidth: 90 }} onClick={() => handleSort('profileName')}>Profile</th>
                           <th className="sortable" onClick={() => handleSort('clientUsername')}>Client User ID</th>
                           <th className="sortable" onClick={() => handleSort('orderNumber')}>Order #</th>
                           <th className="sortable" onClick={() => handleSort('amount')}>Gross</th>
                           <th>Net (80%)</th>
+                          <th>Order Status</th>
                           <th className="sortable" onClick={() => handleSort('deadline')}>Deadline</th>
                           <th className="sortable" onClick={() => handleSort('estimatedDeliveryDate')}>Est. Deli</th>
                           <th>Deli/Cancel</th>
-                          <th>Order Status</th>
                           <th>Order Type</th>
                           <th>Sheet</th>
                           <th>Remark</th>
@@ -3177,10 +3177,10 @@ export default function VercelDashboard() {
                                   <div>{p.assignDate || '-'}</div>
                                   <div style={{ fontSize: '0.65rem', color: 'var(--accents-4)' }}>{p.month || ''}</div>
                                 </td>
-                                <td>
+                                <td style={{ maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.salesPerson || ''}>
                                   <span style={{ fontWeight: 600 }}>{p.salesPerson || '-'}</span>
                                 </td>
-                                <td>
+                                <td style={{ maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.profileName || ''}>
                                   <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)' }}>{p.profileName || '-'}</span>
                                 </td>
                                 <td>
@@ -3192,11 +3192,11 @@ export default function VercelDashboard() {
                                 <td className="mono-text" style={{ fontWeight: 600 }}>${gross.toFixed(2)}</td>
                                 <td className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>${net.toFixed(2)}</td>
                                 {workspaceMode === 'team' && (
-                                  <td>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                  <td style={{ maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={members.join(', ')}>
+                                    <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                       {members.length > 0 ? (
                                         members.map((m) => (
-                                          <span key={m} style={{ fontSize: '0.7rem', background: 'var(--accents-1)', border: '1px solid var(--border-subtle)', padding: '0.1rem 0.4rem', borderRadius: 999 }}>
+                                          <span key={m} style={{ fontSize: '0.7rem', background: 'var(--accents-1)', border: '1px solid var(--border-subtle)', padding: '0.1rem 0.4rem', borderRadius: 999, whiteSpace: 'nowrap' }}>
                                             {m}
                                           </span>
                                         ))
@@ -3206,15 +3206,7 @@ export default function VercelDashboard() {
                                     </div>
                                   </td>
                                 )}
-                                <td className="mono-text" style={{ color: p.deadline ? '#ef4444' : 'var(--accents-5)' }}>
-                                  {p.deadline || '-'}
-                                </td>
-                                <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
-                                  {p.estimatedDeliveryDate || '-'}
-                                </td>
-                                <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
-                                  {p.deliveryDate || '-'}
-                                </td>
+
                                 <td>
                                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
                                     <div className={`v-status-badge ${statusClass}`}>
@@ -3289,6 +3281,15 @@ export default function VercelDashboard() {
                                       );
                                     })()}
                                   </div>
+                                </td>
+                                <td className="mono-text" style={{ color: p.deadline ? '#ef4444' : 'var(--accents-5)' }}>
+                                  {p.deadline || '-'}
+                                </td>
+                                <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
+                                  {p.estimatedDeliveryDate || '-'}
+                                </td>
+                                <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
+                                  {p.deliveryDate || '-'}
                                 </td>
                                 <td>
                                   <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)' }}>
@@ -3390,10 +3391,10 @@ export default function VercelDashboard() {
                                   <div>{p.assignDate || '-'}</div>
                                   <div style={{ fontSize: '0.65rem', color: 'var(--accents-4)' }}>{p.month || ''}</div>
                                 </td>
-                                <td>
+                                <td style={{ maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.salesPerson || ''}>
                                   <span style={{ fontWeight: 600 }}>{p.salesPerson || '-'}</span>
                                 </td>
-                                <td>
+                                <td style={{ maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.profileName || ''}>
                                   <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)' }}>{p.profileName || '-'}</span>
                                 </td>
                                 <td>
@@ -3411,15 +3412,7 @@ export default function VercelDashboard() {
                                 </td>
                                 <td className="mono-text" style={{ fontWeight: 600 }}>${gross.toFixed(2)}</td>
                                 <td className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>${net.toFixed(2)}</td>
-                                <td className="mono-text" style={{ color: p.deadline ? '#ef4444' : 'var(--accents-5)' }}>
-                                  {p.deadline || '-'}
-                                </td>
-                                <td className="mono-text" style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : 'var(--accents-5)' }}>
-                                  {p.estimatedDeliveryDate || '-'}
-                                </td>
-                                <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
-                                  {p.deliveryDate || '-'}
-                                </td>
+
                                 <td>
                                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
                                     <div className={`v-status-badge ${statusClass}`}>
@@ -3494,6 +3487,15 @@ export default function VercelDashboard() {
                                       );
                                     })()}
                                   </div>
+                                </td>
+                                <td className="mono-text" style={{ color: p.deadline ? '#ef4444' : 'var(--accents-5)' }}>
+                                  {p.deadline || '-'}
+                                </td>
+                                <td className="mono-text" style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : 'var(--accents-5)' }}>
+                                  {p.estimatedDeliveryDate || '-'}
+                                </td>
+                                <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
+                                  {p.deliveryDate || '-'}
                                 </td>
                                 <td>
                                   <span style={{ fontSize: '0.75rem', color: p.timeSchedule === 'Late' ? '#f5a623' : 'var(--accents-5)' }}>
