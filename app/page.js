@@ -2123,7 +2123,7 @@ export default function VercelDashboard() {
                     <LayoutDashboard size={14} />
                     <span>{workspaceMode === "team" ? "All Team Orders" : "Your All Orders"}</span>
                   </div>
-                  <span className="sidebar-count-badge">{teamProjects.length}</span>
+                  <span className="sidebar-count-badge">{baseProjects.length}</span>
                 </button>
 
                 <button
