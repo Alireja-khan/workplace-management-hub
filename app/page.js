@@ -1912,7 +1912,1119 @@ export default function VercelDashboard() {
             </button>
             {['Owner', 'Leader', 'Co-Leader', 'Member', 'admin'].includes(session?.user?.role) && (
               <button
-                className={`workspace-tab $`${workspaceMode === 'team' ? (currentTab === 'all' ? 'All Team Orders' : currentTab === 'running' ? 'Running Team Orders' : currentTab + ' Orders') : (currentTab === 'all' ? 'All Orders' : currentTab === 'running' ? 'Running Orders' : currentTab + ' Orders')}: ${currentProjects.length} Records`
+                className={`workspace-tab ${workspaceMode === 'team' ? 'active' : ''}`}
+                onClick={() => setWorkspaceMode('team')}
+              >
+                <Users size={12} />
+                <span>EleSquad</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Admin Dashboard Access */}
+        {['Owner', 'Leader', 'Co-Leader'].includes(session?.user?.role) && (
+          <div style={{ padding: '0 0.85rem 0.25rem 0.85rem', marginTop: '0.5rem' }}>
+            <button
+              className={`btn-v ${workspaceMode === 'admin' ? 'btn-v-primary' : 'btn-v-secondary'}`}
+              style={{ width: '100%', justifyContent: 'center', display: 'flex', gap: '0.5rem', padding: '0.5rem', fontSize: '0.78rem' }}
+              onClick={() => setWorkspaceMode('admin')}
+            >
+              <ShieldCheck size={14} /> Admin Panel
+            </button>
+          </div>
+        )}
+
+        {false ? (
+          <>
+            {/* Action Button inside Sidebar with comfortable eye contrast */}
+            {session?.user?.role !== 'Visitor' && (
+              <div style={{ padding: '0.85rem 0.85rem 0.25rem 0.85rem' }}>
+                <button className="sidebar-new-order-btn" onClick={openNewModal}>
+                  <Plus size={14} /> New Order
+                </button>
+              </div>
+            )}
+
+            {/* Navigation Content */}
+            <div className="sidebar-content">
+              {/* Main Navigation */}
+              <div className="sidebar-section">
+                <div className="sidebar-section-title">Views</div>
+                <button
+                  className={`sidebar-nav-item ${currentTab === 'all' && profileFilter === 'all' && statusFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('all');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                    setScheduleFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <LayoutDashboard size={14} />
+                    <span>All Orders</span>
+                  </div>
+                  <span className="sidebar-count-badge">{projects.length}</span>
+                </button>
+
+                <button
+                  className={`sidebar-nav-item ${currentTab === 'running' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('running');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <Zap size={14} color="#38bdf8" />
+                    <span>Running Orders</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#38bdf8', borderColor: 'rgba(56,189,248,0.3)' }}>
+                    {runningCount}
+                  </span>
+                </button>
+
+                <button
+                  className={`sidebar-nav-item ${currentTab === 'stats' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('stats');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <BarChart3 size={14} color="#10b981" />
+                    <span>Stats & Analytics</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }}>
+                    Live
+                  </span>
+                </button>
+              </div>
+
+              {/* Marketplace Profiles Section with Arrow Toggle (2 visible by default) */}
+              <div className="sidebar-section">
+                <div className="sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Marketplace Profiles</span>
+                  <button
+                    className="sidebar-expand-btn"
+                    onClick={() => setProfilesExpanded(!profilesExpanded)}
+                    title={profilesExpanded ? "Show less" : `Show all profiles (${uniqueProfiles.length})`}
+                  >
+                    <ChevronDown size={14} style={{ transform: profilesExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+                  </button>
+                </div>
+                {(profilesExpanded ? uniqueProfiles : uniqueProfiles.slice(0, 2)).map((prof) => (
+                  <button
+                    key={prof}
+                    className={`sidebar-nav-item ${profileFilter === prof ? 'active' : ''}`}
+                    onClick={() => {
+                      setProfileFilter(prof);
+                      setCurrentTab('all');
+                    }}
+                  >
+                    <div className="sidebar-nav-left">
+                      <Briefcase size={14} />
+                      <span style={{ maxWidth: 125, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prof}</span>
+                    </div>
+                    <span className="sidebar-count-badge">{profileCounts[prof] || 0}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Quick Status Filter */}
+              <div className="sidebar-section">
+                <div className="sidebar-section-title">Quick Status</div>
+                <button
+                  className={`sidebar-nav-item ${statusFilter === 'Wip' ? 'active' : ''}`}
+                  onClick={() => setStatusFilter(statusFilter === 'Wip' ? 'all' : 'Wip')}
+                >
+                  <div className="sidebar-nav-left">
+                    <span className="v-status-dot" style={{ background: '#0284c7' }}></span>
+                    <span>Work In Progress</span>
+                  </div>
+                  <span className="sidebar-count-badge">{kpis.activeWip}</span>
+                </button>
+
+                <button
+                  className={`sidebar-nav-item ${statusFilter === 'Done' ? 'active' : ''}`}
+                  onClick={() => setStatusFilter(statusFilter === 'Done' ? 'all' : 'Done')}
+                >
+                  <div className="sidebar-nav-left">
+                    <span className="v-status-dot" style={{ background: '#10b981' }}></span>
+                    <span>Completed</span>
+                  </div>
+                  <span className="sidebar-count-badge">{kpis.deliveredDone}</span>
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Action Button inside Sidebar for Team */}
+            <div style={{ padding: '0.85rem 0.85rem 0.25rem 0.85rem' }}>
+              <button className="sidebar-new-order-btn" onClick={openNewTeamModal}>
+                <Plus size={14} /> Add Team Order
+              </button>
+            </div>
+
+            {/* Team Navigation Content */}
+            <div className="sidebar-content">
+              {/* Financial Overview */}
+              <div className="sidebar-section">
+                <div className="sidebar-section-title">Financial Overview</div>
+                
+                <div className="sidebar-nav-item" style={{ cursor: 'default' }}>
+                  <div className="sidebar-nav-left">
+                    <DollarSign size={14} color="#38bdf8" />
+                    <span style={{ fontSize: '0.8rem' }}>WIP Net Value</span>
+                  </div>
+                  <span className="mono-text" style={{ fontSize: '0.75rem', fontWeight: 600, color: '#38bdf8' }}>
+                    ${teamFinancialOverview.wipNetValue.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="sidebar-nav-item" style={{ cursor: 'default' }}>
+                  <div className="sidebar-nav-left">
+                    <DollarSign size={14} color="#10b981" />
+                    <span style={{ fontSize: '0.8rem' }}>{currentCalendarMonth.substring(0, 3)} Delivered G</span>
+                  </div>
+                  <span className="mono-text" style={{ fontSize: '0.75rem', fontWeight: 600, color: '#10b981' }}>
+                    ${(teamFinancialOverview.deliveredGrossValue || 0).toFixed(2)}
+                  </span>
+                </div>
+                
+                <div className="sidebar-nav-item" style={{ cursor: 'default' }}>
+                  <div className="sidebar-nav-left">
+                    <DollarSign size={14} color="#10b981" />
+                    <span style={{ fontSize: '0.8rem' }}>{currentCalendarMonth.substring(0, 3)} Delivered N</span>
+                  </div>
+                  <span className="mono-text" style={{ fontSize: '0.75rem', fontWeight: 600, color: '#10b981' }}>
+                    ${(teamFinancialOverview.deliveredNetValue || 0).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Team Views */}
+              <div className="sidebar-section">
+                <div className="sidebar-section-title">{workspaceMode === "team" ? "TEAM VIEWS" : "YOUR ORDER VIEWS"}</div>
+                <button
+                  className={`sidebar-nav-item ${currentTab === 'all' && teamMemberFilter === 'All' && teamSalesFilter === 'All' && statusFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('all');
+                    setTeamMemberFilter('All');
+                    setTeamSalesFilter('All');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                    setScheduleFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <LayoutDashboard size={14} />
+                    <span>{workspaceMode === "team" ? "All Team Orders" : "Your All Orders"}</span>
+                  </div>
+                  <span className="sidebar-count-badge">{baseProjects.length}</span>
+                </button>
+
+                <button
+                  className={`sidebar-nav-item ${currentTab === 'current_month_only' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('current_month_only');
+                    setTeamMemberFilter('All');
+                    setTeamSalesFilter('All');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <LayoutDashboard size={14} color="#f5a623" />
+                    <span>{currentCalendarMonth.substring(0, 3)} Orders</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#f5a623', borderColor: 'rgba(245,166,35,0.3)' }}>
+                    {teamCurrentMonthOnlyCount}
+                  </span>
+                </button>
+
+                <button
+                  className={`sidebar-nav-item ${currentTab === 'running' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('running');
+                    setTeamMemberFilter('All');
+                    setTeamSalesFilter('All');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <Zap size={14} color="#38bdf8" />
+                    <span>{currentCalendarMonth.substring(0, 3)} WIP</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#38bdf8', borderColor: 'rgba(56,189,248,0.3)' }}>
+                    {teamRunningCount}
+                  </span>
+                </button>
+
+                <button
+                  className={`sidebar-nav-item ${currentTab === 'current_delivered' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('current_delivered');
+                    setTeamMemberFilter('All');
+                    setTeamSalesFilter('All');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <CheckCircle2 size={14} color="#10b981" />
+                    <span>{currentCalendarMonth.substring(0, 3)} Delivered</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }}>
+                    {teamCurrentDeliveredCount}
+                  </span>
+                </button>
+
+                <button
+                  className={`sidebar-nav-item ${currentTab === 'carry_orders' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('carry_orders');
+                    setTeamMemberFilter('All');
+                    setTeamSalesFilter('All');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <Zap size={14} color="#8b5cf6" />
+                    <span>Carry Orders</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#8b5cf6', borderColor: 'rgba(139,92,246,0.3)' }}>
+                    {teamCarryCount}
+                  </span>
+                </button>
+
+                <button
+                  className={`sidebar-nav-item ${currentTab === 'current_cancel' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('current_cancel');
+                    setTeamMemberFilter('All');
+                    setTeamSalesFilter('All');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <AlertCircle size={14} color="#ef4444" />
+                    <span>{currentCalendarMonth.substring(0, 3)} Cancel</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}>
+                    {teamCurrentCancelCount}
+                  </span>
+                </button>
+
+                <button
+                  className={`sidebar-nav-item ${currentTab === 'current_need_req' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('current_need_req');
+                    setTeamMemberFilter('All');
+                    setTeamSalesFilter('All');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <AlertCircle size={14} color="#eab308" />
+                    <span>{currentCalendarMonth.substring(0, 3)} Need Req</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#eab308', borderColor: 'rgba(234,179,8,0.3)' }}>
+                    {teamCurrentNeedReqCount}
+                  </span>
+                </button>
+
+                <button
+                  className={`sidebar-nav-item ${currentTab === 'current_nra' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('current_nra');
+                    setTeamMemberFilter('All');
+                    setTeamSalesFilter('All');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <AlertCircle size={14} color="#f97316" />
+                    <span>NRA</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#f97316', borderColor: 'rgba(249,115,22,0.3)' }}>
+                    {teamCurrentNRACount}
+                  </span>
+                </button>
+
+                <button
+                  className={`sidebar-nav-item ${currentTab === 'stats' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentTab('stats');
+                    setTeamMemberFilter('All');
+                    setTeamSalesFilter('All');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  <div className="sidebar-nav-left">
+                    <BarChart3 size={14} color="#10b981" />
+                    <span>Stats & Analytics</span>
+                  </div>
+                  <span className="sidebar-count-badge" style={{ color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }}>
+                    Live
+                  </span>
+                </button>
+              </div>
+
+              {/* Team Members Filter Section */}
+              {workspaceMode === "team" && (
+                <div className="sidebar-section">
+                <div className="sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Assigned Members</span>
+                  <button
+                    className="sidebar-expand-btn"
+                    onClick={() => setTeamMembersExpanded(!teamMembersExpanded)}
+                    title="Toggle Member list"
+                  >
+                    <ChevronDown size={14} style={{ transform: teamMembersExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+                  </button>
+                </div>
+                {(teamMembersExpanded ? teamMemberList : teamMemberList.slice(0, 3)).map((m) => (
+                  <button
+                    key={m}
+                    className={`sidebar-nav-item ${teamMemberFilter.toLowerCase() === m.toLowerCase() ? 'active' : ''}`}
+                    onClick={() => setTeamMemberFilter(teamMemberFilter.toLowerCase() === m.toLowerCase() ? 'All' : m)}
+                  >
+                    <div className="sidebar-nav-left">
+                      <Users size={14} />
+                      <span style={{ maxWidth: 125, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m}</span>
+                    </div>
+                    <span className="sidebar-count-badge">{teamMemberCounts[m] || 0}</span>
+                  </button>
+                ))}
+              </div>
+                )}
+            </div>
+          </>
+        )}
+
+        {/* Sidebar Footer (Clean without database branding) */}
+        <div className="sidebar-footer">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.72rem', color: 'var(--accents-5)' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+            <span>Connected</span>
+          </div>
+
+          <button className="btn-v-icon" style={{ width: 30, height: 30 }} onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}>
+            {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="main-wrapper">
+        {/* Top Navbar */}
+        <header className="top-nav">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            {/* Mobile Hamburger */}
+            <button className="btn-v-icon" style={{ display: 'none' }} onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}>
+              <Menu size={16} />
+            </button>
+
+            <div className="breadcrumb-box">
+              <img
+                src="/logo-black.png"
+                alt="Logo"
+                className="brand-logo-light"
+                style={{ width: 18, height: 18, objectFit: 'contain' }}
+              />
+              <img
+                src="/logo-white.png"
+                alt="Logo"
+                className="brand-logo-dark"
+                style={{ width: 18, height: 18, objectFit: 'contain' }}
+              />
+              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                {workspaceMode === 'personal' ? 'Alireja-khan' : 'EleSquad'}
+              </span>
+              <span className="breadcrumb-divider">/</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accents-5)' }}>
+                {workspaceMode === 'personal' ? 'my-work-place' : 'SMT 2025-2026'}
+              </span>
+              <span className="project-pill">
+                {workspaceMode === 'personal'
+                  ? currentTab === 'stats'
+                    ? 'Analytics'
+                    : 'Personal Hub'
+                  : 'Team Workspace'}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {/* Workspace Toggle Pill */}
+            <div className="segmented-nav" style={{ marginRight: '0.25rem' }}>
+              <button
+                className={`segmented-item ${workspaceMode === 'personal' ? 'active' : ''}`}
+                onClick={() => setWorkspaceMode('personal')}
+              >
+                <Briefcase size={12} style={{ marginRight: 4 }} /> Personal
+              </button>
+              {['Owner', 'Leader', 'Co-Leader', 'Member', 'admin'].includes(session?.user?.role) && (
+                <button
+                  className={`segmented-item ${workspaceMode === 'team' ? 'active' : ''}`}
+                  onClick={() => setWorkspaceMode('team')}
+                >
+                  <Users size={12} style={{ marginRight: 4 }} /> EleSquad
+                </button>
+              )}
+            </div>
+
+            {/* View Switcher: Table / Kanban / Stats (Personal Mode) */}
+            {workspaceMode === 'personal' && (
+              <div className="segmented-nav">
+                <button
+                  className={`segmented-item ${currentTab !== 'stats' && currentView === 'table' ? 'active' : ''}`}
+                  onClick={() => {
+                    if (currentTab === 'stats') setCurrentTab('all');
+                    setCurrentView('table');
+                  }}
+                >
+                  <TableIcon size={13} style={{ marginRight: 4 }} /> Table
+                </button>
+                <button
+                  className={`segmented-item ${currentTab !== 'stats' && currentView === 'kanban' ? 'active' : ''}`}
+                  onClick={() => {
+                    if (currentTab === 'stats') setCurrentTab('all');
+                    setCurrentView('kanban');
+                  }}
+                >
+                  <Columns size={13} style={{ marginRight: 4 }} /> Kanban
+                </button>
+                <button
+                  className={`segmented-item ${currentTab === 'stats' ? 'active' : ''}`}
+                  onClick={() => setCurrentTab('stats')}
+                >
+                  <BarChart3 size={13} style={{ marginRight: 4 }} /> Analytics
+                </button>
+              </div>
+            )}
+
+            {workspaceMode === 'personal' && (
+              <button className="btn-v btn-v-secondary" onClick={exportCSV} title="Export CSV">
+                <Download size={13} /> Export
+              </button>
+            )}
+
+            {/* Auth Session */}
+            {session?.user ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--input-bg)', padding: '0.3rem 0.65rem', borderRadius: 6, border: '1px solid var(--border-default)' }}>
+                {session.user.image ? (
+                  <img src={session.user.image} alt={session.user.name} style={{ width: 22, height: 22, borderRadius: '50%' }} />
+                ) : (
+                  <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'linear-gradient(135deg, #38bdf8, #10b981)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.68rem', fontWeight: 700 }}>
+                    {(session.user.name || 'AK').slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>{session.user.name || 'Alireja Khan'}</span>
+                    <span style={{ fontSize: '0.5rem', padding: '0.1rem 0.3rem', borderRadius: 4, background: 'var(--border-default)', fontWeight: 700, textTransform: 'uppercase' }}>
+                      {session.user.role}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--accents-5)' }}>{session.user.email}</span>
+                </div>
+                <button className="btn-v-ghost" onClick={() => signOut()} title="Sign Out" style={{ padding: 3, marginLeft: 4, cursor: 'pointer' }}>
+                  <LogOut size={13} />
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <button
+                  className="btn-v btn-v-secondary"
+                  onClick={() => {
+                    setAuthTab('signin');
+                    setAuthError('');
+                    setIsAuthModalOpen(true);
+                  }}
+                >
+                  <LogIn size={13} /> Sign In
+                </button>
+                <button
+                  className="btn-v btn-v-primary"
+                  onClick={() => {
+                    setAuthTab('signup');
+                    setAuthError('');
+                    setIsAuthModalOpen(true);
+                  }}
+                >
+                  Sign Up
+                </button>
+              </div>
+            )}
+          </div>
+        </header>
+
+        {workspaceMode === 'admin' ? (
+          <AdminUsersView />
+        ) : (status === 'loading' || (workspaceMode === 'team' ? teamLoading : loading)) ? (
+          currentTab === 'stats' ? (
+            /* Stats & Analytics Skeleton */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <section className="metrics-row">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="metric-card skeleton-interactive" style={{ gap: '0.85rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div className="skeleton-shimmer" style={{ width: 100, height: 12 }} />
+                      <div className="skeleton-shimmer" style={{ width: 16, height: 16, borderRadius: '50%' }} />
+                    </div>
+                    <div className="skeleton-shimmer" style={{ width: 130, height: 28 }} />
+                    <div className="skeleton-shimmer" style={{ width: 160, height: 14 }} />
+                  </div>
+                ))}
+              </section>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="skeleton-interactive" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div className="skeleton-shimmer" style={{ width: 90, height: 10 }} />
+                    <div className="skeleton-shimmer" style={{ width: 110, height: 20 }} />
+                  </div>
+                ))}
+              </div>
+
+              <div className="analytics-grid">
+                {[1, 2].map((i) => (
+                  <div key={i} className="analytics-card skeleton-interactive" style={{ gap: '1.2rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <div className="skeleton-shimmer" style={{ width: 180, height: 16 }} />
+                      <div className="skeleton-shimmer" style={{ width: 80, height: 12 }} />
+                    </div>
+                    {[1, 2, 3, 4, 5].map((r) => (
+                      <div key={r} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <div className="skeleton-shimmer" style={{ width: 120, height: 12 }} />
+                          <div className="skeleton-shimmer" style={{ width: 90, height: 12 }} />
+                        </div>
+                        <div className="skeleton-shimmer" style={{ width: '100%', height: 6 }} />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            /* Table Skeleton View */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <section className="control-bar">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                  <div className="skeleton-shimmer skeleton-interactive" style={{ flex: 1, minWidth: 240, height: 36, borderRadius: 6 }} />
+                  <div className="skeleton-shimmer skeleton-interactive" style={{ width: 140, height: 36, borderRadius: 6 }} />
+                  <div className="skeleton-shimmer skeleton-interactive" style={{ width: 120, height: 36, borderRadius: 6 }} />
+                  <div className="skeleton-shimmer skeleton-interactive" style={{ width: 120, height: 36, borderRadius: 6 }} />
+                  <div className="skeleton-shimmer skeleton-interactive" style={{ width: 80, height: 36, borderRadius: 6 }} />
+                </div>
+              </section>
+
+              <div className="table-smart-wrapper">
+                <div className="table-sub-bar">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <div className="sync-pulse-badge">
+                      <span className="sync-pulse-dot" />
+                      Syncing workspace database orders...
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <div className="skeleton-shimmer skeleton-interactive" style={{ width: 55, height: 22, borderRadius: 4 }} />
+                    <div className="skeleton-shimmer skeleton-interactive" style={{ width: 55, height: 22, borderRadius: 4 }} />
+                  </div>
+                </div>
+
+                <div className="v-table-container">
+                  <table className="v-table">
+                    <thead>
+                      <tr>
+                        <th>Assign Date</th>
+                        <th>{workspaceMode === 'team' ? 'Sales Person' : 'Client Username'}</th>
+                        <th>Profile</th>
+                        <th>{workspaceMode === 'team' ? 'Client ID' : 'Brief Doc'}</th>
+                        <th>{workspaceMode === 'team' ? 'Order #' : 'Gross'}</th>
+                        <th>{workspaceMode === 'team' ? 'Gross' : 'Net (80%)'}</th>
+                        <th>{workspaceMode === 'team' ? 'Net (80%)' : 'Order Status'}</th>
+                        <th>{workspaceMode === 'team' ? 'Assigned Member(s)' : 'Staging Subdomain'}</th>
+                        <th>{workspaceMode === 'team' ? 'Est. Deli' : 'Deadline'}</th>
+                        <th>{workspaceMode === 'team' ? 'Deli/Cancel' : 'Schedule'}</th>
+                        <th>{workspaceMode === 'team' ? 'Status' : 'Live Domain'}</th>
+                        <th>{workspaceMode === 'team' ? 'Sheet / Payout' : 'Daily Update'}</th>
+                        <th>{workspaceMode === 'team' ? 'Remark' : 'Review'}</th>
+                        <th style={{ textAlign: 'center' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((row, idx) => (
+                        <tr key={row} className="skeleton-row">
+                          <td><div className="skeleton-shimmer" style={{ width: '70%', height: 12, animationDelay: `${idx * 0.04}s` }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: '85%', height: 14, animationDelay: `${idx * 0.04 + 0.02}s` }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: '65%', height: 12, animationDelay: `${idx * 0.04 + 0.04}s` }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: 48, height: 20, borderRadius: 4, animationDelay: `${idx * 0.04}s` }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: '60%', height: 14, animationDelay: `${idx * 0.04 + 0.03}s` }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: '60%', height: 14, animationDelay: `${idx * 0.04 + 0.05}s` }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: 70, height: 20, borderRadius: 999, animationDelay: `${idx * 0.04}s` }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: 65, height: 20, borderRadius: 4, animationDelay: `${idx * 0.04 + 0.02}s` }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: '75%', height: 12, animationDelay: `${idx * 0.04 + 0.04}s` }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: '55%', height: 12, animationDelay: `${idx * 0.04 + 0.01}s` }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: 48, height: 20, borderRadius: 4, animationDelay: `${idx * 0.04 + 0.03}s` }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: '80%', height: 12, animationDelay: `${idx * 0.04 + 0.02}s` }} /></td>
+                          <td><div className="skeleton-shimmer" style={{ width: '65%', height: 12, animationDelay: `${idx * 0.04 + 0.04}s` }} /></td>
+                          <td style={{ textAlign: 'center' }}><div className="skeleton-shimmer" style={{ width: 55, height: 18, borderRadius: 4, animationDelay: `${idx * 0.04}s` }} /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )
+        ) : currentTab === 'stats' ? (
+          /* Dedicated Stats & Analytics Page (Personal vs Team) */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Primary KPI Cards */}
+            <section className="metrics-row">
+              <div className="metric-card">
+                <div className="metric-header">
+                  <span className="metric-title">{workspaceMode === 'team' ? 'Total Team Gross' : 'Total Gross Volume'}</span>
+                  <Wallet size={15} color="var(--accents-5)" />
+                </div>
+                <div className="metric-value">
+                  ${(workspaceMode === 'team' ? teamKpis.totalGross : kpis.totalGross).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </div>
+                <div className="metric-footer">
+                  <span className="metric-badge">
+                    {workspaceMode === 'team' ? teamProjects.length : projects.length} Total Orders
+                  </span> {workspaceMode === 'team' ? 'EleSquad pipeline' : 'Across all profiles'}
+                </div>
+              </div>
+
+              <div className="metric-card">
+                <div className="metric-header">
+                  <span className="metric-title">Net Revenue (Take-Home 80%)</span>
+                  <TrendingUp size={15} color="#10b981" />
+                </div>
+                <div className="metric-value" style={{ color: 'var(--geist-foreground)' }}>
+                  ${(workspaceMode === 'team' ? teamKpis.netAmount : kpis.netAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </div>
+                <div className="metric-footer">
+                  <span className="metric-badge green">-20% Fee (${(workspaceMode === 'team' ? teamKpis.platformFee : kpis.platformFee).toFixed(2)})</span> 80% Net profit
+                </div>
+              </div>
+
+              <div className="metric-card">
+                <div className="metric-header">
+                  <span className="metric-title">Work In Progress</span>
+                  <Clock size={15} color="#0284c7" />
+                </div>
+                <div className="metric-value">
+                  {workspaceMode === 'team' ? teamKpis.activeWip : kpis.activeWip}
+                </div>
+                <div className="metric-footer">
+                  <span className="metric-badge blue">
+                    ${(workspaceMode === 'team' ? teamKpis.wipVal : kpis.wipVal).toFixed(0)} In Queue
+                  </span> Active development
+                </div>
+              </div>
+
+              <div className="metric-card">
+                <div className="metric-header">
+                  <span className="metric-title">Delivery Success Rate</span>
+                  <CheckCircle2 size={15} color="#10b981" />
+                </div>
+                <div className="metric-value">
+                  {workspaceMode === 'team' ? teamKpis.rate : kpis.rate}%
+                </div>
+                <div className="metric-footer">
+                  <span className="metric-badge green">
+                    {workspaceMode === 'team' ? teamKpis.deliveredDone : kpis.deliveredDone} Delivered
+                  </span> Successfully completed
+                </div>
+              </div>
+            </section>
+
+            {/* Secondary KPIs Overview */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
+              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '0.85rem 1rem' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)', textTransform: 'uppercase', fontWeight: 600 }}>Average Order Value</span>
+                <div className="mono-text" style={{ fontSize: '1.2rem', fontWeight: 700, marginTop: 4 }}>
+                  ${(workspaceMode === 'team' ? teamKpis.avgOrderValue : kpis.avgOrderValue).toFixed(2)}
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '0.85rem 1rem' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)', textTransform: 'uppercase', fontWeight: 600 }}>
+                  {workspaceMode === 'team' ? 'Active Team Members' : 'Marketplace Profiles'}
+                </span>
+                <div className="mono-text" style={{ fontSize: '1.2rem', fontWeight: 700, marginTop: 4 }}>
+                  {workspaceMode === 'team' ? `${teamMemberList.length} Members` : `${uniqueProfiles.length} Profiles`}
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '0.85rem 1rem' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)', textTransform: 'uppercase', fontWeight: 600 }}>Total Completed / Done</span>
+                <div className="mono-text" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#10b981', marginTop: 4 }}>
+                  {workspaceMode === 'team' ? teamKpis.deliveredDone : kpis.deliveredDone} Orders
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '0.85rem 1rem' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)', textTransform: 'uppercase', fontWeight: 600 }}>
+                  {workspaceMode === 'team' ? 'Sales Pipeline' : '5-Star Reviews'}
+                </span>
+                <div className="mono-text" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f5a623', marginTop: 4 }}>
+                  {workspaceMode === 'team' ? `${teamSalesList.length} Sales Persons` : '100% Top Rated'}
+                </div>
+              </div>
+            </div>
+
+            {/* Analytics Grid: Breakdowns */}
+            <div className="analytics-grid">
+              {true ? (
+                <>
+                  {/* Team Member Workload Breakdown */}
+                  <div className="analytics-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                        Member Workload & Order Volume
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--accents-5)' }}>
+                        {teamMemberList.length} Assigned Members
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      {teamMemberList.map((member) => {
+                        const count = teamMemberCounts[member] || 0;
+                        const pct = Math.round((count / (teamProjects.length || 1)) * 100);
+                        const memberGross = teamProjects
+                          .filter((p) => Array.isArray(p.assignedMembers) && p.assignedMembers.includes(member))
+                          .reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
+                        return (
+                          <div key={member} className="breakdown-row">
+                            <div className="breakdown-info">
+                              <span style={{ fontWeight: 600 }}>{member}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <span className="mono-text" style={{ fontWeight: 600 }}>${memberGross.toFixed(2)}</span>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)' }}>({count} orders â€¢ {pct}%)</span>
+                              </div>
+                            </div>
+                            <div className="progress-bar-bg">
+                              <div className="progress-bar-fill green" style={{ width: `${Math.min(pct * 2, 100)}%` }}></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Team Sales Person Breakdown */}
+                  <div className="analytics-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                        Sales Person Pipeline Share
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--accents-5)' }}>
+                        {teamSalesList.length} Sales Persons
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      {teamSalesList.map((sp) => {
+                        const count = teamSalesCounts[sp] || 0;
+                        const pct = Math.round((count / (teamProjects.length || 1)) * 100);
+                        const spGross = teamProjects
+                          .filter((p) => p.salesPerson === sp)
+                          .reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
+                        return (
+                          <div key={sp} className="breakdown-row">
+                            <div className="breakdown-info">
+                              <span style={{ fontWeight: 600 }}>{sp}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <span className="mono-text" style={{ fontWeight: 600 }}>${spGross.toFixed(2)}</span>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)' }}>({count} orders â€¢ {pct}%)</span>
+                              </div>
+                            </div>
+                            <div className="progress-bar-bg">
+                              <div className="progress-bar-fill blue" style={{ width: `${pct}%` }}></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Personal Profiles Breakdown */}
+                  <div className="analytics-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                        Revenue by Marketplace Profile
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--accents-5)' }}>
+                        {profileStats.length} Profiles
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      {profileStats.map((p) => {
+                        const percent = kpis.totalGross > 0 ? (p.gross / kpis.totalGross) * 100 : 0;
+                        return (
+                          <div key={p.name} className="breakdown-row">
+                            <div className="breakdown-info">
+                              <span style={{ fontWeight: 600 }}>{p.name}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <span className="mono-text" style={{ fontWeight: 600 }}>${p.gross.toFixed(2)}</span>
+                                <span className="mono-text" style={{ color: '#10b981', fontSize: '0.74rem' }}>Net: ${p.net.toFixed(2)}</span>
+                              </div>
+                            </div>
+                            <div className="progress-bar-bg">
+                              <div className="progress-bar-fill" style={{ width: `${percent}%` }}></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Personal Monthly Performance */}
+                  <div className="analytics-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                        Monthly Performance Breakdown
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--accents-5)' }}>
+                        {monthStats.length} Recorded Months
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      {monthStats.map((m) => {
+                        const percent = kpis.totalGross > 0 ? (m.gross / kpis.totalGross) * 100 : 0;
+                        return (
+                          <div key={m.month} className="breakdown-row">
+                            <div className="breakdown-info">
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontWeight: 600 }}>{m.month}</span>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--accents-5)' }}>
+                                  ({m.count} orders â€¢ {m.completed} completed)
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <span className="mono-text" style={{ fontWeight: 600 }}>${m.gross.toFixed(2)}</span>
+                                <span className="mono-text" style={{ color: '#10b981', fontSize: '0.74rem' }}>Net: ${m.net.toFixed(2)}</span>
+                              </div>
+                            </div>
+                            <div className="progress-bar-bg">
+                              <div className="progress-bar-fill blue" style={{ width: `${percent}%` }}></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* Table / Kanban View (Personal vs Team) */
+          <>
+            {/* Filter & Search Bar */}
+            <section className="control-bar">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                <div className="v-input-wrapper">
+                  <input
+                    type="text"
+                    className="v-input"
+                    placeholder={
+                      workspaceMode === 'team'
+                        ? 'Search orders, client ID, order #, member, remark...'
+                        : 'Search orders, clients, subdomains, notes...'
+                    }
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+
+                {true ? (
+                  <>
+                    {/* Date Filter Type */}
+                    <select
+                      className="v-select"
+                      value={teamDateFilterType}
+                      onChange={(e) => setTeamDateFilterType(e.target.value)}
+                    >
+                      <option value="assign">Filter by: Assign Date</option>
+                      <option value="delivery">Filter by: Delivery Date</option>
+                    </select>
+
+                    {/* Year Filter */}
+                    <select
+                      className="v-select"
+                      value={teamYearFilter}
+                      onChange={(e) => setTeamYearFilter(e.target.value)}
+                    >
+                      <option value="all">All Years</option>
+                      {teamYearList.map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+
+                    {/* Month Filter */}
+                    <select
+                      className="v-select"
+                      value={teamMonthFilter}
+                      onChange={(e) => setTeamMonthFilter(e.target.value)}
+                    >
+                      <option value="all">All Months</option>
+                      {teamMonthList.map((m) => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+
+                    {/* Team Member Filter */}
+                    <select
+                      className="v-select"
+                      value={teamMemberFilter}
+                      onChange={(e) => setTeamMemberFilter(e.target.value)}
+                    >
+                      <option value="all">All Members ({teamMemberList.length})</option>
+                      {teamMemberList.map((m) => (
+                        <option key={m} value={m}>{m} ({teamMemberCounts[m] || 0})</option>
+                      ))}
+                    </select>
+
+                    {/* Sales Person Filter */}
+                    <select
+                      className="v-select"
+                      value={teamSalesFilter}
+                      onChange={(e) => setTeamSalesFilter(e.target.value)}
+                    >
+                      <option value="all">All Sales ({teamSalesList.length})</option>
+                      {teamSalesList.map((sp) => (
+                        <option key={sp} value={sp}>{sp} ({teamSalesCounts[sp] || 0})</option>
+                      ))}
+                    </select>
+
+                    {/* Profile Filter */}
+                    <select
+                      className="v-select"
+                      value={profileFilter}
+                      onChange={(e) => setProfileFilter(e.target.value)}
+                    >
+                      <option value="all">All Profiles ({teamUniqueProfiles.length})</option>
+                      {teamUniqueProfiles.map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+
+                    {/* Status Filter */}
+                    <select
+                      className="v-select"
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                      <option value="all">All Statuses</option>
+                      <option value="Wip">Wip</option>
+                      <option value="Delivered">Delivered</option>
+                      <option value="Done">Done</option>
+                      <option value="NRA">NRA</option>
+                      <option value="Need Requirements">Need Requirements</option>
+                      <option value="Cancel">Cancel</option>
+                    </select>
+                  </>
+                ) : (
+                  <>
+                    <select
+                      className="v-select"
+                      value={profileFilter}
+                      onChange={(e) => setProfileFilter(e.target.value)}
+                    >
+                      <option value="all">All Profiles ({uniqueProfiles.length})</option>
+                      {uniqueProfiles.map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      className="v-select"
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                      <option value="all">All Order Statuses</option>
+                      <option value="Done">Done</option>
+                      <option value="Wip">Wip</option>
+                      <option value="Delivered">Delivered</option>
+                      <option value="Issue">Issue</option>
+                      <option value="Cancel">Cancel</option>
+                    </select>
+
+                    <select
+                      className="v-select"
+                      value={currentStatusFilter}
+                      onChange={(e) => setCurrentStatusFilter(e.target.value)}
+                    >
+                      <option value="all">All Issue Statuses</option>
+                      <option value="All Sorted">All Sorted</option>
+                      <option value="Issue">Issue</option>
+                      <option value="WIP">WIP</option>
+                      <option value="Solved">Solved</option>
+                    </select>
+
+                    <select
+                      className="v-select"
+                      style={{ minWidth: 150 }}
+                      value={scheduleFilter}
+                      onChange={(e) => setScheduleFilter(e.target.value)}
+                    >
+                      <option value="all">All Order Types</option>
+                      <option value="Fresh Query">Fresh Query</option>
+                      <option value="Repeat">Repeat Order</option>
+                      <option value="Add-on">Add-on</option>
+                    </select>
+                  </>
+                )}
+
+                <button
+                  className="btn-v btn-v-secondary"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setProfileFilter('all');
+                    setStatusFilter('all');
+                    setCurrentStatusFilter('all');
+                    setScheduleFilter('all');
+                    setTeamMemberFilter('all');
+                    setTeamSalesFilter('all');
+                    setTeamYearFilter('all');
+                    setTeamMonthFilter('all');
+                    setTeamDateFilterType('assign');
+                    setCurrentTab('all');
+                  }}
+                  title="Reset Filters"
+                >
+                  <RotateCcw size={13} /> Reset
+                </button>
+              </div>
+            </section>
+
+            {/* Content Display: Table or Kanban */}
+            {currentView === 'table' ? (
+              /* Table View with Sticky Header & Subtle Scroll Controls */
+              <div className="table-smart-wrapper">
+                <div className="table-sub-bar">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <span className="table-nav-pill">
+                      <SlidersHorizontal size={12} /> {workspaceMode === 'team'
+                        ? `${currentTab === 'all' ? 'All Team Orders' : currentTab === 'running' ? 'Running Team Orders' : `${currentTab} Orders`}: ${currentProjects.length} Records`
+                        : `${currentTab === 'all' ? 'All Orders' : currentTab === 'running' ? 'Running Orders' : `${currentTab} Orders`}: ${currentProjects.length} Records`}
                     </span>
                     <span style={{ fontSize: '0.74rem', color: 'var(--accents-5)' }}>
                       Scroll down to view orders â€¢ Table header stays pinned
@@ -2404,7 +3516,7 @@ export default function VercelDashboard() {
               <div className="v-kanban-board">
                 {workspaceMode === 'team'
                   ? ['Wip', 'Delivered', 'Done', 'NRA', 'Need Requirements', 'Cancel'].map((colStatus) => {
-                      const colItems = filteredTeamProjects.filter(
+                      const colItems = currentProjects.filter(
                         (p) => (p.orderStatus || 'Wip').toLowerCase() === colStatus.toLowerCase()
                       );
                       const colGross = colItems.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
