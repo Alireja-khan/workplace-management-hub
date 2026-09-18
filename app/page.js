@@ -270,9 +270,9 @@ export default function VercelDashboard() {
     }
   }, []);
 
-  // When switching workspace mode, default to showing WIP / Running orders table for team, All Orders for personal
+  // When switching workspace mode, default to showing Sep WIP (Running orders table)
   useEffect(() => {
-    setCurrentTab(workspaceMode === 'team' ? 'running' : 'all');
+    setCurrentTab('running');
     setTeamMemberFilter('all');
     setTeamSalesFilter('all');
     setPersonalSalesFilter('all');
@@ -3036,8 +3036,8 @@ export default function VercelDashboard() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                     <span className="table-nav-pill">
                       <SlidersHorizontal size={12} /> {workspaceMode === 'team'
-                        ? `${currentTab === 'all' ? 'All Team Orders' : currentTab === 'running' ? 'Running Team Orders' : `${currentTab} Orders`}: ${currentProjects.length} Records`
-                        : `${currentTab === 'all' ? 'All Orders' : currentTab === 'running' ? 'Running Orders' : `${currentTab} Orders`}: ${currentProjects.length} Records`}
+                        ? `${currentTab === 'all' ? 'All Team Orders' : currentTab === 'running' ? `${currentCalendarMonth.substring(0, 3)} WIP Orders` : `${currentTab} Orders`}: ${currentProjects.length} Records`
+                        : `${currentTab === 'all' ? 'All Orders' : currentTab === 'running' ? `${currentCalendarMonth.substring(0, 3)} WIP Orders` : `${currentTab} Orders`}: ${currentProjects.length} Records`}
                     </span>
                     <span style={{ fontSize: '0.74rem', color: 'var(--accents-5)' }}>
                       Scroll down to view orders â€¢ Table header stays pinned
