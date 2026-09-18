@@ -851,6 +851,8 @@ export default function VercelDashboard() {
 
   const filteredPersonalProjects = useMemo(() => {
     let res = teamProjects.filter((p) => {
+      const isMyProject = Array.isArray(p.assignedMembers) && p.assignedMembers.some(m => m.toLowerCase() === (session?.user?.assignedName || 'Alireja').toLowerCase());
+      if (!isMyProject) return false;
       if (currentTab === 'running') {
         const s = (p.orderStatus || 'Wip').toLowerCase();
         const sch = (p.timeSchedule || '').toLowerCase();
