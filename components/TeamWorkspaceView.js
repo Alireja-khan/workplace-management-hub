@@ -66,7 +66,9 @@ export default function TeamWorkspaceView({
   onEditProject,
   onDeleteProject,
   onQuickUpdateStatus,
-  onQuickUpdateCurrentStatus
+  onQuickUpdateCurrentStatus,
+  onQuickUpdateDraftCount,
+  highlightedOrderId
 }) {
   const [activeTab, setActiveTab] = useState(viewMode);
 
@@ -495,7 +497,7 @@ export default function TeamWorkspaceView({
                     : [];
 
                   return (
-                    <tr key={p._id}>
+                    <tr id={`order-row-${p._id}`} key={p._id} className={highlightedOrderId === p._id ? 'v-row-pop-pulse' : ''}>
                       {/* Assign Date */}
                       <td>
                         <div style={{ fontWeight: 600, color: 'var(--geist-foreground)' }}>
@@ -598,35 +600,84 @@ export default function TeamWorkspaceView({
                         {p.deliveryDate || '—'}
                       </td>
 
-                      {/* Status with Quick Select */}
+                      {/* Status with Quick Select & Draft Badge */}
                       <td>
-                        <select
-                          value={p.status || p.orderStatus || 'Wip'}
-                          onChange={(e) =>
-                            onQuickUpdateStatus &&
-                            onQuickUpdateStatus(p._id, e.target.value)
-                          }
-                          style={{
-                            ...getStatusBadgeStyle(p.status || p.orderStatus),
-                            fontSize: '0.7rem',
-                            fontWeight: 600,
-                            padding: '0.2rem 0.5rem',
-                            borderRadius: 999,
-                            cursor: 'pointer',
-                            outline: 'none',
-                          }}
-                        >
-                          {STATUS_OPTIONS.map((st) => (
-                            <option key={st} value={st} style={{ background: 'var(--card-bg)', color: 'var(--geist-foreground)' }}>
-                              {st}
-                            </option>
-                          ))}
-                          {['delivered', 'done', 'issue'].includes((p.status || p.orderStatus || '').toLowerCase()) && (
-                            <option value="Issue" style={{ background: 'var(--card-bg)', color: 'var(--geist-foreground)' }}>
-                              Issue
-                            </option>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <select
+                            value={p.status || p.orderStatus || 'Wip'}
+                            onChange={(e) =>
+                              onQuickUpdateStatus &&
+                              onQuickUpdateStatus(p._id, e.target.value)
+                            }
+                            style={{
+                              ...getStatusBadgeStyle(p.status || p.orderStatus),
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              padding: '0.2rem 0.5rem',
+                              borderRadius: 999,
+                              cursor: 'pointer',
+                              outline: 'none',
+                            }}
+                          >
+                            {STATUS_OPTIONS.map((st) => (
+                              <option key={st} value={st} style={{ background: 'var(--card-bg)', color: 'var(--geist-foreground)' }}>
+                                {st}
+                              </option>
+                            ))}
+                            {(['delivered', 'done', 'issue'].includes((p.status || p.orderStatus || '').toLowerCase()) || (p.draftCount && p.draftCount > 0)) && (
+                              <option value="Issue" style={{ background: 'var(--card-bg)', color: 'var(--geist-foreground)' }}>
+                                Issue
+                              </option>
+                            )}
+                          </select>
+
+                          {/* Draft Count Badge & Controls */}
+                          {p.draftCount && p.draftCount > 0 ? (
+                            <div className="v-draft-wrapper" title={`Draft ${p.draftCount} delivered`}>
+                              <button
+                                type="button"
+                                className="v-draft-btn-dec"
+                                title="Decrease Draft Count"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (onQuickUpdateDraftCount) {
+                                    onQuickUpdateDraftCount(p._id, Math.max(0, (p.draftCount || 1) - 1));
+                                  }
+                                }}
+                              >
+                                -
+                              </button>
+                              <span className="v-draft-label">Draft #{p.draftCount}</span>
+                              <button
+                                type="button"
+                                className="v-draft-btn-inc"
+                                title="Increase Draft Count"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (onQuickUpdateDraftCount) {
+                                    onQuickUpdateDraftCount(p._id, (p.draftCount || 0) + 1);
+                                  }
+                                }}
+                              >
+                                +
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="v-draft-add-btn"
+                              title="Mark First Draft Delivered"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (onQuickUpdateDraftCount) {
+                                  onQuickUpdateDraftCount(p._id, 1);
+                                }
+                              }}
+                            >
+                              + Draft
+                            </button>
                           )}
-                        </select>
+                        </div>
                       </td>
 
                       {/* Current Status with Quick Select */}

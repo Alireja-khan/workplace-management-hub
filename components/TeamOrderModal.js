@@ -342,10 +342,22 @@ export default function TeamOrderModal({
                   <option value="NRA">NRA</option>
                   <option value="Need Requirements">Need Requirements</option>
                   <option value="Cancel">Cancel</option>
-                  {['delivered', 'done', 'issue'].includes((formData.orderStatus || '').toLowerCase()) && (
+                  {(['delivered', 'done', 'issue'].includes((formData.orderStatus || '').toLowerCase()) || (formData.draftCount && formData.draftCount > 0)) && (
                     <option value="Issue">Issue</option>
                   )}
                 </select>
+              </div>
+
+              <div className="v-form-group">
+                <label>Draft Count</label>
+                <input
+                  type="number"
+                  min="0"
+                  className="v-input mono-text"
+                  placeholder="0 (e.g. 1 for First Draft)"
+                  value={formData.draftCount !== undefined ? formData.draftCount : 0}
+                  onChange={(e) => setFormData({ ...formData, draftCount: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+                />
               </div>
 
 

@@ -171,6 +171,47 @@ export default function VercelDashboard() {
   const [issueNoteStatus, setIssueNoteStatus] = useState('Issue');
   const [isIssueNoteSaving, setIsIssueNoteSaving] = useState(false);
 
+  // Active Issue Notification & Side Drawer States
+  const [isIssueDrawerOpen, setIsIssueDrawerOpen] = useState(false);
+  const [highlightedOrderId, setHighlightedOrderId] = useState(null);
+
+  const activeIssueOrders = useMemo(() => {
+    const list = workspaceMode === 'team' ? teamProjects : projects;
+    return list.filter((p) => {
+      const st = (p.orderStatus || '').toLowerCase();
+      const effC = (getEffectiveCurrentStatus(p) || '').toLowerCase();
+      return st === 'issue' || effC === 'issue';
+    });
+  }, [workspaceMode, teamProjects, projects]);
+
+  const handleLocateIssueOrder = (project) => {
+    if (!project) return;
+    const isDelivered = Boolean(project.deliveryDate);
+
+    if (isDelivered) {
+      setCurrentTab('current_delivered');
+    } else {
+      setCurrentTab('running');
+    }
+
+    setCurrentView('table');
+    setIsIssueDrawerOpen(false);
+
+    const targetId = project._id;
+    setHighlightedOrderId(targetId);
+
+    setTimeout(() => {
+      const el = document.getElementById(`order-row-${targetId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 250);
+
+    setTimeout(() => {
+      setHighlightedOrderId(null);
+    }, 3200);
+  };
+
   const [teamFormData, setTeamFormData] = useState({
     salesPerson: '',
     assignDate: new Date().toISOString().split('T')[0],
@@ -712,14 +753,15 @@ export default function VercelDashboard() {
       if (currentTab === 'running') {
         const s = (p.orderStatus || 'Wip').toLowerCase();
         const sch = (p.timeSchedule || '').toLowerCase();
-        if (s !== 'wip' && sch !== 'late') return false;
+        const isWipIssue = s === 'issue' && !p.deliveryDate;
+        if (s !== 'wip' && !isWipIssue && sch !== 'late') return false;
       } else if (currentTab === 'current_month_only') {
         const pMonth = getMonthFromDate(p.assignDate, p.month);
         const pYear = getYearFromDate(p.assignDate);
         if (pMonth.toLowerCase() !== currentCalendarMonth.toLowerCase() || pYear !== currentCalendarYear) return false;
       } else if (currentTab === 'current_delivered') {
         const st = (p.orderStatus || 'wip').toLowerCase();
-        const isDeliveredOrDone = st === 'delivered' || st === 'done' || st === 'issue';
+        const isDeliveredOrDone = st === 'delivered' || st === 'done' || (st === 'issue' && Boolean(p.deliveryDate));
         const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
         const delYearStr = p.deliveryDate ? getYearFromDate(p.deliveryDate) : null;
         const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
@@ -860,14 +902,15 @@ export default function VercelDashboard() {
       if (currentTab === 'running') {
         const s = (p.orderStatus || 'Wip').toLowerCase();
         const sch = (p.timeSchedule || '').toLowerCase();
-        if (s !== 'wip' && sch !== 'late') return false;
+        const isWipIssue = s === 'issue' && !p.deliveryDate;
+        if (s !== 'wip' && !isWipIssue && sch !== 'late') return false;
       } else if (currentTab === 'current_month_only') {
         const pMonth = getMonthFromDate(p.assignDate, p.month);
         const pYear = getYearFromDate(p.assignDate);
         if (pMonth.toLowerCase() !== currentCalendarMonth.toLowerCase() || pYear !== currentCalendarYear) return false;
       } else if (currentTab === 'current_delivered') {
         const st = (p.orderStatus || 'wip').toLowerCase();
-        const isDeliveredOrDone = st === 'delivered' || st === 'done' || st === 'issue';
+        const isDeliveredOrDone = st === 'delivered' || st === 'done' || (st === 'issue' && Boolean(p.deliveryDate));
         const delMonth = p.deliveryDate ? p.deliveryDate.split('-')[1] : null;
         const delYearStr = p.deliveryDate ? getYearFromDate(p.deliveryDate) : null;
         const currentMonthIdx = new Date(Date.parse(currentCalendarMonth + ' 1, 2020')).getMonth() + 1;
@@ -1036,7 +1079,8 @@ export default function VercelDashboard() {
       if (currentTab === 'running') {
         const s = (p.orderStatus || '').toLowerCase();
         const sch = (p.timeSchedule || '').toLowerCase();
-        if (s !== 'wip' && s !== 'issue' && sch !== 'late') return false;
+        const isWipIssue = s === 'issue' && !p.deliveryDate;
+        if (s !== 'wip' && !isWipIssue && sch !== 'late') return false;
       } else if (currentTab !== 'all') {
         const isCurrentCalendarMonthTab = currentTab.toLowerCase() === currentCalendarMonth.toLowerCase();
         const pMonth = getMonthFromDate(p.assignDate, p.month);
@@ -1330,6 +1374,7 @@ export default function VercelDashboard() {
       review: 5,
       backupInfo: '',
       notes: '',
+      draftCount: 0,
     });
     setIsModalOpen(true);
   };
@@ -1364,6 +1409,7 @@ export default function VercelDashboard() {
       review: project.review !== undefined ? project.review : 5,
       backupInfo: project.backupInfo || '',
       notes: project.notes || '',
+      draftCount: project.draftCount || 0,
     });
     setIsDetailOpen(false);
     setIsModalOpen(true);
@@ -1598,6 +1644,59 @@ export default function VercelDashboard() {
         prev.map((p) => (p._id === id ? { ...p, currentStatus: prevCStatus } : p))
       );
       showToast('Failed to update issue status', 'error');
+    }
+  };
+
+  const handleQuickDraftCountChange = async (projectId, newCount) => {
+    const countVal = Math.max(0, parseInt(newCount, 10) || 0);
+    const payload = { draftCount: countVal };
+
+    setProjects((prev) =>
+      prev.map((p) => (p._id === projectId ? { ...p, draftCount: countVal } : p))
+    );
+
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProjects((prev) => prev.map((p) => (p._id === projectId ? data.data : p)));
+        showToast(countVal > 0 ? `Draft #${countVal} marked` : 'Draft count reset');
+      } else {
+        throw new Error(data.error || 'Update failed');
+      }
+    } catch (e) {
+      showToast('Failed to update draft count', 'error');
+    }
+  };
+
+  const handleQuickUpdateTeamDraftCount = async (id, newCount) => {
+    const countVal = Math.max(0, parseInt(newCount, 10) || 0);
+    const payload = { draftCount: countVal };
+
+    setTeamProjects((prev) =>
+      prev.map((p) => (p._id === id ? { ...p, draftCount: countVal } : p))
+    );
+
+    try {
+      const res = await fetch(`/api/team-projects/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTeamProjects((prev) => prev.map((p) => (p._id === id ? data.data : p)));
+        showToast(countVal > 0 ? `Draft #${countVal} marked` : 'Draft count reset');
+        fetchProjects();
+      } else {
+        throw new Error(data.error || 'Update failed');
+      }
+    } catch (e) {
+      showToast('Failed to update team draft count', 'error');
     }
   };
 
@@ -2421,6 +2520,21 @@ export default function VercelDashboard() {
               </button>
             )}
 
+            {/* Active Issue Notification Bell Button */}
+            {activeIssueOrders.length > 0 && (
+              <button
+                type="button"
+                className="v-issue-bell-btn"
+                onClick={() => setIsIssueDrawerOpen(true)}
+                title={`${activeIssueOrders.length} Active Issue(s) - Click to view`}
+              >
+                <span className="v-bell-ping-dot" />
+                <AlertCircle size={14} />
+                <span>Issues</span>
+                <span className="v-bell-count-badge">{activeIssueOrders.length}</span>
+              </button>
+            )}
+
             {/* Auth Session */}
             {session?.user ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--input-bg)', padding: '0.3rem 0.65rem', borderRadius: 6, border: '1px solid var(--border-default)' }}>
@@ -3162,7 +3276,11 @@ export default function VercelDashboard() {
                                 : 'v-status-wip';
 
                             return (
-                              <tr key={p._id} className={selectedTeamOrders.includes(p._id) ? 'selected-row' : ''}>
+                              <tr
+                                id={`order-row-${p._id}`}
+                                key={p._id}
+                                className={`${selectedTeamOrders.includes(p._id) ? 'selected-row' : ''} ${highlightedOrderId === p._id ? 'v-row-pop-pulse' : ''}`.trim()}
+                              >
                                 {['Owner', 'admin'].includes(session?.user?.role) && (
                                   <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
                                     <input 
@@ -3231,11 +3349,53 @@ export default function VercelDashboard() {
                                         <option value="NRA">NRA</option>
                                         <option value="Need Requirements">Need Requirements</option>
                                         <option value="Cancel">Cancel</option>
-                                        {['delivered', 'done', 'issue'].includes((p.orderStatus || '').toLowerCase()) && (
+                                        {(['delivered', 'done', 'issue'].includes((p.orderStatus || '').toLowerCase()) || (p.draftCount && p.draftCount > 0)) && (
                                           <option value="Issue">Issue</option>
                                         )}
                                       </select>
                                     </div>
+
+                                    {/* Draft Count Badge & Controls */}
+                                    {p.draftCount && p.draftCount > 0 ? (
+                                      <div className="v-draft-wrapper" title={`Draft ${p.draftCount} delivered`}>
+                                        <button
+                                          type="button"
+                                          className="v-draft-btn-dec"
+                                          title="Decrease Draft Count"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleQuickUpdateTeamDraftCount(p._id, Math.max(0, (p.draftCount || 1) - 1));
+                                          }}
+                                        >
+                                          -
+                                        </button>
+                                        <span className="v-draft-label">Draft #{p.draftCount}</span>
+                                        <button
+                                          type="button"
+                                          className="v-draft-btn-inc"
+                                          title="Increase Draft Count"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleQuickUpdateTeamDraftCount(p._id, (p.draftCount || 0) + 1);
+                                          }}
+                                        >
+                                          +
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        className="v-draft-add-btn"
+                                        title="Mark First Draft Delivered"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleQuickUpdateTeamDraftCount(p._id, 1);
+                                        }}
+                                      >
+                                        + Draft
+                                      </button>
+                                    )}
+
                                     {(() => {
                                       const effCStatus = getEffectiveCurrentStatus(p);
                                       const cStatusLower = effCStatus.toLowerCase();
@@ -3246,8 +3406,8 @@ export default function VercelDashboard() {
                                       // Show secondary flag ONLY if order status is NOT Issue and current status is wip or solved
                                       const showSecondaryFlag = !isIssueOrder && (cStatusLower === 'wip' || cStatusLower === 'solved');
 
-                                      // Eye button is shown ONLY if order status is Issue, or cStatus is issue/wip, or issueNote exists
-                                      const showEyeBtn = isIssueOrder || cStatusLower === 'issue' || cStatusLower === 'wip' || hasNote;
+                                      // Eye button is shown if order status is Issue, cStatus is issue/wip, issueNote exists, OR draftCount > 0
+                                      const showEyeBtn = isIssueOrder || cStatusLower === 'issue' || cStatusLower === 'wip' || hasNote || Boolean(p.draftCount && p.draftCount > 0);
 
                                       if (!showSecondaryFlag && !showEyeBtn) return null;
 
@@ -3388,7 +3548,11 @@ export default function VercelDashboard() {
                                 : 'v-status-wip';
 
                             return (
-                              <tr key={p._id}>
+                              <tr
+                                id={`order-row-${p._id}`}
+                                key={p._id}
+                                className={highlightedOrderId === p._id ? 'v-row-pop-pulse' : ''}
+                              >
                                 <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
                                   <div>{p.assignDate || '-'}</div>
                                   <div style={{ fontSize: '0.65rem', color: 'var(--accents-4)' }}>{p.month || ''}</div>
@@ -3439,11 +3603,53 @@ export default function VercelDashboard() {
                                         <option value="NRA">NRA</option>
                                         <option value="Need Requirements">Need Requirements</option>
                                         <option value="Cancel">Cancel</option>
-                                        {['delivered', 'done', 'issue'].includes((p.orderStatus || '').toLowerCase()) && (
+                                        {(['delivered', 'done', 'issue'].includes((p.orderStatus || '').toLowerCase()) || (p.draftCount && p.draftCount > 0)) && (
                                           <option value="Issue">Issue</option>
                                         )}
                                       </select>
                                     </div>
+
+                                    {/* Draft Count Badge & Controls */}
+                                    {p.draftCount && p.draftCount > 0 ? (
+                                      <div className="v-draft-wrapper" title={`Draft ${p.draftCount} delivered`}>
+                                        <button
+                                          type="button"
+                                          className="v-draft-btn-dec"
+                                          title="Decrease Draft Count"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleQuickDraftCountChange(p._id, Math.max(0, (p.draftCount || 1) - 1));
+                                          }}
+                                        >
+                                          -
+                                        </button>
+                                        <span className="v-draft-label">Draft #{p.draftCount}</span>
+                                        <button
+                                          type="button"
+                                          className="v-draft-btn-inc"
+                                          title="Increase Draft Count"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleQuickDraftCountChange(p._id, (p.draftCount || 0) + 1);
+                                          }}
+                                        >
+                                          +
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        className="v-draft-add-btn"
+                                        title="Mark First Draft Delivered"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleQuickDraftCountChange(p._id, 1);
+                                        }}
+                                      >
+                                        + Draft
+                                      </button>
+                                    )}
+
                                     {(() => {
                                       const effCStatus = getEffectiveCurrentStatus(p);
                                       const cStatusLower = effCStatus.toLowerCase();
@@ -3454,8 +3660,8 @@ export default function VercelDashboard() {
                                       // Show secondary flag ONLY if order status is NOT Issue and current status is wip or solved
                                       const showSecondaryFlag = !isIssueOrder && (cStatusLower === 'wip' || cStatusLower === 'solved');
 
-                                      // Eye button is shown ONLY if order status is Issue, or cStatus is issue/wip, or issueNote exists
-                                      const showEyeBtn = isIssueOrder || cStatusLower === 'issue' || cStatusLower === 'wip' || hasNote;
+                                      // Eye button is shown if order status is Issue, cStatus is issue/wip, issueNote exists, OR draftCount > 0
+                                      const showEyeBtn = isIssueOrder || cStatusLower === 'issue' || cStatusLower === 'wip' || hasNote || Boolean(p.draftCount && p.draftCount > 0);
 
                                       if (!showSecondaryFlag && !showEyeBtn) return null;
 
@@ -3962,11 +4168,11 @@ export default function VercelDashboard() {
               style={{ maxWidth: 500, width: '92%' }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="v-modal-header" style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.85rem' }}>
+              <div className="v-modal-header" style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--foreground)' }}>
-                      ðŸ“ Issue & WIP Note
+                    <span style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--foreground)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <AlertCircle size={18} color="#f59e0b" /> Issue & WIP Note
                     </span>
                     <span
                       style={{
@@ -3992,7 +4198,7 @@ export default function VercelDashboard() {
                     </span>
                   </div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--accents-5)', marginTop: 4 }}>
-                    Order #{issueNoteProject.orderNumber || '-'} â€¢ {issueNoteProject.clientUsername || issueNoteProject.clientUserId || 'Client'} ({issueNoteProject.profileName || 'Profile'})
+                    Order #{issueNoteProject.orderNumber || '-'} • {issueNoteProject.clientUsername || issueNoteProject.clientUserId || 'Client'} ({issueNoteProject.profileName || 'Profile'})
                   </div>
                 </div>
                 <button className="btn-v-ghost" onClick={closeIssueNoteModal}><X size={16} /></button>
@@ -4163,6 +4369,85 @@ export default function VercelDashboard() {
                 >
                   {isBulkDeleting ? 'Deleting...' : 'Permanently Delete'}
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Active Issue Notification Side Drawer */}
+        {isIssueDrawerOpen && (
+          <div className="v-drawer-overlay" onClick={() => setIsIssueDrawerOpen(false)}>
+            <div className="v-issue-drawer" onClick={(e) => e.stopPropagation()}>
+              <div className="v-issue-drawer-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(239, 68, 68, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
+                    <AlertCircle size={18} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--foreground)' }}>
+                      Active Issue Orders ({activeIssueOrders.length})
+                    </h3>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--accents-5)', margin: '2px 0 0 0' }}>
+                      Click any order card to jump directly to its row
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="v-modal-close"
+                  onClick={() => setIsIssueDrawerOpen(false)}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="v-issue-drawer-body">
+                {activeIssueOrders.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--accents-5)' }}>
+                    <CheckCircle2 size={32} color="#10b981" style={{ marginBottom: '0.5rem' }} />
+                    <p style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--foreground)', margin: 0 }}>
+                      No Active Issues
+                    </p>
+                    <p style={{ fontSize: '0.78rem', margin: '4px 0 0 0' }}>
+                      All workspace orders are currently sorted!
+                    </p>
+                  </div>
+                ) : (
+                  activeIssueOrders.map((p) => {
+                    const isDelivered = Boolean(p.deliveryDate);
+                    return (
+                      <div
+                        key={p._id}
+                        className="v-issue-drawer-card"
+                        onClick={() => handleLocateIssueOrder(p)}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.4rem' }}>
+                          <div>
+                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--foreground)' }}>
+                              Client ID: {p.clientUserId || p.clientUsername || 'N/A'}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--accents-5)', marginTop: 2 }}>
+                              Order #{p.orderNumber || 'N/A'}
+                            </div>
+                          </div>
+                          <span className={isDelivered ? 'v-issue-tag-delivered' : 'v-issue-tag-wip'}>
+                            {isDelivered ? 'Delivered Order' : 'WIP Order'}
+                          </span>
+                        </div>
+
+                        {p.issueNote && (
+                          <div style={{ fontSize: '0.76rem', color: 'var(--foreground)', background: 'var(--accents-1)', border: '1px solid var(--border-subtle)', padding: '0.45rem 0.65rem', borderRadius: 6, marginTop: '0.4rem' }}>
+                            <strong>Note:</strong> {p.issueNote}
+                          </div>
+                        )}
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.6rem', fontSize: '0.7rem', color: 'var(--accents-5)' }}>
+                          <span>Assign: {p.assignDate || '-'}</span>
+                          <span style={{ color: '#ef4444', fontWeight: 600 }}>Click to locate &rarr;</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>

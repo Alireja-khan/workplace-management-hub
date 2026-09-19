@@ -78,6 +78,11 @@ const TeamProjectSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    draftCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     timeSchedule: {
       type: String,
       default: 'Fresh Query',
