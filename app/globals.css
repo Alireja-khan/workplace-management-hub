@@ -762,12 +762,22 @@ select option:checked {
   color: #18181b !important;
 }
 
-/* Purple Theme Focus Highlight for Select Elements */
+/* Remove inner highlight border/outline/box-shadow on status badge selects */
+.v-status-badge select,
+.v-status-badge select:focus,
+.v-status-badge select:active,
+.v-status-badge select:hover {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
 select:focus,
 .v-select:focus {
-  border-color: rgba(168, 85, 247, 0.6) !important;
-  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2) !important;
   outline: none !important;
+  box-shadow: none !important;
 }
 
 /* ==========================================================================

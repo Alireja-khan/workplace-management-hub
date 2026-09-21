@@ -2579,18 +2579,9 @@ export default function VercelDashboard() {
                 style={{ width: 18, height: 18, objectFit: 'contain' }}
               />
               <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                {workspaceMode === 'personal' ? 'Alireja-khan' : 'EleSquad'}
-              </span>
-              <span className="breadcrumb-divider">/</span>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accents-5)' }}>
-                {workspaceMode === 'personal' ? 'my-work-place' : 'SMT 2025-2026'}
-              </span>
-              <span className="project-pill">
                 {workspaceMode === 'personal'
-                  ? currentTab === 'stats'
-                    ? 'Analytics'
-                    : 'Personal Hub'
-                  : 'Team Workspace'}
+                  ? (session?.user?.name || session?.user?.assignedName || 'Alireja-khan')
+                  : 'EleSquad'}
               </span>
             </div>
           </div>
