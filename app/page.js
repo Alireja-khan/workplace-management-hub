@@ -2429,7 +2429,7 @@ export default function VercelDashboard() {
             <span>Connected</span>
           </div>
 
-          <button className="btn-v-icon" style={{ width: 30, height: 30 }} onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}>
+          <button className="btn-v-icon" style={{ width: 30, height: 30 }} onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`} data-tooltip={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}>
             {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
           </button>
         </div>
@@ -3110,6 +3110,7 @@ export default function VercelDashboard() {
                     setCurrentTab('all');
                   }}
                   title="Reset Filters"
+                  data-tooltip="Reset Filters"
                 >
                   <RotateCcw size={13} /> Reset
                 </button>
@@ -3141,6 +3142,7 @@ export default function VercelDashboard() {
                       style={{ padding: '0.22rem 0.6rem', fontSize: '0.72rem', gap: 4 }}
                       onClick={() => scrollTable('left')}
                       title="Scroll Left"
+                      data-tooltip="Scroll Left"
                     >
                       <ChevronLeft size={13} /> Left
                     </button>
@@ -3150,6 +3152,7 @@ export default function VercelDashboard() {
                       style={{ padding: '0.22rem 0.6rem', fontSize: '0.72rem', gap: 4 }}
                       onClick={() => scrollTable('right')}
                       title="Scroll Right"
+                      data-tooltip="Scroll Right"
                     >
                       Right <ChevronRight size={13} />
                     </button>
@@ -3337,11 +3340,12 @@ export default function VercelDashboard() {
 
                                     {/* Draft Count Badge & Controls */}
                                     {p.draftCount && p.draftCount > 0 ? (
-                                      <div className="v-draft-wrapper" title={`Draft ${p.draftCount} delivered`}>
+                                      <div className="v-draft-wrapper" title={`Draft ${p.draftCount} delivered`} data-tooltip={`Draft ${p.draftCount} delivered`}>
                                         <button
                                           type="button"
                                           className="v-draft-btn-dec"
                                           title="Decrease Draft Count"
+                                          data-tooltip="Decrease Draft Count"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleQuickUpdateTeamDraftCount(p._id, Math.max(0, (p.draftCount || 1) - 1));
@@ -3354,6 +3358,7 @@ export default function VercelDashboard() {
                                           type="button"
                                           className="v-draft-btn-inc"
                                           title="Increase Draft Count"
+                                          data-tooltip="Increase Draft Count"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleQuickUpdateTeamDraftCount(p._id, (p.draftCount || 0) + 1);
@@ -3367,6 +3372,7 @@ export default function VercelDashboard() {
                                         type="button"
                                         className="v-draft-add-btn"
                                         title="Mark First Draft Delivered"
+                                        data-tooltip="Mark First Draft Delivered"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           handleQuickUpdateTeamDraftCount(p._id, 1);
@@ -3458,10 +3464,10 @@ export default function VercelDashboard() {
                                 {['Owner', 'admin'].includes(session?.user?.role) && (
                                   <td style={{ textAlign: 'center' }}>
                                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                      <button className="btn-v-ghost" style={{ padding: 4 }} onClick={() => openEditTeamModal(p)} title="Edit Order">
+                                      <button className="btn-v-ghost" style={{ padding: 4 }} onClick={() => openEditTeamModal(p)} title="Edit Order" data-tooltip="Edit Order">
                                         <Edit2 size={13} />
                                       </button>
-                                      <button className="btn-v-ghost" style={{ padding: 4, color: '#ef4444' }} onClick={() => handleTeamDelete(p._id)} title="Delete Order">
+                                      <button className="btn-v-ghost" style={{ padding: 4, color: '#ef4444' }} onClick={() => handleTeamDelete(p._id)} title="Delete Order" data-tooltip="Delete Order">
                                         <Trash2 size={13} />
                                       </button>
                                     </div>
@@ -3706,13 +3712,13 @@ export default function VercelDashboard() {
                                 {['Owner', 'admin'].includes(session?.user?.role) && (
                                   <td style={{ textAlign: 'center' }}>
                                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                      <button className="btn-v-ghost" style={{ padding: 4 }} onClick={() => openDetailModal(p)} title="View Details">
+                                      <button className="btn-v-ghost" style={{ padding: 4 }} onClick={() => openDetailModal(p)} title="View Details" data-tooltip="View Details">
                                         <Eye size={13} />
                                       </button>
-                                      <button className="btn-v-ghost" style={{ padding: 4 }} onClick={() => openEditModal(p)} title="Edit Order">
+                                      <button className="btn-v-ghost" style={{ padding: 4 }} onClick={() => openEditModal(p)} title="Edit Order" data-tooltip="Edit Order">
                                         <Edit2 size={13} />
                                       </button>
-                                      <button className="btn-v-ghost" style={{ padding: 4, color: '#ee0000' }} onClick={() => handleDelete(p._id, p.clientUsername)} title="Delete Order">
+                                      <button className="btn-v-ghost" style={{ padding: 4, color: '#ee0000' }} onClick={() => handleDelete(p._id, p.clientUsername)} title="Delete Order" data-tooltip="Delete Order">
                                         <Trash2 size={13} />
                                       </button>
                                     </div>
