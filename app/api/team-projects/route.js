@@ -133,6 +133,10 @@ export async function POST(request) {
 
     const userEmail = session.user.email.toLowerCase().trim();
 
+    if (session.user.role === 'Member') {
+      return NextResponse.json({ success: false, error: 'Members are not permitted to add orders.' }, { status: 403 });
+    }
+
     await connectToDatabase();
     const body = await request.json();
 

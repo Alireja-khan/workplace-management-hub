@@ -1345,6 +1345,10 @@ export default function VercelDashboard() {
       showToast('Please sign in to create new orders', 'error');
       return;
     }
+    if (session?.user?.role === 'Member') {
+      showToast('Members are not allowed to add orders.', 'error');
+      return;
+    }
     const defaultMonth = overrideMonth || (currentTab !== 'all' && currentTab !== 'running' && currentTab !== 'stats' ? currentTab : currentCalendarMonth);
     setActiveProject(null);
     setPersonalRawText('');
@@ -1461,6 +1465,10 @@ export default function VercelDashboard() {
 
   // Team Project Handlers
   const openNewTeamModal = () => {
+    if (session?.user?.role === 'Member') {
+      showToast('Members are not allowed to add orders.', 'error');
+      return;
+    }
     setActiveTeamProject(null);
     setTeamFormData({
       salesPerson: '',
@@ -2163,11 +2171,13 @@ export default function VercelDashboard() {
         ) : (
           <>
             {/* Action Button inside Sidebar for Team */}
-            <div style={{ padding: '0.85rem 0.85rem 0.25rem 0.85rem' }}>
-              <button className="sidebar-new-order-btn" onClick={openNewTeamModal}>
-                <Plus size={14} /> {workspaceMode === 'team' ? 'Add Team Order' : 'Add Order'}
-              </button>
-            </div>
+            {session?.user?.role !== 'Member' && session?.user?.role !== 'Visitor' && (
+              <div style={{ padding: '0.85rem 0.85rem 0.25rem 0.85rem' }}>
+                <button className="sidebar-new-order-btn" onClick={openNewTeamModal}>
+                  <Plus size={14} /> {workspaceMode === 'team' ? 'Add Team Order' : 'Add Order'}
+                </button>
+              </div>
+            )}
 
             {/* Team Navigation Content */}
             <div className="sidebar-content">
@@ -2484,41 +2494,7 @@ export default function VercelDashboard() {
               )}
             </div>
 
-            {/* View Switcher: Table / Kanban / Stats (Personal Mode) */}
-            {workspaceMode === 'personal' && (
-              <div className="segmented-nav">
-                <button
-                  className={`segmented-item ${currentTab !== 'stats' && currentView === 'table' ? 'active' : ''}`}
-                  onClick={() => {
-                    if (currentTab === 'stats') setCurrentTab('all');
-                    setCurrentView('table');
-                  }}
-                >
-                  <TableIcon size={13} style={{ marginRight: 4 }} /> Table
-                </button>
-                <button
-                  className={`segmented-item ${currentTab !== 'stats' && currentView === 'kanban' ? 'active' : ''}`}
-                  onClick={() => {
-                    if (currentTab === 'stats') setCurrentTab('all');
-                    setCurrentView('kanban');
-                  }}
-                >
-                  <Columns size={13} style={{ marginRight: 4 }} /> Kanban
-                </button>
-                <button
-                  className={`segmented-item ${currentTab === 'stats' ? 'active' : ''}`}
-                  onClick={() => setCurrentTab('stats')}
-                >
-                  <BarChart3 size={13} style={{ marginRight: 4 }} /> Analytics
-                </button>
-              </div>
-            )}
 
-            {workspaceMode === 'personal' && (
-              <button className="btn-v btn-v-secondary" onClick={exportCSV} title="Export CSV">
-                <Download size={13} /> Export
-              </button>
-            )}
 
             {/* Active Issue Notification Bell Button */}
             {activeIssueOrders.length > 0 && (
@@ -3249,7 +3225,11 @@ export default function VercelDashboard() {
                                   {workspaceMode === 'team' ? 'No team orders found matching your filters.' : 'No personal orders found matching your filters.'}
                                 </span>
                                 <span style={{ fontSize: '0.78rem', color: 'var(--accents-4)' }}>
-                                  Click <button type="button" onClick={openNewTeamModal} style={{ color: '#38bdf8', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>{workspaceMode === 'team' ? '+ Add Team Order' : '+ Add Order'}</button> to create one.
+                                  {session?.user?.role !== 'Member' ? (
+                                    <>Click <button type="button" onClick={openNewTeamModal} style={{ color: '#38bdf8', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>{workspaceMode === 'team' ? '+ Add Team Order' : '+ Add Order'}</button> to create one.</>
+                                  ) : (
+                                    'Try adjusting your search filters.'
+                                  )}
                                 </span>
                               </div>
                             </td>
@@ -3518,7 +3498,10 @@ export default function VercelDashboard() {
                                 <span style={{ fontSize: '0.78rem', color: 'var(--accents-4)' }}>
                                   {currentTab !== 'all' ? (
                                     <>
-                                      View <button type="button" onClick={() => setCurrentTab('all')} style={{ color: 'var(--foreground)', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>All Orders</button> or click <button type="button" onClick={() => openNewModal(currentTab)} style={{ color: '#38bdf8', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>+ New Order</button> to add one for {currentTab}.
+                                      View <button type="button" onClick={() => setCurrentTab('all')} style={{ color: 'var(--foreground)', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>All Orders</button>
+                                      {session?.user?.role !== 'Member' && (
+                                        <> or click <button type="button" onClick={() => openNewModal(currentTab)} style={{ color: '#38bdf8', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>+ New Order</button> to add one for {currentTab}.</>
+                                      )}
                                     </>
                                   ) : (
                                     'Try clearing filters or search terms.'
@@ -4205,22 +4188,6 @@ export default function VercelDashboard() {
               </div>
 
               <div className="v-modal-body" style={{ paddingTop: '1rem' }}>
-                <div className="v-form-group" style={{ marginBottom: 14 }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: 6, display: 'block', color: 'var(--accents-6)' }}>
-                    Issue Status
-                  </label>
-                  <select
-                    className="v-select"
-                    value={issueNoteStatus}
-                    onChange={(e) => setIssueNoteStatus(e.target.value)}
-                    style={{ width: '100%', fontSize: '0.84rem', padding: '0.5rem 0.75rem', borderRadius: 6 }}
-                  >
-                    <option value="Issue">Issue (Rose Red Flag)</option>
-                    <option value="WIP">Issue WIP (Amber Flag)</option>
-                    <option value="Solved">Solved (Cyan Solved Flag)</option>
-                    <option value="All Sorted">All Sorted (No Issue Flag)</option>
-                  </select>
-                </div>
                 <div className="v-form-group">
                   <label style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: 6, display: 'block', color: 'var(--accents-6)' }}>
                     Issue Description & Notes
