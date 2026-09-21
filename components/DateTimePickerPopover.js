@@ -58,8 +58,22 @@ export default function DateTimePickerPopover({
   disabled = false,
   placeholder = 'Set Deadline',
 }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
   const containerRef = useRef(null);
+  const buttonRef = useRef(null);
+
+  const handleToggle = () => {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      if (spaceBelow < 320) {
+        setOpenUpward(true);
+      } else {
+        setOpenUpward(false);
+      }
+    }
+    setIsOpen(!isOpen);
+  };
 
   // Draft state inside popover
   const initial = parseInitialDateTime(value);
@@ -197,9 +211,10 @@ export default function DateTimePickerPopover({
         </span>
       ) : (
         <button
+          ref={buttonRef}
           type="button"
           className={`v-dt-trigger-btn ${value ? 'has-value' : ''}`}
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={handleToggle}
           title={value ? `Deadline: ${displayTriggerText}` : 'Set Deadline'}
         >
           <CalendarIcon size={12} />
@@ -209,7 +224,7 @@ export default function DateTimePickerPopover({
 
       {/* Popover Dropdown */}
       {isOpen && !disabled && (
-        <div className="v-dt-popover-card">
+        <div className={`v-dt-popover-card ${openUpward ? 'open-upward' : ''}`}>
           {/* Popover Header: Month & Year Selector */}
           <div className="v-dt-card-header">
             <button type="button" className="v-dt-nav-btn" onClick={handlePrevMonth} title="Previous Month">
