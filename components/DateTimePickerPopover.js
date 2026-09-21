@@ -58,6 +58,7 @@ export default function DateTimePickerPopover({
   disabled = false,
   placeholder = 'Set Deadline',
 }) {
+  const [isOpen, setIsOpen] = useState(false);
   const [openUpward, setOpenUpward] = useState(false);
   const containerRef = useRef(null);
   const buttonRef = useRef(null);
