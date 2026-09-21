@@ -173,6 +173,8 @@ export default function DeadlineAlertBanner({
     ? `DUE IN ${timeFormatted}`
     : `DUE IN ${days > 0 ? `${days}d ` : ''}${hours}h`;
 
+  const clientName = urgentOrder.clientUserId || urgentOrder.clientUsername || '';
+
   return (
     <div className="v-minimal-banner-root">
       <div className="v-minimal-banner-card" onClick={() => onLocateOrder && onLocateOrder(urgentOrder)}>
@@ -189,6 +191,7 @@ export default function DeadlineAlertBanner({
             <span className="v-minimal-tag-label">{urgencyTitle}</span>
             <span className="v-minimal-member-pill">{memberName}</span>
             <span className="v-minimal-order-pill">#{orderNumber}</span>
+            {clientName && <span className="v-minimal-client-pill">{clientName}</span>}
             {candidateCount > 1 && (
               <button
                 type="button"
@@ -201,13 +204,6 @@ export default function DeadlineAlertBanner({
               >
                 {selectedIndex + 1} of {candidateCount} ➔
               </button>
-            )}
-          </div>
-          <div className="v-minimal-msg-text">
-            {isLate ? (
-              <span>🚨 <strong>Action Needed:</strong> Deadline passed! Please submit or request an extension.</span>
-            ) : (
-              <span>{customMsg}</span>
             )}
           </div>
         </div>

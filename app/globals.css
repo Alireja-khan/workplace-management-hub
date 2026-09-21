@@ -2923,6 +2923,17 @@ select:focus,
   color: var(--foreground);
 }
 
+.v-minimal-client-pill {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(0, 112, 243, 0.08);
+  border: 1px solid rgba(0, 112, 243, 0.25);
+  color: #0070f3;
+}
+
 .v-minimal-count-btn {
   font-size: 0.68rem;
   font-weight: 600;

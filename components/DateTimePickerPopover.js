@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Calendar as CalendarIcon, Clock, Check, X, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 
 const MONTH_NAMES = [
@@ -59,22 +60,60 @@ export default function DateTimePickerPopover({
   placeholder = 'Set Deadline',
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [openUpward, setOpenUpward] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
+
   const containerRef = useRef(null);
   const buttonRef = useRef(null);
+  const popoverRef = useRef(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const updatePosition = () => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const popoverWidth = 310;
+    const popoverHeight = 350;
+
+    const spaceBelow = window.innerHeight - rect.bottom;
+    let top = rect.bottom + 6;
+
+    if (spaceBelow < popoverHeight && rect.top > popoverHeight) {
+      top = rect.top - popoverHeight - 6;
+    }
+
+    let left = rect.right - popoverWidth;
+    if (left < 10) left = 10;
+    if (left + popoverWidth > window.innerWidth - 10) {
+      left = window.innerWidth - popoverWidth - 10;
+    }
+
+    setPopoverPos({ top, left });
+  };
 
   const handleToggle = () => {
-    if (!isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      if (spaceBelow < 320) {
-        setOpenUpward(true);
-      } else {
-        setOpenUpward(false);
-      }
+    if (!isOpen) {
+      updatePosition();
     }
     setIsOpen(!isOpen);
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      updatePosition();
+      const handleScrollOrResize = () => {
+        updatePosition();
+      };
+      window.addEventListener('resize', handleScrollOrResize);
+      window.addEventListener('scroll', handleScrollOrResize, true);
+      return () => {
+        window.removeEventListener('resize', handleScrollOrResize);
+        window.removeEventListener('scroll', handleScrollOrResize, true);
+      };
+    }
+  }, [isOpen]);
 
   // Draft state inside popover
   const initial = parseInitialDateTime(value);
@@ -110,7 +149,10 @@ export default function DateTimePickerPopover({
   // Click outside listener
   useEffect(() => {
     function handleClickOutside(e) {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
+      if (
+        containerRef.current && !containerRef.current.contains(e.target) &&
+        popoverRef.current && !popoverRef.current.contains(e.target)
+      ) {
         setIsOpen(false);
       }
     }
@@ -150,7 +192,6 @@ export default function DateTimePickerPopover({
   };
 
   const handleOkSubmit = () => {
-    // Convert 12h + AM/PM to 24h
     let h24 = parseInt(hours12, 10) || 12;
     if (ampm === 'PM' && h24 < 12) h24 += 12;
     if (ampm === 'AM' && h24 === 12) h24 = 0;
@@ -163,7 +204,6 @@ export default function DateTimePickerPopover({
     const hStr = String(h24).padStart(2, '0');
     const minStr = String(mNum).padStart(2, '0');
 
-    // Format ISO string: YYYY-MM-DDTHH:mm
     const finalFormatted = `${yStr}-${mStr}-${dStr}T${hStr}:${minStr}`;
 
     if (onSave) {
@@ -172,7 +212,6 @@ export default function DateTimePickerPopover({
     setIsOpen(false);
   };
 
-  // Format label for button trigger
   const formatDisplayTrigger = (valStr) => {
     if (!valStr || !valStr.trim()) return null;
     const str = valStr.trim();
@@ -202,10 +241,148 @@ export default function DateTimePickerPopover({
 
   const displayTriggerText = formatDisplayTrigger(value);
 
+  const renderPopoverCard = () => (
+    <div
+      ref={popoverRef}
+      className="v-dt-popover-card"
+      style={{
+        position: 'fixed',
+        top: `${popoverPos.top}px`,
+        left: `${popoverPos.left}px`,
+        zIndex: 999999,
+        margin: 0,
+        boxShadow: '0 12px 32px rgba(0, 0, 0, 0.36), 0 2px 6px rgba(0, 0, 0, 0.2)',
+      }}
+    >
+      {/* Popover Header */}
+      <div className="v-dt-card-header">
+        <button type="button" className="v-dt-nav-btn" onClick={handlePrevMonth} title="Previous Month">
+          <ChevronLeft size={14} />
+        </button>
+        <span className="v-dt-month-title">
+          {MONTH_NAMES[viewMonth]} {viewYear}
+        </span>
+        <button type="button" className="v-dt-nav-btn" onClick={handleNextMonth} title="Next Month">
+          <ChevronRight size={14} />
+        </button>
+      </div>
+
+      {/* Calendar Grid */}
+      <div className="v-dt-calendar-grid">
+        {WEEKDAY_NAMES.map((wd) => (
+          <div key={wd} className="v-dt-weekday-label">
+            {wd}
+          </div>
+        ))}
+
+        {Array.from({ length: firstDayOfWeek }).map((_, idx) => (
+          <div key={`empty-${idx}`} className="v-dt-day-cell empty" />
+        ))}
+
+        {Array.from({ length: daysInMonth }).map((_, idx) => {
+          const dayNum = idx + 1;
+          const isSelected = selectedDay === dayNum;
+          const isToday =
+            new Date().getDate() === dayNum &&
+            new Date().getMonth() === viewMonth &&
+            new Date().getFullYear() === viewYear;
+
+          return (
+            <button
+              key={`day-${dayNum}`}
+              type="button"
+              className={`v-dt-day-cell ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}`}
+              onClick={() => setSelectedDay(dayNum)}
+            >
+              {dayNum}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Time Picker Section */}
+      <div className="v-dt-time-section">
+        <div className="v-dt-time-label">
+          <Clock size={13} /> Time:
+        </div>
+
+        <div className="v-dt-time-inputs">
+          <select
+            className="v-dt-time-select"
+            value={hours12}
+            onChange={(e) => setHours12(e.target.value)}
+          >
+            {Array.from({ length: 12 }).map((_, i) => {
+              const hVal = String(i + 1).padStart(2, '0');
+              return (
+                <option key={hVal} value={hVal}>
+                  {hVal}
+                </option>
+              );
+            })}
+          </select>
+
+          <span className="v-dt-time-colon">:</span>
+
+          <select
+            className="v-dt-time-select"
+            value={minutes}
+            onChange={(e) => setMinutes(e.target.value)}
+          >
+            {['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'].map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            className={`v-dt-ampm-btn ${ampm === 'AM' ? 'active' : ''}`}
+            onClick={() => setAmpm(ampm === 'AM' ? 'PM' : 'AM')}
+          >
+            {ampm}
+          </button>
+        </div>
+      </div>
+
+      {/* Footer Actions */}
+      <div className="v-dt-footer-actions">
+        {value ? (
+          <button
+            type="button"
+            className="btn-v btn-v-ghost v-dt-clear-btn"
+            onClick={handleClear}
+            title="Clear Deadline"
+          >
+            <Trash2 size={12} /> Clear
+          </button>
+        ) : <div />}
+
+        <div style={{ display: 'flex', gap: '0.35rem' }}>
+          <button
+            type="button"
+            className="btn-v btn-v-secondary"
+            style={{ height: 28, padding: '0 0.55rem', fontSize: '0.72rem' }}
+            onClick={() => setIsOpen(false)}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="btn-v btn-v-primary"
+            style={{ height: 28, padding: '0 0.75rem', fontSize: '0.72rem', fontWeight: 600 }}
+            onClick={handleOkSubmit}
+          >
+            <Check size={12} /> OK
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="v-dt-popover-wrapper" ref={containerRef} style={{ position: 'relative', display: 'inline-block' }}>
-      
-      {/* Trigger Button */}
       {disabled ? (
         <span style={{ color: value ? '#ef4444' : 'var(--accents-5)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
           {displayTriggerText || '—'}
@@ -223,140 +400,7 @@ export default function DateTimePickerPopover({
         </button>
       )}
 
-      {/* Popover Dropdown */}
-      {isOpen && !disabled && (
-        <div className={`v-dt-popover-card ${openUpward ? 'open-upward' : ''}`}>
-          {/* Popover Header: Month & Year Selector */}
-          <div className="v-dt-card-header">
-            <button type="button" className="v-dt-nav-btn" onClick={handlePrevMonth} title="Previous Month">
-              <ChevronLeft size={14} />
-            </button>
-            <span className="v-dt-month-title">
-              {MONTH_NAMES[viewMonth]} {viewYear}
-            </span>
-            <button type="button" className="v-dt-nav-btn" onClick={handleNextMonth} title="Next Month">
-              <ChevronRight size={14} />
-            </button>
-          </div>
-
-          {/* Calendar Grid */}
-          <div className="v-dt-calendar-grid">
-            {/* Weekday Labels */}
-            {WEEKDAY_NAMES.map((wd) => (
-              <div key={wd} className="v-dt-weekday-label">
-                {wd}
-              </div>
-            ))}
-
-            {/* Empty slots before day 1 */}
-            {Array.from({ length: firstDayOfWeek }).map((_, idx) => (
-              <div key={`empty-${idx}`} className="v-dt-day-cell empty" />
-            ))}
-
-            {/* Day slots */}
-            {Array.from({ length: daysInMonth }).map((_, idx) => {
-              const dayNum = idx + 1;
-              const isSelected = selectedDay === dayNum;
-              const isToday =
-                new Date().getDate() === dayNum &&
-                new Date().getMonth() === viewMonth &&
-                new Date().getFullYear() === viewYear;
-
-              return (
-                <button
-                  key={`day-${dayNum}`}
-                  type="button"
-                  className={`v-dt-day-cell ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}`}
-                  onClick={() => setSelectedDay(dayNum)}
-                >
-                  {dayNum}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Time Picker Section */}
-          <div className="v-dt-time-section">
-            <div className="v-dt-time-label">
-              <Clock size={13} /> Time:
-            </div>
-
-            <div className="v-dt-time-inputs">
-              <select
-                className="v-dt-time-select"
-                value={hours12}
-                onChange={(e) => setHours12(e.target.value)}
-              >
-                {Array.from({ length: 12 }).map((_, i) => {
-                  const hVal = String(i + 1).padStart(2, '0');
-                  return (
-                    <option key={hVal} value={hVal}>
-                      {hVal}
-                    </option>
-                  );
-                })}
-              </select>
-
-              <span className="v-dt-time-colon">:</span>
-
-              <select
-                className="v-dt-time-select"
-                value={minutes}
-                onChange={(e) => setMinutes(e.target.value)}
-              >
-                {['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'].map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-
-              <button
-                type="button"
-                className={`v-dt-ampm-btn ${ampm === 'AM' ? 'active' : ''}`}
-                onClick={() => setAmpm(ampm === 'AM' ? 'PM' : 'AM')}
-              >
-                {ampm}
-              </button>
-            </div>
-          </div>
-
-          {/* Footer Actions */}
-          <div className="v-dt-footer-actions">
-            {value ? (
-              <button
-                type="button"
-                className="btn-v btn-v-ghost v-dt-clear-btn"
-                onClick={handleClear}
-                title="Clear Deadline"
-              >
-                <Trash2 size={12} /> Clear
-              </button>
-            ) : <div />}
-
-            <div style={{ display: 'flex', gap: '0.35rem' }}>
-              <button
-                type="button"
-                className="btn-v btn-v-secondary"
-                style={{ height: 28, padding: '0 0.55rem', fontSize: '0.72rem' }}
-                onClick={() => setIsOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn-v btn-v-primary"
-                style={{ height: 28, padding: '0 0.75rem', fontSize: '0.72rem', fontWeight: 600 }}
-                onClick={handleOkSubmit}
-              >
-                <Check size={12} /> OK
-              </button>
-            </div>
-          </div>
-
-        </div>
-      )}
-
+      {isOpen && !disabled && mounted && createPortal(renderPopoverCard(), document.body)}
     </div>
   );
 }
