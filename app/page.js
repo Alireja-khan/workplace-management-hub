@@ -1701,6 +1701,11 @@ export default function VercelDashboard() {
   };
 
   const handleQuickDraftCountChange = async (projectId, newCount) => {
+    const prevProject = projects.find((p) => p._id === projectId);
+    if (!canEditOrderStatus(prevProject)) {
+      showToast('Members can only update draft count for orders assigned to them', 'error');
+      return;
+    }
     const countVal = Math.max(0, parseInt(newCount, 10) || 0);
     const payload = { draftCount: countVal };
 
@@ -1727,6 +1732,11 @@ export default function VercelDashboard() {
   };
 
   const handleQuickUpdateTeamDraftCount = async (id, newCount) => {
+    const prevProject = teamProjects.find((p) => p._id === id);
+    if (!canEditOrderStatus(prevProject)) {
+      showToast('Members can only update draft count for orders assigned to them', 'error');
+      return;
+    }
     const countVal = Math.max(0, parseInt(newCount, 10) || 0);
     const payload = { draftCount: countVal };
 
@@ -3391,46 +3401,54 @@ export default function VercelDashboard() {
 
                                     {/* Draft Count Badge & Controls */}
                                     {p.draftCount && p.draftCount > 0 ? (
-                                      <div className="v-draft-wrapper" title={`Draft ${p.draftCount} delivered`} data-tooltip={`Draft ${p.draftCount} delivered`}>
-                                        <button
-                                          type="button"
-                                          className="v-draft-btn-dec"
-                                          title="Decrease Draft Count"
-                                          data-tooltip="Decrease Draft Count"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleQuickUpdateTeamDraftCount(p._id, Math.max(0, (p.draftCount || 1) - 1));
-                                          }}
-                                        >
-                                          -
-                                        </button>
-                                        <span className="v-draft-label">Draft #{p.draftCount}</span>
-                                        <button
-                                          type="button"
-                                          className="v-draft-btn-inc"
-                                          title="Increase Draft Count"
-                                          data-tooltip="Increase Draft Count"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleQuickUpdateTeamDraftCount(p._id, (p.draftCount || 0) + 1);
-                                          }}
-                                        >
-                                          +
-                                        </button>
-                                      </div>
+                                      canEditOrderStatus(p) ? (
+                                        <div className="v-draft-wrapper" title={`Draft ${p.draftCount} delivered`} data-tooltip={`Draft ${p.draftCount} delivered`}>
+                                          <button
+                                            type="button"
+                                            className="v-draft-btn-dec"
+                                            title="Decrease Draft Count"
+                                            data-tooltip="Decrease Draft Count"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleQuickUpdateTeamDraftCount(p._id, Math.max(0, (p.draftCount || 1) - 1));
+                                            }}
+                                          >
+                                            -
+                                          </button>
+                                          <span className="v-draft-label">Draft #{p.draftCount}</span>
+                                          <button
+                                            type="button"
+                                            className="v-draft-btn-inc"
+                                            title="Increase Draft Count"
+                                            data-tooltip="Increase Draft Count"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleQuickUpdateTeamDraftCount(p._id, (p.draftCount || 0) + 1);
+                                            }}
+                                          >
+                                            +
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <div className="v-draft-wrapper" style={{ padding: '0.15rem 0.55rem' }} title={`Draft ${p.draftCount} delivered`} data-tooltip={`Draft ${p.draftCount} delivered`}>
+                                          <span className="v-draft-label">Draft #{p.draftCount}</span>
+                                        </div>
+                                      )
                                     ) : (
-                                      <button
-                                        type="button"
-                                        className="v-draft-add-btn"
-                                        title="Mark First Draft Delivered"
-                                        data-tooltip="Mark First Draft Delivered"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleQuickUpdateTeamDraftCount(p._id, 1);
-                                        }}
-                                      >
-                                        + Draft
-                                      </button>
+                                      canEditOrderStatus(p) && (
+                                        <button
+                                          type="button"
+                                          className="v-draft-add-btn"
+                                          title="Mark First Draft Delivered"
+                                          data-tooltip="Mark First Draft Delivered"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleQuickUpdateTeamDraftCount(p._id, 1);
+                                          }}
+                                        >
+                                          + Draft
+                                        </button>
+                                      )
                                     )}
 
                                     {(() => {
@@ -3651,43 +3669,54 @@ export default function VercelDashboard() {
 
                                     {/* Draft Count Badge & Controls */}
                                     {p.draftCount && p.draftCount > 0 ? (
-                                      <div className="v-draft-wrapper" title={`Draft ${p.draftCount} delivered`}>
-                                        <button
-                                          type="button"
-                                          className="v-draft-btn-dec"
-                                          title="Decrease Draft Count"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleQuickDraftCountChange(p._id, Math.max(0, (p.draftCount || 1) - 1));
-                                          }}
-                                        >
-                                          -
-                                        </button>
-                                        <span className="v-draft-label">Draft #{p.draftCount}</span>
-                                        <button
-                                          type="button"
-                                          className="v-draft-btn-inc"
-                                          title="Increase Draft Count"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleQuickDraftCountChange(p._id, (p.draftCount || 0) + 1);
-                                          }}
-                                        >
-                                          +
-                                        </button>
-                                      </div>
+                                      canEditOrderStatus(p) ? (
+                                        <div className="v-draft-wrapper" title={`Draft ${p.draftCount} delivered`} data-tooltip={`Draft ${p.draftCount} delivered`}>
+                                          <button
+                                            type="button"
+                                            className="v-draft-btn-dec"
+                                            title="Decrease Draft Count"
+                                            data-tooltip="Decrease Draft Count"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleQuickDraftCountChange(p._id, Math.max(0, (p.draftCount || 1) - 1));
+                                            }}
+                                          >
+                                            -
+                                          </button>
+                                          <span className="v-draft-label">Draft #{p.draftCount}</span>
+                                          <button
+                                            type="button"
+                                            className="v-draft-btn-inc"
+                                            title="Increase Draft Count"
+                                            data-tooltip="Increase Draft Count"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleQuickDraftCountChange(p._id, (p.draftCount || 0) + 1);
+                                            }}
+                                          >
+                                            +
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <div className="v-draft-wrapper" style={{ padding: '0.15rem 0.55rem' }} title={`Draft ${p.draftCount} delivered`} data-tooltip={`Draft ${p.draftCount} delivered`}>
+                                          <span className="v-draft-label">Draft #{p.draftCount}</span>
+                                        </div>
+                                      )
                                     ) : (
-                                      <button
-                                        type="button"
-                                        className="v-draft-add-btn"
-                                        title="Mark First Draft Delivered"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleQuickDraftCountChange(p._id, 1);
-                                        }}
-                                      >
-                                        + Draft
-                                      </button>
+                                      canEditOrderStatus(p) && (
+                                        <button
+                                          type="button"
+                                          className="v-draft-add-btn"
+                                          title="Mark First Draft Delivered"
+                                          data-tooltip="Mark First Draft Delivered"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleQuickDraftCountChange(p._id, 1);
+                                          }}
+                                        >
+                                          + Draft
+                                        </button>
+                                      )
                                     )}
 
                                     {(() => {
