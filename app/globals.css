@@ -6,37 +6,37 @@
 @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap');
 
 :root {
-  /* Vercel Dark Theme (Default) */
+  /* Vercel High-Contrast Dark Theme (Default) */
   --geist-background: #000000;
-  --geist-foreground: #ededed;
+  --geist-foreground: #ffffff;
   
-  --sidebar-bg: #090909;
-  --sidebar-border: #1a1a1a;
+  --sidebar-bg: #0a0a0a;
+  --sidebar-border: #1f1f1f;
   
   --accents-1: #111111;
-  --accents-2: #222222;
-  --accents-3: #333333;
-  --accents-4: #444444;
-  --accents-5: #666666;
-  --accents-6: #888888;
-  --accents-7: #eaeaea;
-  --accents-8: #fafafa;
+  --accents-2: #1c1c1c;
+  --accents-3: #2e2e2e;
+  --accents-4: #666666;
+  --accents-5: #a1a1a1;
+  --accents-6: #cccccc;
+  --accents-7: #ededed;
+  --accents-8: #ffffff;
 
-  --border-subtle: #1a1a1a;
-  --border-default: #262626;
-  --border-highlight: #404040;
+  --border-subtle: #1f1f1f;
+  --border-default: #2e2e2e;
+  --border-highlight: #444444;
 
-  --card-bg: #0c0c0c;
+  --card-bg: #0a0a0a;
   --header-bg: rgba(0, 0, 0, 0.85);
-  --input-bg: #000000;
-  --table-bg: #090909;
-  --table-header-bg: #000000;
+  --input-bg: #0a0a0a;
+  --table-bg: #000000;
+  --table-header-bg: #0a0a0a;
 
   --btn-primary-bg: #ffffff;
   --btn-primary-fg: #000000;
   --btn-secondary-bg: #111111;
-  --btn-secondary-fg: #ededed;
-  --btn-secondary-border: #262626;
+  --btn-secondary-fg: #ffffff;
+  --btn-secondary-border: #2e2e2e;
 
   --vercel-blue: #0070f3;
   --vercel-cyan: #50e3c2;
