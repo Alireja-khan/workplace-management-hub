@@ -60,6 +60,7 @@ import LandingPage from '@/components/LandingPage';
 import TeamWorkspaceView from '@/components/TeamWorkspaceView';
 import TeamOrderModal from '@/components/TeamOrderModal';
 import AdminUsersView from '@/components/AdminUsersView';
+import DeadlineAlertBanner from '@/components/DeadlineAlertBanner';
 
 const GoogleIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24">
@@ -1451,7 +1452,7 @@ export default function VercelDashboard() {
       remark: project.remark || '',
       percentage: project.percentage || '',
       ourSubdomain: project.ourSubdomain || '',
-      deadline: project.deadline ? project.deadline.split('T')[0] : '',
+      deadline: project.deadline ? (project.deadline.includes('T') ? project.deadline.slice(0, 16) : `${project.deadline}T23:59`) : '',
       timeSchedule: project.timeSchedule || 'Fresh Query',
       clientDomain: project.clientDomain || '',
       marketplaceStatus: project.marketplaceStatus || 'Delivered',
@@ -1557,6 +1558,7 @@ export default function VercelDashboard() {
       sheetLink: p.sheetLink || '',
       teamName: p.teamName || 'EleSquad',
       percentage: p.percentage || '',
+      deadline: p.deadline ? (p.deadline.includes('T') ? p.deadline.slice(0, 16) : `${p.deadline}T23:59`) : '',
       note: p.notes || p.note || '',
       timeSchedule: p.timeSchedule || 'Fresh Query',
     });
@@ -2591,6 +2593,14 @@ export default function VercelDashboard() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {/* Deadline Alert Banner */}
+            <DeadlineAlertBanner
+              projects={workspaceMode === 'team' ? teamProjects : projects}
+              session={session}
+              workspaceMode={workspaceMode}
+              onLocateOrder={handleLocateIssueOrder}
+            />
+
             {/* Workspace Toggle Pill */}
             <div className="segmented-nav" style={{ marginRight: '0.25rem' }}>
               <button
@@ -3562,16 +3572,16 @@ export default function VercelDashboard() {
                                 <td className="mono-text">
                                   {canEditOrderStatus(p) ? (
                                     <input
-                                      type="date"
-                                      value={p.deadline || ''}
+                                      type="datetime-local"
+                                      value={p.deadline ? (p.deadline.includes('T') ? p.deadline.slice(0, 16) : `${p.deadline}T23:59`) : ''}
                                       onChange={(e) => handleQuickUpdateTeamDeadline(p._id, e.target.value)}
                                       className={`v-inline-date-input ${p.deadline ? 'has-value' : ''}`}
-                                      title={p.deadline ? `Deadline: ${p.deadline}` : 'Set Deadline'}
-                                      data-tooltip={p.deadline ? `Deadline: ${p.deadline}` : 'Set Deadline'}
+                                      title={p.deadline ? `Deadline: ${p.deadline.replace('T', ' ')}` : 'Set Deadline'}
+                                      data-tooltip={p.deadline ? `Deadline: ${p.deadline.replace('T', ' ')}` : 'Set Deadline'}
                                     />
                                   ) : (
                                     <span style={{ color: p.deadline ? '#ef4444' : 'var(--accents-5)', fontSize: '0.75rem' }}>
-                                      {p.deadline || '-'}
+                                      {p.deadline ? p.deadline.replace('T', ' ') : '-'}
                                     </span>
                                   )}
                                 </td>
@@ -3843,16 +3853,16 @@ export default function VercelDashboard() {
                                 <td className="mono-text">
                                   {canEditOrderStatus(p) ? (
                                     <input
-                                      type="date"
-                                      value={p.deadline || ''}
+                                      type="datetime-local"
+                                      value={p.deadline ? (p.deadline.includes('T') ? p.deadline.slice(0, 16) : `${p.deadline}T23:59`) : ''}
                                       onChange={(e) => handleQuickUpdateDeadline(p._id, e.target.value)}
                                       className={`v-inline-date-input ${p.deadline ? 'has-value' : ''}`}
-                                      title={p.deadline ? `Deadline: ${p.deadline}` : 'Set Deadline'}
-                                      data-tooltip={p.deadline ? `Deadline: ${p.deadline}` : 'Set Deadline'}
+                                      title={p.deadline ? `Deadline: ${p.deadline.replace('T', ' ')}` : 'Set Deadline'}
+                                      data-tooltip={p.deadline ? `Deadline: ${p.deadline.replace('T', ' ')}` : 'Set Deadline'}
                                     />
                                   ) : (
                                     <span style={{ color: p.deadline ? '#ef4444' : 'var(--accents-5)', fontSize: '0.75rem' }}>
-                                      {p.deadline || '-'}
+                                      {p.deadline ? p.deadline.replace('T', ' ') : '-'}
                                     </span>
                                   )}
                                 </td>
@@ -4182,8 +4192,8 @@ export default function VercelDashboard() {
                     </div>
 
                     <div className="v-form-group">
-                      <label>Deadline</label>
-                      <input type="date" className="v-input" value={formData.deadline || ''} onChange={(e) => setFormData({ ...formData, deadline: e.target.value })} />
+                      <label>Deadline (Date & Time)</label>
+                      <input type="datetime-local" className="v-input" value={formData.deadline || ''} onChange={(e) => setFormData({ ...formData, deadline: e.target.value })} />
                     </div>
                     <div className="v-form-group">
                       <label>Estimated Delivery Date</label>

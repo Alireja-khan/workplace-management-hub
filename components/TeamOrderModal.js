@@ -363,9 +363,9 @@ export default function TeamOrderModal({
 
 
               <div className="v-form-group">
-                <label>Deadline</label>
+                <label>Deadline (Date & Time)</label>
                 <input
-                  type="date"
+                  type="datetime-local"
                   className="v-input"
                   value={formData.deadline || ''}
                   onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}

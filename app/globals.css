@@ -2808,6 +2808,71 @@ select:focus,
   background: rgba(239, 68, 68, 0.06);
 }
 
+/* Top Header Deadline Alert Banner */
+.v-deadline-top-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 580px;
+  overflow: hidden;
+  white-space: nowrap;
+  animation: pulseAlertGlow 3s infinite ease-in-out;
+}
+
+.v-deadline-top-alert:hover {
+  transform: translateY(-1px) scale(1.01);
+  filter: brightness(1.1);
+}
+
+.v-alert-badge-left {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.74rem;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.v-alert-msg-center {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.v-alert-ext-prompt {
+  font-size: 0.68rem;
+  background: rgba(255, 255, 255, 0.18);
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-weight: 600;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+@keyframes pulseAlertGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.6));
+  }
+}
+
 
 
 
