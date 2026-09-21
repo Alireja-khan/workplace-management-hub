@@ -175,15 +175,6 @@ export default function VercelDashboard() {
   const [isIssueDrawerOpen, setIsIssueDrawerOpen] = useState(false);
   const [highlightedOrderId, setHighlightedOrderId] = useState(null);
 
-  const activeIssueOrders = useMemo(() => {
-    const list = workspaceMode === 'team' ? teamProjects : projects;
-    return list.filter((p) => {
-      const st = (p.orderStatus || '').toLowerCase();
-      const effC = (getEffectiveCurrentStatus(p) || '').toLowerCase();
-      return st === 'issue' || effC === 'issue';
-    });
-  }, [workspaceMode, teamProjects, projects]);
-
   const handleLocateIssueOrder = (project) => {
     if (!project) return;
     const isDelivered = Boolean(project.deliveryDate);
@@ -1079,6 +1070,17 @@ export default function VercelDashboard() {
 
   const isTeamMode = workspaceMode === 'team';
   const currentProjects = isTeamMode ? filteredTeamProjects : filteredPersonalProjects;
+
+  const activeIssueOrders = useMemo(() => {
+    const list = workspaceMode === 'team' ? teamProjects : filteredPersonalProjects;
+    return list.filter((p) => {
+      const st = (p.orderStatus || '').toLowerCase();
+      const effC = (getEffectiveCurrentStatus(p) || '').toLowerCase();
+      const isIssue = st === 'issue' || effC === 'issue';
+      const isResolvedOrDone = effC === 'solved' || effC === 'all sorted' || st === 'done' || st === 'delivered' || st === 'cancel';
+      return isIssue && !isResolvedOrDone;
+    });
+  }, [workspaceMode, teamProjects, filteredPersonalProjects]);
   const currentSearchQuery = isTeamMode ? searchQuery : personalSearchQuery;
   const setCurrentSearchQuery = isTeamMode ? setSearchQuery : setPersonalSearchQuery;
   const currentDateFilterType = isTeamMode ? teamDateFilterType : personalDateFilterType;
@@ -1760,6 +1762,69 @@ export default function VercelDashboard() {
       }
     } catch (e) {
       showToast('Failed to update team draft count', 'error');
+    }
+  };
+
+  const handleQuickUpdateDeadline = async (projectId, newDeadline) => {
+    const prevProject = projects.find((p) => p._id === projectId);
+    if (!canEditOrderStatus(prevProject)) {
+      showToast('Members can only update deadline for orders assigned to them', 'error');
+      return;
+    }
+    const payload = { deadline: newDeadline };
+
+    setProjects((prev) =>
+      prev.map((p) => (p._id === projectId ? { ...p, deadline: newDeadline } : p))
+    );
+
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProjects((prev) => prev.map((p) => (p._id === projectId ? data.data : p)));
+        showToast(newDeadline ? `Deadline updated to ${newDeadline}` : 'Deadline cleared');
+      } else {
+        throw new Error(data.error || 'Update failed');
+      }
+    } catch (e) {
+      showToast('Failed to update deadline', 'error');
+      fetchProjects();
+    }
+  };
+
+  const handleQuickUpdateTeamDeadline = async (id, newDeadline) => {
+    const prevProject = teamProjects.find((p) => p._id === id);
+    if (!canEditOrderStatus(prevProject)) {
+      showToast('Members can only update deadline for orders assigned to them', 'error');
+      return;
+    }
+    const payload = { deadline: newDeadline };
+
+    setTeamProjects((prev) =>
+      prev.map((p) => (p._id === id ? { ...p, deadline: newDeadline } : p))
+    );
+
+    try {
+      const res = await fetch(`/api/team-projects/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTeamProjects((prev) => prev.map((p) => (p._id === id ? data.data : p)));
+        showToast(newDeadline ? `Deadline updated to ${newDeadline}` : 'Deadline cleared');
+        fetchProjects();
+      } else {
+        throw new Error(data.error || 'Update failed');
+      }
+    } catch (e) {
+      showToast('Failed to update team deadline', 'error');
+      fetchTeamProjects();
     }
   };
 
@@ -3499,8 +3564,21 @@ export default function VercelDashboard() {
                                     })()}
                                   </div>
                                 </td>
-                                <td className="mono-text" style={{ color: p.deadline ? '#ef4444' : 'var(--accents-5)' }}>
-                                  {p.deadline || '-'}
+                                <td className="mono-text">
+                                  {canEditOrderStatus(p) ? (
+                                    <input
+                                      type="date"
+                                      value={p.deadline || ''}
+                                      onChange={(e) => handleQuickUpdateTeamDeadline(p._id, e.target.value)}
+                                      className={`v-inline-date-input ${p.deadline ? 'has-value' : ''}`}
+                                      title={p.deadline ? `Deadline: ${p.deadline}` : 'Set Deadline'}
+                                      data-tooltip={p.deadline ? `Deadline: ${p.deadline}` : 'Set Deadline'}
+                                    />
+                                  ) : (
+                                    <span style={{ color: p.deadline ? '#ef4444' : 'var(--accents-5)', fontSize: '0.75rem' }}>
+                                      {p.deadline || '-'}
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
                                   {p.estimatedDeliveryDate || '-'}
@@ -3767,8 +3845,21 @@ export default function VercelDashboard() {
                                     })()}
                                   </div>
                                 </td>
-                                <td className="mono-text" style={{ color: p.deadline ? '#ef4444' : 'var(--accents-5)' }}>
-                                  {p.deadline || '-'}
+                                <td className="mono-text">
+                                  {canEditOrderStatus(p) ? (
+                                    <input
+                                      type="date"
+                                      value={p.deadline || ''}
+                                      onChange={(e) => handleQuickUpdateDeadline(p._id, e.target.value)}
+                                      className={`v-inline-date-input ${p.deadline ? 'has-value' : ''}`}
+                                      title={p.deadline ? `Deadline: ${p.deadline}` : 'Set Deadline'}
+                                      data-tooltip={p.deadline ? `Deadline: ${p.deadline}` : 'Set Deadline'}
+                                    />
+                                  ) : (
+                                    <span style={{ color: p.deadline ? '#ef4444' : 'var(--accents-5)', fontSize: '0.75rem' }}>
+                                      {p.deadline || '-'}
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="mono-text" style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : 'var(--accents-5)' }}>
                                   {p.estimatedDeliveryDate || '-'}
