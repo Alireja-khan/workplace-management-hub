@@ -2951,13 +2951,28 @@ select:focus,
   border-color: var(--border-highlight);
 }
 
-.v-minimal-msg-text {
-  font-size: 0.82rem;
+.v-minimal-quote-text {
+  font-size: 0.78rem;
   font-weight: 500;
+  font-style: italic;
   color: var(--accents-5);
+  margin-left: 0.5rem;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 520px;
+  animation: fadeInQuote 0.4s ease forwards;
+}
+
+@keyframes fadeInQuote {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .v-minimal-action-right {

@@ -103,14 +103,23 @@ export default function DateTimePickerPopover({
   useEffect(() => {
     if (isOpen) {
       updatePosition();
-      const handleScrollOrResize = () => {
+
+      const handleScroll = (e) => {
+        if (popoverRef.current && popoverRef.current.contains(e.target)) {
+          return;
+        }
+        setIsOpen(false);
+      };
+
+      const handleResize = () => {
         updatePosition();
       };
-      window.addEventListener('resize', handleScrollOrResize);
-      window.addEventListener('scroll', handleScrollOrResize, true);
+
+      window.addEventListener('scroll', handleScroll, true);
+      window.addEventListener('resize', handleResize);
       return () => {
-        window.removeEventListener('resize', handleScrollOrResize);
-        window.removeEventListener('scroll', handleScrollOrResize, true);
+        window.removeEventListener('scroll', handleScroll, true);
+        window.removeEventListener('resize', handleResize);
       };
     }
   }, [isOpen]);

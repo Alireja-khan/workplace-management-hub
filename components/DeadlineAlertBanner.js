@@ -3,15 +3,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Clock, AlertTriangle, Flame, ArrowUpRight, ChevronRight } from 'lucide-react';
 
-const REMINDER_MESSAGES = [
-  "Time is flying! {timeRemaining} left for #{orderNumber}.",
-  "The clock is ticking on #{orderNumber}! {timeRemaining} remaining.",
-  "Friendly ping! #{orderNumber}'s deadline is in {timeRemaining}.",
-  "Delivering #{orderNumber} on time brings 5-star reviews! ⏳ {timeRemaining} left.",
-  "Order #{orderNumber} countdown: {timeRemaining}.",
-  "Stay in the flow! #{orderNumber} deadline is in {timeRemaining}.",
-  "Clock tickin'! {timeRemaining} left on #{orderNumber}.",
-  "Speed run mode! #{orderNumber} is due in {timeRemaining}."
+const CORPORATE_FUNNY_QUOTES = [
+  "Hey {name}, let's wrap this up before client sends 'Any updates?' 🚀",
+  "Clock is ticking! Less coffee, more magic {name}! ☕⚡",
+  "No pressure {name}, but the client is refreshing their screen! 👀",
+  "Time to show some magic before the deadline catches us! 🪄",
+  "Finish strong, deliver smooth, take all the credit! ⭐",
+  "Let me know when it's done so we can celebrate! 🎉",
+  "Fasten your seatbelt {name}, deadline incoming! 🏎️",
+  "Let's crush this order like a pro today! 💪",
+  "Tick-tock! Great results happen under slight pressure! ✨",
+  "Almost there {name}! Let's get this delivered on time! 🏁"
 ];
 
 /**
@@ -75,11 +77,11 @@ export default function DeadlineAlertBanner({
     return () => clearInterval(timer);
   }, []);
 
-  // Rotate reminder text every 8 seconds
+  // Rotate reminder text every 6 seconds
   useEffect(() => {
     const msgTimer = setInterval(() => {
-      setMsgIndex((prev) => (prev + 1) % REMINDER_MESSAGES.length);
-    }, 8000);
+      setMsgIndex((prev) => (prev + 1) % CORPORATE_FUNNY_QUOTES.length);
+    }, 6000);
     return () => clearInterval(msgTimer);
   }, []);
 
@@ -96,10 +98,8 @@ export default function DeadlineAlertBanner({
       if (!p || !p.deadline) return false;
 
       const statusLower = (p.orderStatus || p.status || 'Wip').toLowerCase();
-      // Skip completed or cancelled orders
       if (['done', 'delivered', 'cancel'].includes(statusLower)) return false;
 
-      // Filter by member assignment (only in team mode for non-leaders):
       if (workspaceMode === 'team' && !isLeaderOrOwner && currentUserName) {
         const isAssigned = Array.isArray(p.assignedMembers) &&
           p.assignedMembers.some((m) => m && m.toLowerCase().trim().includes(currentUserName));
@@ -107,18 +107,15 @@ export default function DeadlineAlertBanner({
         if (!isAssigned && !isUserEmail) return false;
       }
 
-      // Parse deadline ms
       const deadlineMs = parseDeadlineMs(p.deadline);
       if (isNaN(deadlineMs)) return false;
 
       const diffMs = deadlineMs - now;
       const diffHours = diffMs / (1000 * 60 * 60);
 
-      // Trigger if deadline <= 72 hours (3 days) or overdue
       return diffHours <= 72;
     });
 
-    // Sort candidates by most urgent deadline first (smallest deadlineMs)
     filtered.sort((a, b) => parseDeadlineMs(a.deadline) - parseDeadlineMs(b.deadline));
 
     return filtered;
@@ -137,7 +134,6 @@ export default function DeadlineAlertBanner({
   const urgentOrder = urgentCandidates[selectedIndex] || urgentCandidates[0];
   const candidateCount = urgentCandidates.length;
 
-  // Calculate remaining time
   const deadlineMs = parseDeadlineMs(urgentOrder.deadline);
   const diffMs = deadlineMs - now;
   const isLate = diffMs < 0;
@@ -159,19 +155,11 @@ export default function DeadlineAlertBanner({
 
   const orderNumber = urgentOrder.orderNumber || urgentOrder.clientUserId || 'Order';
 
-  // Format message text
-  const currentRawMsg = REMINDER_MESSAGES[msgIndex % REMINDER_MESSAGES.length];
+  const currentRawMsg = CORPORATE_FUNNY_QUOTES[msgIndex % CORPORATE_FUNNY_QUOTES.length];
   const customMsg = currentRawMsg
     .replace(/{name}/g, memberName)
     .replace(/{orderNumber}/g, orderNumber)
     .replace(/{timeRemaining}/g, timeFormatted);
-
-  const remainingHours = diffMs / (1000 * 60 * 60);
-  const urgencyTitle = isLate
-    ? `OVERDUE (${timeFormatted})`
-    : remainingHours <= 48
-    ? `DUE IN ${timeFormatted}`
-    : `DUE IN ${days > 0 ? `${days}d ` : ''}${hours}h`;
 
   const clientName = urgentOrder.clientUserId || urgentOrder.clientUsername || '';
 
@@ -188,7 +176,6 @@ export default function DeadlineAlertBanner({
         {/* Center Minimal Text & Pills */}
         <div className="v-minimal-body-center">
           <div className="v-minimal-meta-row">
-            <span className="v-minimal-tag-label">{urgencyTitle}</span>
             <span className="v-minimal-member-pill">{memberName}</span>
             <span className="v-minimal-order-pill">#{orderNumber}</span>
             {clientName && <span className="v-minimal-client-pill">{clientName}</span>}
@@ -205,6 +192,7 @@ export default function DeadlineAlertBanner({
                 {selectedIndex + 1} of {candidateCount} ➔
               </button>
             )}
+            <span className="v-minimal-quote-text">“{customMsg}”</span>
           </div>
         </div>
 
