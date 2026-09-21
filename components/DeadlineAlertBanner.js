@@ -1,18 +1,61 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Clock, AlertTriangle, Flame, ShieldAlert, Sparkles, AlertCircle } from 'lucide-react';
+import { Clock, AlertTriangle, Flame, ArrowUpRight, Sparkles, AlertCircle } from 'lucide-react';
 
 const REMINDER_MESSAGES = [
-  "⏰ Hey {name}! Time is flying faster than a client changing their brief! {timeRemaining} left for #{orderNumber}.",
-  "🚀 {name}, the clock is ticking on #{orderNumber}! {timeRemaining} remaining. Let's finish strong!",
-  "☕ Friendly ping {name}! Grab a coffee, #{orderNumber}'s deadline is in {timeRemaining}.",
-  "🌟 {name}, legend says delivering #{orderNumber} on time brings 5-star reviews & good vibes! ⏳ {timeRemaining} left.",
-  "🔥 Alert for {name}: Order #{orderNumber} is getting hot! Countdown: {timeRemaining}.",
-  "🎯 {name}, stay in the flow! #{orderNumber} deadline is in {timeRemaining}. You've got this!",
-  "💡 {name}, clock tickin'! {timeRemaining} left on #{orderNumber}. Need an extension or ready to ship?",
-  "⚡ Speed run mode, {name}! #{orderNumber} is due in {timeRemaining}. Let's make magic happen!"
+  "Time is flying faster than a client changing their brief! {timeRemaining} left for #{orderNumber}.",
+  "The clock is ticking on #{orderNumber}! {timeRemaining} remaining. Let's finish strong!",
+  "Friendly ping! Grab a coffee, #{orderNumber}'s deadline is in {timeRemaining}.",
+  "Legend says delivering #{orderNumber} on time brings 5-star reviews & good vibes! ⏳ {timeRemaining} left.",
+  "Order #{orderNumber} is getting hot! Countdown: {timeRemaining}.",
+  "Stay in the flow! #{orderNumber} deadline is in {timeRemaining}. You've got this!",
+  "Clock tickin'! {timeRemaining} left on #{orderNumber}. Need an extension or ready to ship?",
+  "Speed run mode! #{orderNumber} is due in {timeRemaining}. Let's make magic happen!"
 ];
+
+/**
+ * Robust date parser supporting MM/DD/YYYY, YYYY-MM-DD, ISO, and Date strings
+ */
+export function parseDeadlineMs(deadlineStr) {
+  if (!deadlineStr || typeof deadlineStr !== 'string') return NaN;
+  const str = deadlineStr.trim();
+  if (!str) return NaN;
+
+  // 1. ISO format with 'T': e.g. "2026-09-24T18:00" or "2026-09-24T18:00:00"
+  if (str.includes('T')) {
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) return d.getTime();
+  }
+
+  // 2. Format with slashes: e.g. "09/24/2026" or "09/24/2026 18:00"
+  if (str.includes('/')) {
+    const parts = str.split(' ');
+    const datePart = parts[0];
+    const timePart = parts[1] || '23:59:59';
+    const dateBits = datePart.split('/');
+    if (dateBits.length === 3) {
+      const [m, d, y] = dateBits;
+      if (m && d && y) {
+        const isoStr = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T${timePart.includes(':') ? (timePart.split(':').length === 2 ? `${timePart}:00` : timePart) : '23:59:59'}`;
+        const parsed = new Date(isoStr);
+        if (!isNaN(parsed.getTime())) return parsed.getTime();
+      }
+    }
+  }
+
+  // 3. Format YYYY-MM-DD (no T): e.g. "2026-09-24"
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    const d = new Date(`${str}T23:59:59`);
+    if (!isNaN(d.getTime())) return d.getTime();
+  }
+
+  // 4. Fallback direct parse: e.g. "Sep 24, 2026"
+  const direct = new Date(str);
+  if (!isNaN(direct.getTime())) return direct.getTime();
+
+  return NaN;
+}
 
 export default function DeadlineAlertBanner({
   projects = [],
@@ -22,6 +65,7 @@ export default function DeadlineAlertBanner({
 }) {
   const [now, setNow] = useState(Date.now());
   const [msgIndex, setMsgIndex] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   // Update timer every second
   useEffect(() => {
@@ -31,7 +75,7 @@ export default function DeadlineAlertBanner({
     return () => clearInterval(timer);
   }, []);
 
-  // Rotate message every 8 seconds
+  // Rotate reminder text every 8 seconds
   useEffect(() => {
     const msgTimer = setInterval(() => {
       setMsgIndex((prev) => (prev + 1) % REMINDER_MESSAGES.length);
@@ -39,63 +83,63 @@ export default function DeadlineAlertBanner({
     return () => clearInterval(msgTimer);
   }, []);
 
-  // Find the most urgent project with deadline <= 72 hours (or overdue)
-  const urgentOrder = useMemo(() => {
-    if (!projects || projects.length === 0) return null;
+  // Filter urgent candidates with deadline <= 72 hours (or overdue)
+  const urgentCandidates = useMemo(() => {
+    if (!projects || !Array.isArray(projects) || projects.length === 0) return [];
 
     const currentUserName = (session?.user?.assignedName || session?.user?.name || '').toLowerCase().trim();
+    const currentUserEmail = (session?.user?.email || '').toLowerCase().trim();
+    const role = session?.user?.role || 'Member';
+    const isLeaderOrOwner = ['Owner', 'Leader', 'Co-Leader', 'admin'].includes(role);
 
-    const candidates = projects.filter((p) => {
-      if (!p.deadline) return false;
-      const statusLower = (p.orderStatus || 'Wip').toLowerCase();
-      // Skip completed / cancelled orders
+    const filtered = projects.filter((p) => {
+      if (!p || !p.deadline) return false;
+
+      const statusLower = (p.orderStatus || p.status || 'Wip').toLowerCase();
+      // Skip completed or cancelled orders
       if (['done', 'delivered', 'cancel'].includes(statusLower)) return false;
 
-      // In personal mode or member role, check assigned
-      if (workspaceMode === 'personal' && currentUserName) {
-        const isAssigned = Array.isArray(p.assignedMembers) && p.assignedMembers.some((m) => m && m.toLowerCase().includes(currentUserName));
-        const isUserEmail = p.userEmail && session?.user?.email && p.userEmail.toLowerCase() === session.user.email.toLowerCase();
+      // Filter by member assignment (only in team mode for non-leaders):
+      if (workspaceMode === 'team' && !isLeaderOrOwner && currentUserName) {
+        const isAssigned = Array.isArray(p.assignedMembers) &&
+          p.assignedMembers.some((m) => m && m.toLowerCase().trim().includes(currentUserName));
+        const isUserEmail = p.userEmail && currentUserEmail && p.userEmail.toLowerCase() === currentUserEmail;
         if (!isAssigned && !isUserEmail) return false;
       }
 
-      // Parse deadline
-      let deadlineMs = 0;
-      if (p.deadline.includes('T')) {
-        deadlineMs = new Date(p.deadline).getTime();
-      } else {
-        deadlineMs = new Date(`${p.deadline}T23:59:59`).getTime();
-      }
-
+      // Parse deadline ms
+      const deadlineMs = parseDeadlineMs(p.deadline);
       if (isNaN(deadlineMs)) return false;
 
       const diffMs = deadlineMs - now;
       const diffHours = diffMs / (1000 * 60 * 60);
 
-      // Trigger if deadline <= 72 hours (3 days) or overdue (diffHours <= 0)
+      // Trigger if deadline <= 72 hours (3 days) or overdue
       return diffHours <= 72;
     });
 
-    if (candidates.length === 0) return null;
+    // Sort candidates by most urgent deadline first (smallest deadlineMs)
+    filtered.sort((a, b) => parseDeadlineMs(a.deadline) - parseDeadlineMs(b.deadline));
 
-    // Sort candidates by most urgent deadline (smallest deadlineMs)
-    candidates.sort((a, b) => {
-      const getMs = (item) => (item.deadline.includes('T') ? new Date(item.deadline).getTime() : new Date(`${item.deadline}T23:59:59`).getTime());
-      return getMs(a) - getMs(b);
-    });
-
-    return candidates[0];
+    return filtered;
   }, [projects, session, workspaceMode, now]);
 
-  if (!urgentOrder) return null;
+  // Keep selected index valid
+  useEffect(() => {
+    if (selectedIndex >= urgentCandidates.length) {
+      setSelectedIndex(0);
+    }
+  }, [urgentCandidates.length, selectedIndex]);
 
-  // Calculate remaining time
-  let deadlineMs = 0;
-  if (urgentOrder.deadline.includes('T')) {
-    deadlineMs = new Date(urgentOrder.deadline).getTime();
-  } else {
-    deadlineMs = new Date(`${urgentOrder.deadline}T23:59:59`).getTime();
+  if (!urgentCandidates || urgentCandidates.length === 0) {
+    return null;
   }
 
+  const urgentOrder = urgentCandidates[selectedIndex] || urgentCandidates[0];
+  const candidateCount = urgentCandidates.length;
+
+  // Calculate remaining time
+  const deadlineMs = parseDeadlineMs(urgentOrder.deadline);
   const diffMs = deadlineMs - now;
   const isLate = diffMs < 0;
   const absDiff = Math.abs(diffMs);
@@ -108,26 +152,28 @@ export default function DeadlineAlertBanner({
   const formatUnit = (n) => (n < 10 ? `0${n}` : `${n}`);
   const timeFormatted = `${days > 0 ? `${days}d ` : ''}${formatUnit(hours)}h ${formatUnit(mins)}m ${formatUnit(secs)}s`;
 
-  // Calculate dynamic 5-hour red opacity
-  // At 72h left -> start at 0.15 opacity. Every 5h elapsed -> +0.15 opacity up to 0.85
+  // Calculate dynamic opacity & urgency colors
   const remainingHours = diffMs / (1000 * 60 * 60);
-  let redOpacity = 0.15;
+  let redOpacity = 0.20;
 
   if (isLate) {
-    redOpacity = 0.90;
+    redOpacity = 0.95;
   } else if (remainingHours <= 48) {
-    // 48h to 0h -> opacity ranges 0.60 to 0.88
     const elapsedFrom48 = 48 - remainingHours;
     const steps = Math.floor(elapsedFrom48 / 5);
-    redOpacity = Math.min(0.88, 0.60 + steps * 0.05);
+    redOpacity = Math.min(0.90, 0.55 + steps * 0.07);
   } else {
-    // 72h to 48h -> opacity ranges 0.15 to 0.55
     const elapsedFrom72 = 72 - remainingHours;
     const steps = Math.floor(elapsedFrom72 / 5);
-    redOpacity = Math.min(0.55, 0.15 + steps * 0.08);
+    redOpacity = Math.min(0.50, 0.20 + steps * 0.06);
   }
 
-  const memberName = (urgentOrder.assignedMembers && urgentOrder.assignedMembers[0]) || session?.user?.assignedName || session?.user?.name || 'Member';
+  const memberName = (Array.isArray(urgentOrder.assignedMembers) && urgentOrder.assignedMembers[0]) ||
+    urgentOrder.clientUsername ||
+    session?.user?.assignedName ||
+    session?.user?.name ||
+    'Member';
+
   const orderNumber = urgentOrder.orderNumber || urgentOrder.clientUserId || 'Order';
 
   // Format message text
@@ -137,51 +183,79 @@ export default function DeadlineAlertBanner({
     .replace(/{orderNumber}/g, orderNumber)
     .replace(/{timeRemaining}/g, timeFormatted);
 
+  const urgencyTitle = isLate
+    ? `OVERDUE BY ${timeFormatted}`
+    : remainingHours <= 48
+    ? `URGENT (<48h)`
+    : `DUE IN ${days > 0 ? `${days}d ` : ''}${hours}h`;
+
   return (
-    <div
-      className="v-deadline-top-alert"
-      style={{
-        background: isLate
-          ? `rgba(239, 68, 68, ${redOpacity})`
-          : `rgba(225, 29, 72, ${redOpacity})`,
-        border: `1px solid rgba(239, 68, 68, ${Math.min(1, redOpacity + 0.25)})`,
-        boxShadow: isLate
-          ? '0 0 15px rgba(239, 68, 68, 0.4)'
-          : `0 0 12px rgba(225, 29, 72, ${redOpacity * 0.6})`,
-      }}
-      onClick={() => onLocateOrder && onLocateOrder(urgentOrder)}
-      title="Click to scroll to this order"
-    >
-      <div className="v-alert-badge-left">
-        {isLate ? (
-          <Flame size={14} className="v-alert-icon-fire" />
-        ) : remainingHours <= 48 ? (
-          <AlertTriangle size={14} className="v-alert-icon-warn" />
-        ) : (
-          <Clock size={14} className="v-alert-icon-clock" />
-        )}
-        <span className="v-alert-timer-text">{isLate ? `LATE BY ${timeFormatted}` : timeFormatted}</span>
-      </div>
+    <div className="v-deadline-banner-root" style={{ '--alert-opacity': redOpacity }}>
+      <div className="v-deadline-banner-card" onClick={() => onLocateOrder && onLocateOrder(urgentOrder)}>
+        
+        {/* Left Section: Live Countdown Badge */}
+        <div className={`v-deadline-badge ${isLate ? 'is-late' : remainingHours <= 48 ? 'is-urgent' : 'is-warning'}`}>
+          <div className="v-deadline-icon-box">
+            {isLate ? (
+              <Flame size={15} className="v-pulse-icon" />
+            ) : remainingHours <= 48 ? (
+              <AlertTriangle size={15} className="v-pulse-icon" />
+            ) : (
+              <Clock size={15} />
+            )}
+          </div>
+          <div className="v-deadline-time-stack">
+            <span className="v-deadline-tag-label">{urgencyTitle}</span>
+            <span className="v-deadline-time-val">{timeFormatted}</span>
+          </div>
+        </div>
 
-      <div className="v-alert-msg-center">
-        {isLate ? (
-          <span>
-            🚨 <strong>LATE ORDER:</strong> {memberName}, deadline for #{orderNumber} passed {timeFormatted} ago! Please submit or ask for an extension!
-          </span>
-        ) : remainingHours <= 48 ? (
-          <span>
-            🚨 <strong>URGENT (&lt;48h):</strong> {memberName}, #{orderNumber} is due in {timeFormatted}! Finishing up or requesting an extension?
-          </span>
-        ) : (
-          <span>{customMsg}</span>
-        )}
-      </div>
+        {/* Center Section: Creative Message & Order Pill */}
+        <div className="v-deadline-body-center">
+          <div className="v-deadline-meta-row">
+            <span className="v-deadline-member-pill">👤 {memberName}</span>
+            <span className="v-deadline-order-pill">#{orderNumber}</span>
+            {candidateCount > 1 && (
+              <button
+                type="button"
+                className="v-deadline-count-pill"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedIndex((prev) => (prev + 1) % candidateCount);
+                }}
+                title="Click to view next urgent order"
+              >
+                Order {selectedIndex + 1} of {candidateCount} ➔
+              </button>
+            )}
+          </div>
+          <div className="v-deadline-msg-text">
+            {isLate ? (
+              <span>🚨 <strong>Action Needed:</strong> Deadline passed! Please deliver or request an extension.</span>
+            ) : remainingHours <= 48 ? (
+              <span>⚡ <strong>Urgent:</strong> Order is in the final stretch! Ready for delivery?</span>
+            ) : (
+              <span>{customMsg}</span>
+            )}
+          </div>
+        </div>
 
-      {remainingHours > 48 && !isLate && (
-        <span className="v-alert-ext-prompt">
-          💡 Request Extension
-        </span>
-      )}
+        {/* Right Section: Locate Action */}
+        <div className="v-deadline-action-right">
+          <button
+            type="button"
+            className="v-deadline-locate-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onLocateOrder && onLocateOrder(urgentOrder);
+            }}
+          >
+            <span>Locate</span>
+            <ArrowUpRight size={13} />
+          </button>
+        </div>
+
+      </div>
     </div>
   );
 }

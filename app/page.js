@@ -2593,14 +2593,6 @@ export default function VercelDashboard() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {/* Deadline Alert Banner */}
-            <DeadlineAlertBanner
-              projects={workspaceMode === 'team' ? teamProjects : projects}
-              session={session}
-              workspaceMode={workspaceMode}
-              onLocateOrder={handleLocateIssueOrder}
-            />
-
             {/* Workspace Toggle Pill */}
             <div className="segmented-nav" style={{ marginRight: '0.25rem' }}>
               <button
@@ -2685,6 +2677,14 @@ export default function VercelDashboard() {
             )}
           </div>
         </header>
+
+        {/* Deadline Alert Banner (Full-Width Glassmorphic Card) */}
+        <DeadlineAlertBanner
+          projects={workspaceMode === 'team' ? teamProjects : projects}
+          session={session}
+          workspaceMode={workspaceMode}
+          onLocateOrder={handleLocateIssueOrder}
+        />
 
         {workspaceMode === 'admin' ? (
           <AdminUsersView />
