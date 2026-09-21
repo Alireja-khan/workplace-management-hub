@@ -477,8 +477,10 @@ export default function VercelDashboard() {
   // Team KPIs
   const baseProjects = useMemo(() => {
     if (workspaceMode === 'team') return teamProjects;
-    return teamProjects.filter((p) => Array.isArray(p.assignedMembers) && p.assignedMembers.some(m => m.toLowerCase() === (session?.user?.assignedName || 'Alireja').toLowerCase()));
-  }, [teamProjects, workspaceMode, session?.user?.assignedName]);
+    const currentUserName = (session?.user?.assignedName || session?.user?.name || '').toLowerCase();
+    if (!currentUserName) return [];
+    return teamProjects.filter((p) => Array.isArray(p.assignedMembers) && p.assignedMembers.some(m => m.toLowerCase() === currentUserName));
+  }, [teamProjects, workspaceMode, session?.user?.assignedName, session?.user?.name]);
 
   const teamFinancialOverview = useMemo(() => {
     let wipNetValue = 0;
@@ -924,8 +926,10 @@ export default function VercelDashboard() {
   }, [teamProjects, currentTab, teamMemberFilter, teamSalesFilter, teamMonthFilter, teamYearFilter, teamDateFilterType, profileFilter, statusFilter, searchQuery, sortConfig, currentCalendarMonth, currentCalendarYear]);
 
   const filteredPersonalProjects = useMemo(() => {
+    const myName = (session?.user?.assignedName || session?.user?.name || '').toLowerCase();
+    if (!myName) return [];
     let res = teamProjects.filter((p) => {
-      const isMyProject = Array.isArray(p.assignedMembers) && p.assignedMembers.some(m => m.toLowerCase() === (session?.user?.assignedName || 'Alireja').toLowerCase());
+      const isMyProject = Array.isArray(p.assignedMembers) && p.assignedMembers.some(m => m.toLowerCase() === myName);
       if (!isMyProject) return false;
       if (currentTab === 'running') {
         const s = (p.orderStatus || 'Wip').toLowerCase();
@@ -1066,7 +1070,7 @@ export default function VercelDashboard() {
     });
 
     return res;
-  }, [teamProjects, currentTab, personalSalesFilter, personalMonthFilter, personalYearFilter, personalDateFilterType, personalProfileFilter, personalStatusFilter, personalSearchQuery, sortConfig, currentCalendarMonth, currentCalendarYear, session?.user?.assignedName]);
+  }, [teamProjects, currentTab, personalSalesFilter, personalMonthFilter, personalYearFilter, personalDateFilterType, personalProfileFilter, personalStatusFilter, personalSearchQuery, sortConfig, currentCalendarMonth, currentCalendarYear, session?.user?.assignedName, session?.user?.name]);
 
   const isTeamMode = workspaceMode === 'team';
   const currentProjects = isTeamMode ? filteredTeamProjects : filteredPersonalProjects;
@@ -2291,7 +2295,7 @@ export default function VercelDashboard() {
         ) : (
           <>
             {/* Action Button inside Sidebar for Team */}
-            {session?.user?.role !== 'Member' && session?.user?.role !== 'Visitor' && (
+            {status === 'authenticated' && session?.user && !['Member', 'Visitor'].includes(session.user.role) && (
               <div style={{ padding: '0.85rem 0.85rem 0.25rem 0.85rem' }}>
                 <button className="sidebar-new-order-btn" onClick={openNewTeamModal}>
                   <Plus size={14} /> {workspaceMode === 'team' ? 'Add Team Order' : 'Add Order'}
@@ -2580,7 +2584,7 @@ export default function VercelDashboard() {
               />
               <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
                 {workspaceMode === 'personal'
-                  ? (session?.user?.assignedName || session?.user?.name || 'Alireja')
+                  ? (session?.user?.assignedName || session?.user?.name || (status === 'loading' ? '...' : ''))
                   : 'EleSquad'}
               </span>
             </div>

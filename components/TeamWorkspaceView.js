@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useSession } from 'next-auth/react';
 import {
   Users,
   Search,
@@ -71,6 +72,7 @@ export default function TeamWorkspaceView({
   highlightedOrderId
 }) {
   const [activeTab, setActiveTab] = useState(viewMode);
+  const { data: session, status } = useSession();
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -250,9 +252,11 @@ export default function TeamWorkspaceView({
             </button>
           </div>
 
-          <button className="btn-v btn-v-primary" onClick={onOpenAddModal} style={{ gap: '0.4rem' }}>
-            <Plus size={14} /> Add Team Order
-          </button>
+          {status === 'authenticated' && session?.user && !['Member', 'Visitor'].includes(session.user.role) && (
+            <button className="btn-v btn-v-primary" onClick={onOpenAddModal} style={{ gap: '0.4rem' }}>
+              <Plus size={14} /> Add Team Order
+            </button>
+          )}
         </div>
       </div>
 
