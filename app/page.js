@@ -2580,7 +2580,7 @@ export default function VercelDashboard() {
               />
               <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
                 {workspaceMode === 'personal'
-                  ? (session?.user?.name || session?.user?.assignedName || 'Alireja-khan')
+                  ? (session?.user?.assignedName || session?.user?.name || 'Alireja')
                   : 'EleSquad'}
               </span>
             </div>
@@ -2634,7 +2634,7 @@ export default function VercelDashboard() {
                 )}
                 <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>{session.user.name || 'Alireja Khan'}</span>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>{session.user.assignedName || session.user.name || 'Alireja'}</span>
                     <span style={{ fontSize: '0.5rem', padding: '0.1rem 0.3rem', borderRadius: 4, background: 'var(--border-default)', fontWeight: 700, textTransform: 'uppercase' }}>
                       {session.user.role}
                     </span>
