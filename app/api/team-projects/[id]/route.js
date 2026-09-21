@@ -117,6 +117,20 @@ export async function PUT(request, { params }) {
     await connectToDatabase();
     const body = await request.json();
 
+    if (session.user.role === 'Member') {
+      const existing = await TeamProject.findById(params.id);
+      if (existing) {
+        const assignedName = session.user.assignedName || session.user.name || '';
+        const isAssigned = isMemberMatch(existing.assignedMembers, assignedName);
+        if (!isAssigned) {
+          return NextResponse.json(
+            { success: false, error: 'Members can only change status for orders assigned to them.' },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
     if (body.assignDate) {
       body.month = getMonthFromDate(body.assignDate, body.month);
     }

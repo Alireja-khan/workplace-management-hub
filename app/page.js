@@ -446,6 +446,43 @@ export default function VercelDashboard() {
     }
   };
 
+  const canEditOrderStatus = (project) => {
+    if (!project) return false;
+    if (!session?.user) return false;
+    const role = session.user.role || 'Member';
+
+    // Non-member roles (Owner, Leader, Co-Leader, admin) can change status for all orders
+    if (role !== 'Member' && role !== 'Visitor') return true;
+    if (role === 'Visitor') return false;
+
+    // Member role: Can ONLY change status if order is assigned to them (individual or combined)
+    const userAssignedName = (session.user.assignedName || session.user.name || '').toLowerCase().trim();
+    const userName = (session.user.name || '').toLowerCase().trim();
+    const userFirstName = userAssignedName.split(' ')[0];
+
+    const members = Array.isArray(project.assignedMembers) ? project.assignedMembers : [];
+
+    if (members.length > 0) {
+      return members.some((m) => {
+        if (!m) return false;
+        const mLower = m.toLowerCase().trim();
+        return (
+          mLower.includes(userAssignedName) ||
+          userAssignedName.includes(mLower) ||
+          (userFirstName && (mLower.includes(userFirstName) || userFirstName.includes(mLower))) ||
+          (userName && (mLower.includes(userName) || userName.includes(mLower)))
+        );
+      });
+    }
+
+    // Fallback check for personal projects or projects with userEmail
+    if (project.userEmail && session.user.email) {
+      return project.userEmail.toLowerCase().trim() === session.user.email.toLowerCase().trim();
+    }
+
+    return true;
+  };
+
   // Team KPIs
   const baseProjects = useMemo(() => {
     if (workspaceMode === 'team') return teamProjects;
@@ -1144,6 +1181,10 @@ export default function VercelDashboard() {
 
   const handleQuickStatusChange = async (projectId, newStatus) => {
     const prevProject = projects.find((p) => p._id === projectId);
+    if (!canEditOrderStatus(prevProject)) {
+      showToast('Members can only change status for orders assigned to them', 'error');
+      return;
+    }
     const prevStatus = prevProject ? prevProject.orderStatus : 'Wip';
     const isIssue = newStatus.toLowerCase() === 'issue';
 
@@ -1593,6 +1634,10 @@ export default function VercelDashboard() {
   const handleQuickUpdateTeamStatus = async (id, newStatus) => {
     try {
       const prevProject = teamProjects.find((p) => p._id === id);
+      if (!canEditOrderStatus(prevProject)) {
+        showToast('Members can only change status for orders assigned to them', 'error');
+        return;
+      }
       const isIssue = newStatus.toLowerCase() === 'issue';
       const payload = { orderStatus: newStatus };
 
@@ -3312,30 +3357,36 @@ export default function VercelDashboard() {
                                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
                                     <div className={`v-status-badge ${statusClass}`}>
                                       <span className="v-status-dot"></span>
-                                      <select
-                                        style={{
-                                          background: 'transparent',
-                                          border: 'none',
-                                          color: 'inherit',
-                                          outline: 'none',
-                                          cursor: 'pointer',
-                                          fontFamily: 'inherit',
-                                          fontSize: '0.73rem',
-                                          fontWeight: 600,
-                                        }}
-                                        value={p.orderStatus || 'Wip'}
-                                        onChange={(e) => handleQuickUpdateTeamStatus(p._id, e.target.value)}
-                                      >
-                                        <option value="Wip">Wip</option>
-                                        <option value="Delivered">Delivered</option>
-                                        <option value="Done">Done</option>
-                                        <option value="NRA">NRA</option>
-                                        <option value="Need Requirements">Need Requirements</option>
-                                        <option value="Cancel">Cancel</option>
-                                        {(['delivered', 'done', 'issue'].includes((p.orderStatus || '').toLowerCase()) || (p.draftCount && p.draftCount > 0)) && (
-                                          <option value="Issue">Issue</option>
-                                        )}
-                                      </select>
+                                      {canEditOrderStatus(p) ? (
+                                        <select
+                                          style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: 'inherit',
+                                            outline: 'none',
+                                            cursor: 'pointer',
+                                            fontFamily: 'inherit',
+                                            fontSize: '0.73rem',
+                                            fontWeight: 600,
+                                          }}
+                                          value={p.orderStatus || 'Wip'}
+                                          onChange={(e) => handleQuickUpdateTeamStatus(p._id, e.target.value)}
+                                        >
+                                          <option value="Wip">Wip</option>
+                                          <option value="Delivered">Delivered</option>
+                                          <option value="Done">Done</option>
+                                          <option value="NRA">NRA</option>
+                                          <option value="Need Requirements">Need Requirements</option>
+                                          <option value="Cancel">Cancel</option>
+                                          {(['delivered', 'done', 'issue'].includes((p.orderStatus || '').toLowerCase()) || (p.draftCount && p.draftCount > 0)) && (
+                                            <option value="Issue">Issue</option>
+                                          )}
+                                        </select>
+                                      ) : (
+                                        <span style={{ fontSize: '0.73rem', fontWeight: 600, padding: '0 0.25rem' }}>
+                                          {p.orderStatus || 'Wip'}
+                                        </span>
+                                      )}
                                     </div>
 
                                     {/* Draft Count Badge & Controls */}
