@@ -3378,6 +3378,8 @@ export default function VercelDashboard() {
                                             fontFamily: 'inherit',
                                             fontSize: '0.73rem',
                                             fontWeight: 600,
+                                            width: `${Math.max(3, (p.orderStatus || 'Wip').length + 2.2)}ch`,
+                                            paddingRight: 0,
                                           }}
                                           value={p.orderStatus || 'Wip'}
                                           onChange={(e) => handleQuickUpdateTeamStatus(p._id, e.target.value)}
