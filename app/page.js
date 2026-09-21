@@ -61,6 +61,7 @@ import TeamWorkspaceView from '@/components/TeamWorkspaceView';
 import TeamOrderModal from '@/components/TeamOrderModal';
 import AdminUsersView from '@/components/AdminUsersView';
 import DeadlineAlertBanner from '@/components/DeadlineAlertBanner';
+import DateTimePickerPopover from '@/components/DateTimePickerPopover';
 
 const GoogleIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24">
@@ -3581,20 +3582,12 @@ export default function VercelDashboard() {
                                   </div>
                                 </td>
                                 <td className="mono-text">
-                                  {canEditOrderStatus(p) ? (
-                                    <input
-                                      type="datetime-local"
-                                      value={p.deadline ? (p.deadline.includes('T') ? p.deadline.slice(0, 16) : `${p.deadline}T23:59`) : ''}
-                                      onChange={(e) => handleQuickUpdateTeamDeadline(p._id, e.target.value)}
-                                      className={`v-inline-date-input ${p.deadline ? 'has-value' : ''}`}
-                                      title={p.deadline ? `Deadline: ${p.deadline.replace('T', ' ')}` : 'Set Deadline'}
-                                      data-tooltip={p.deadline ? `Deadline: ${p.deadline.replace('T', ' ')}` : 'Set Deadline'}
-                                    />
-                                  ) : (
-                                    <span style={{ color: p.deadline ? '#ef4444' : 'var(--accents-5)', fontSize: '0.75rem' }}>
-                                      {p.deadline ? p.deadline.replace('T', ' ') : '-'}
-                                    </span>
-                                  )}
+                                  <DateTimePickerPopover
+                                    value={p.deadline || ''}
+                                    disabled={!canEditOrderStatus(p)}
+                                    onSave={(newVal) => handleQuickUpdateTeamDeadline(p._id, newVal)}
+                                    placeholder="Set Deadline"
+                                  />
                                 </td>
                                 <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
                                   {p.estimatedDeliveryDate || '-'}
@@ -3862,20 +3855,12 @@ export default function VercelDashboard() {
                                   </div>
                                 </td>
                                 <td className="mono-text">
-                                  {canEditOrderStatus(p) ? (
-                                    <input
-                                      type="datetime-local"
-                                      value={p.deadline ? (p.deadline.includes('T') ? p.deadline.slice(0, 16) : `${p.deadline}T23:59`) : ''}
-                                      onChange={(e) => handleQuickUpdateDeadline(p._id, e.target.value)}
-                                      className={`v-inline-date-input ${p.deadline ? 'has-value' : ''}`}
-                                      title={p.deadline ? `Deadline: ${p.deadline.replace('T', ' ')}` : 'Set Deadline'}
-                                      data-tooltip={p.deadline ? `Deadline: ${p.deadline.replace('T', ' ')}` : 'Set Deadline'}
-                                    />
-                                  ) : (
-                                    <span style={{ color: p.deadline ? '#ef4444' : 'var(--accents-5)', fontSize: '0.75rem' }}>
-                                      {p.deadline ? p.deadline.replace('T', ' ') : '-'}
-                                    </span>
-                                  )}
+                                  <DateTimePickerPopover
+                                    value={p.deadline || ''}
+                                    disabled={!canEditOrderStatus(p)}
+                                    onSave={(newVal) => handleQuickUpdateDeadline(p._id, newVal)}
+                                    placeholder="Set Deadline"
+                                  />
                                 </td>
                                 <td className="mono-text" style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : 'var(--accents-5)' }}>
                                   {p.estimatedDeliveryDate || '-'}
