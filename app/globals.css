@@ -2811,7 +2811,7 @@ select:focus,
 /* Full-Width Premium Glassmorphism Deadline Alert Banner */
 .v-deadline-banner-root {
   width: 100%;
-  padding: 0.65rem 1.5rem 0.25rem 1.5rem;
+  padding: 0.75rem 1.5rem 0.25rem 1.5rem;
   box-sizing: border-box;
   animation: fadeInBanner 0.3s ease-out;
 }
@@ -2824,57 +2824,53 @@ select:focus,
 .v-deadline-banner-card {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1.25rem;
+  gap: 1.15rem;
+  padding: 0.85rem 1.35rem;
   border-radius: 12px;
-  background: linear-gradient(
-    135deg,
-    rgba(225, 29, 72, calc(var(--alert-opacity, 0.2) * 0.22)) 0%,
-    rgba(159, 18, 57, calc(var(--alert-opacity, 0.2) * 0.35)) 100%
-  );
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(225, 29, 72, calc(0.25 + var(--alert-opacity, 0.2) * 0.5));
-  box-shadow: 0 8px 32px rgba(225, 29, 72, calc(var(--alert-opacity, 0.2) * 0.25));
+  background: linear-gradient(135deg, #701a2d 0%, #4c0519 100%);
+  border: 1px solid #f43f5e;
+  box-shadow: 0 8px 25px rgba(225, 29, 72, 0.4);
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
+  color: #ffffff;
 }
 
 .v-deadline-banner-card:hover {
   transform: translateY(-1px);
-  border-color: rgba(225, 29, 72, 0.65);
-  box-shadow: 0 12px 36px rgba(225, 29, 72, 0.35);
+  border-color: #fb7185;
+  box-shadow: 0 12px 32px rgba(225, 29, 72, 0.55);
 }
 
 .v-deadline-badge {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.4rem 0.85rem;
+  padding: 0.45rem 0.9rem;
   border-radius: 9px;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #0f172a;
+  border: 1px solid #334155;
   flex-shrink: 0;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .v-deadline-badge.is-late {
-  background: rgba(239, 68, 68, 0.25);
-  border-color: rgba(239, 68, 68, 0.5);
-  color: #ef4444;
+  background: #450a0a;
+  border-color: #ef4444;
+  color: #fca5a5;
 }
 
 .v-deadline-badge.is-urgent {
-  background: rgba(245, 158, 11, 0.2);
-  border-color: rgba(245, 158, 11, 0.45);
-  color: #f59e0b;
+  background: #451a03;
+  border-color: #f97316;
+  color: #ffedd5;
 }
 
 .v-deadline-badge.is-warning {
-  background: rgba(225, 29, 72, 0.18);
-  border-color: rgba(225, 29, 72, 0.4);
-  color: #f43f5e;
+  background: #1e1b4b;
+  border-color: #6366f1;
+  color: #e0e7ff;
 }
 
 .v-deadline-icon-box {
@@ -2895,84 +2891,87 @@ select:focus,
 .v-deadline-time-stack {
   display: flex;
   flex-direction: column;
-  line-height: 1.1;
+  line-height: 1.15;
 }
 
 .v-deadline-tag-label {
   font-size: 0.62rem;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  opacity: 0.85;
+  color: #fb7185;
 }
 
 .v-deadline-time-val {
   font-family: var(--font-mono, monospace);
-  font-size: 0.92rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.02em;
 }
 
 .v-deadline-body-center {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.3rem;
   min-width: 0;
 }
 
 .v-deadline-meta-row {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
 .v-deadline-member-pill {
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 0.12rem 0.5rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.15rem 0.6rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: var(--foreground);
+  background: #1e293b;
+  border: 1px solid #475569;
+  color: #f8fafc;
 }
 
 .v-deadline-order-pill {
   font-family: var(--font-mono, monospace);
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.12rem 0.5rem;
+  font-size: 0.74rem;
+  font-weight: 800;
+  padding: 0.15rem 0.6rem;
   border-radius: 999px;
-  background: rgba(225, 29, 72, 0.2);
-  border: 1px solid rgba(225, 29, 72, 0.35);
-  color: #fda4af;
+  background: #0f172a;
+  border: 1px solid #38bdf8;
+  color: #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
 }
 
 .v-deadline-count-pill {
-  font-size: 0.68rem;
-  font-weight: 600;
-  padding: 0.1rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.12rem 0.6rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: var(--accents-5);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .v-deadline-count-pill:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
 }
 
 .v-deadline-msg-text {
-  font-size: 0.83rem;
-  font-weight: 500;
-  color: var(--foreground);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #ffffff;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .v-deadline-action-right {
@@ -2986,20 +2985,21 @@ select:focus,
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.42rem 0.85rem;
+  padding: 0.45rem 0.95rem;
   border-radius: 8px;
-  background: rgba(225, 29, 72, 0.25);
-  border: 1px solid rgba(225, 29, 72, 0.45);
+  background: #e11d48;
+  border: 1px solid #fda4af;
   color: #ffffff;
-  font-size: 0.76rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.18s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .v-deadline-locate-btn:hover {
-  background: rgba(225, 29, 72, 0.45);
-  box-shadow: 0 0 12px rgba(225, 29, 72, 0.4);
+  background: #f43f5e;
+  box-shadow: 0 0 14px rgba(244, 63, 94, 0.6);
   transform: translateY(-1px);
 }
 

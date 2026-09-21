@@ -1772,7 +1772,7 @@ export default function VercelDashboard() {
   };
 
   const handleQuickUpdateDeadline = async (projectId, newDeadline) => {
-    const prevProject = projects.find((p) => p._id === projectId);
+    const prevProject = projects.find((p) => p._id === projectId) || teamProjects.find((p) => p._id === projectId);
     if (!canEditOrderStatus(prevProject)) {
       showToast('Members can only update deadline for orders assigned to them', 'error');
       return;
@@ -1780,6 +1780,9 @@ export default function VercelDashboard() {
     const payload = { deadline: newDeadline };
 
     setProjects((prev) =>
+      prev.map((p) => (p._id === projectId ? { ...p, deadline: newDeadline } : p))
+    );
+    setTeamProjects((prev) =>
       prev.map((p) => (p._id === projectId ? { ...p, deadline: newDeadline } : p))
     );
 
@@ -1792,18 +1795,20 @@ export default function VercelDashboard() {
       const data = await res.json();
       if (data.success) {
         setProjects((prev) => prev.map((p) => (p._id === projectId ? data.data : p)));
-        showToast(newDeadline ? `Deadline updated to ${newDeadline}` : 'Deadline cleared');
+        setTeamProjects((prev) => prev.map((p) => (p._id === projectId ? { ...p, deadline: newDeadline } : p)));
+        showToast(newDeadline ? `Deadline updated` : 'Deadline cleared');
       } else {
         throw new Error(data.error || 'Update failed');
       }
     } catch (e) {
       showToast('Failed to update deadline', 'error');
       fetchProjects();
+      fetchTeamProjects();
     }
   };
 
   const handleQuickUpdateTeamDeadline = async (id, newDeadline) => {
-    const prevProject = teamProjects.find((p) => p._id === id);
+    const prevProject = teamProjects.find((p) => p._id === id) || projects.find((p) => p._id === id);
     if (!canEditOrderStatus(prevProject)) {
       showToast('Members can only update deadline for orders assigned to them', 'error');
       return;
@@ -1811,6 +1816,9 @@ export default function VercelDashboard() {
     const payload = { deadline: newDeadline };
 
     setTeamProjects((prev) =>
+      prev.map((p) => (p._id === id ? { ...p, deadline: newDeadline } : p))
+    );
+    setProjects((prev) =>
       prev.map((p) => (p._id === id ? { ...p, deadline: newDeadline } : p))
     );
 
@@ -1823,14 +1831,17 @@ export default function VercelDashboard() {
       const data = await res.json();
       if (data.success) {
         setTeamProjects((prev) => prev.map((p) => (p._id === id ? data.data : p)));
-        showToast(newDeadline ? `Deadline updated to ${newDeadline}` : 'Deadline cleared');
+        setProjects((prev) => prev.map((p) => (p._id === id ? { ...p, deadline: newDeadline } : p)));
+        showToast(newDeadline ? `Deadline updated` : 'Deadline cleared');
         fetchProjects();
+        fetchTeamProjects();
       } else {
         throw new Error(data.error || 'Update failed');
       }
     } catch (e) {
       showToast('Failed to update team deadline', 'error');
       fetchTeamProjects();
+      fetchProjects();
     }
   };
 
@@ -2680,7 +2691,7 @@ export default function VercelDashboard() {
 
         {/* Deadline Alert Banner (Full-Width Glassmorphic Card) */}
         <DeadlineAlertBanner
-          projects={workspaceMode === 'team' ? teamProjects : projects}
+          projects={workspaceMode === 'team' ? teamProjects : (filteredPersonalProjects.length > 0 ? filteredPersonalProjects : teamProjects)}
           session={session}
           workspaceMode={workspaceMode}
           onLocateOrder={handleLocateIssueOrder}
