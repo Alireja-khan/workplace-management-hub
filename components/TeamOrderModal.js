@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import { X, Plus, UserPlus, Check, Trash2, Calendar, DollarSign, ExternalLink, Sparkles, Clipboard } from 'lucide-react';
-import { MONTH_LIST } from '@/lib/dateUtils';
+import { MONTH_LIST, getMonthFromDate } from '@/lib/dateUtils';
 import { parseRawSheetText, extractUrlFromHtmlOrText } from '@/lib/sheetParser';
+import DateTimePickerPopover from '@/components/DateTimePickerPopover';
 
 const DEFAULT_TEAM_MEMBERS = ['Alireja', 'Shuvo', 'Jasmin', 'Mahin', 'Fahim', 'Naim', 'Akash', 'Shihad', 'Need Requirements'];
 
@@ -19,6 +20,7 @@ export default function TeamOrderModal({
   const [customMember, setCustomMember] = useState('');
   const [rawText, setRawText] = useState('');
   const [pasteSuccess, setPasteSuccess] = useState(false);
+  const [autoOpenDeliveryPicker, setAutoOpenDeliveryPicker] = useState(false);
 
   // Reset local state when opened
   React.useEffect(() => {
@@ -26,6 +28,7 @@ export default function TeamOrderModal({
       setRawText('');
       setCustomMember('');
       setPasteSuccess(false);
+      setAutoOpenDeliveryPicker(false);
     }
   }, [isOpen]);
 
@@ -152,12 +155,15 @@ export default function TeamOrderModal({
             <div className="v-form-grid-3">
               <div className="v-form-group">
                 <label>Assign Date *</label>
-                <input
-                  type="date"
-                  className="v-input"
-                  value={formData.assignDate}
-                  onChange={(e) => setFormData({ ...formData, assignDate: e.target.value })}
-                  required
+                <DateTimePickerPopover
+                  value={formData.assignDate || ''}
+                  variant="input"
+                  colorScheme="neutral"
+                  placeholder="Select Assign Date"
+                  onSave={(val) => {
+                    const autoM = getMonthFromDate(val, formData.month);
+                    setFormData({ ...formData, assignDate: val, month: autoM });
+                  }}
                 />
               </div>
 
@@ -334,7 +340,24 @@ export default function TeamOrderModal({
                 <select
                   className="v-select"
                   value={formData.orderStatus}
-                  onChange={(e) => setFormData({ ...formData, orderStatus: e.target.value })}
+                  onChange={(e) => {
+                    const newSt = e.target.value;
+                    const isDelivered = newSt === 'Delivered' || newSt === 'Done';
+                    let newDelDate = formData.deliveryDate;
+                    if (isDelivered && !newDelDate) {
+                      const now = new Date();
+                      const y = now.getFullYear();
+                      const m = String(now.getMonth() + 1).padStart(2, '0');
+                      const d = String(now.getDate()).padStart(2, '0');
+                      const h = String(now.getHours()).padStart(2, '0');
+                      const min = String(now.getMinutes()).padStart(2, '0');
+                      newDelDate = `${y}-${m}-${d}T${h}:${min}`;
+                    }
+                    setFormData({ ...formData, orderStatus: newSt, deliveryDate: newDelDate });
+                    if (isDelivered) {
+                      setAutoOpenDeliveryPicker(true);
+                    }
+                  }}
                 >
                   <option value="Wip">Wip</option>
                   <option value="Delivered">Delivered</option>
@@ -360,35 +383,40 @@ export default function TeamOrderModal({
                 />
               </div>
 
-
-
               <div className="v-form-group">
                 <label>Deadline (Date & Time)</label>
-                <input
-                  type="datetime-local"
-                  className="v-input"
+                <DateTimePickerPopover
                   value={formData.deadline || ''}
-                  onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                  variant="input"
+                  colorScheme="deadline"
+                  placeholder="Set Deadline"
+                  onSave={(val) => setFormData({ ...formData, deadline: val })}
                 />
               </div>
 
               <div className="v-form-group">
                 <label>Estimated Delivery Date</label>
-                <input
-                  type="date"
-                  className="v-input"
-                  value={formData.estimatedDeliveryDate}
-                  onChange={(e) => setFormData({ ...formData, estimatedDeliveryDate: e.target.value })}
+                <DateTimePickerPopover
+                  value={formData.estimatedDeliveryDate || ''}
+                  variant="input"
+                  colorScheme="est"
+                  placeholder="Set Estimated Delivery Date"
+                  onSave={(val) => setFormData({ ...formData, estimatedDeliveryDate: val })}
                 />
               </div>
 
               <div className="v-form-group">
                 <label>Actual Delivery Date</label>
-                <input
-                  type="date"
-                  className="v-input"
-                  value={formData.deliveryDate}
-                  onChange={(e) => setFormData({ ...formData, deliveryDate: e.target.value })}
+                <DateTimePickerPopover
+                  value={formData.deliveryDate || ''}
+                  variant="input"
+                  colorScheme="delivery"
+                  placeholder="Set Actual Delivery Date"
+                  autoOpen={autoOpenDeliveryPicker}
+                  onSave={(val) => {
+                    setFormData({ ...formData, deliveryDate: val });
+                    setAutoOpenDeliveryPicker(false);
+                  }}
                 />
               </div>
 

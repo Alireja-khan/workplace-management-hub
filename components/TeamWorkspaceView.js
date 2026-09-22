@@ -24,6 +24,7 @@ import {
   Briefcase,
   Check
 } from 'lucide-react';
+import DateTimePickerPopover from '@/components/DateTimePickerPopover';
 
 const STATUS_OPTIONS = [
   'Wip',
@@ -69,6 +70,11 @@ export default function TeamWorkspaceView({
   onQuickUpdateStatus,
   onQuickUpdateCurrentStatus,
   onQuickUpdateDraftCount,
+  onQuickUpdateDeliveryDate,
+  onQuickUpdateEstimatedDeliveryDate,
+  autoOpenDeliveryPickerId,
+  setAutoOpenDeliveryPickerId,
+  onCancelDeliveryPicker,
   highlightedOrderId
 }) {
   const [activeTab, setActiveTab] = useState(viewMode);
@@ -596,12 +602,30 @@ export default function TeamWorkspaceView({
 
                       {/* Est. Delivery */}
                       <td style={{ color: 'var(--accents-5)', fontSize: '0.75rem' }}>
-                        {p.estimatedDeliveryDate || '—'}
+                        <DateTimePickerPopover
+                          value={p.estimatedDeliveryDate || ''}
+                          placeholder="Set Est. Date"
+                          colorScheme="est"
+                          onSave={(val) => onQuickUpdateEstimatedDeliveryDate && onQuickUpdateEstimatedDeliveryDate(p._id, val)}
+                        />
                       </td>
 
                       {/* Deli Date */}
                       <td style={{ color: 'var(--accents-5)', fontSize: '0.75rem' }}>
-                        {p.deliveryDate || '—'}
+                        <DateTimePickerPopover
+                          value={p.deliveryDate || ''}
+                          placeholder="Set Delivery Date"
+                          colorScheme="delivery"
+                          autoOpen={autoOpenDeliveryPickerId === p._id}
+                          onSave={(val) => {
+                            if (onQuickUpdateDeliveryDate) onQuickUpdateDeliveryDate(p._id, val);
+                            if (setAutoOpenDeliveryPickerId) setAutoOpenDeliveryPickerId(null);
+                          }}
+                          onCancel={() => {
+                            if (onCancelDeliveryPicker) onCancelDeliveryPicker();
+                            if (setAutoOpenDeliveryPickerId) setAutoOpenDeliveryPickerId(null);
+                          }}
+                        />
                       </td>
 
                       {/* Status with Quick Select & Draft Badge */}
@@ -621,6 +645,8 @@ export default function TeamWorkspaceView({
                               borderRadius: 999,
                               cursor: 'pointer',
                               outline: 'none',
+                              width: `${(p.status || p.orderStatus || 'Wip').length + 0.6}ch`,
+                              boxSizing: 'content-box',
                             }}
                           >
                             {STATUS_OPTIONS.map((st) => (

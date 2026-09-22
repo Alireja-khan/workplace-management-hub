@@ -56,8 +56,12 @@ function parseInitialDateTime(val) {
 export default function DateTimePickerPopover({
   value = '',
   onSave,
+  onCancel,
   disabled = false,
   placeholder = 'Set Deadline',
+  autoOpen = false,
+  variant = 'button', // 'button' | 'input'
+  colorScheme = 'neutral', // 'deadline' | 'delivery' | 'est' | 'neutral'
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -99,6 +103,14 @@ export default function DateTimePickerPopover({
     }
     setIsOpen(!isOpen);
   };
+
+  // Auto-open effect when autoOpen prop changes to true
+  useEffect(() => {
+    if (autoOpen && !disabled) {
+      updatePosition();
+      setIsOpen(true);
+    }
+  }, [autoOpen, disabled]);
 
   useEffect(() => {
     if (isOpen) {
@@ -162,6 +174,7 @@ export default function DateTimePickerPopover({
         containerRef.current && !containerRef.current.contains(e.target) &&
         popoverRef.current && !popoverRef.current.contains(e.target)
       ) {
+        if (onCancel) onCancel();
         setIsOpen(false);
       }
     }
@@ -171,7 +184,7 @@ export default function DateTimePickerPopover({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen]);
+  }, [isOpen, onCancel]);
 
   // Days calculations
   const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay();
@@ -249,6 +262,14 @@ export default function DateTimePickerPopover({
   };
 
   const displayTriggerText = formatDisplayTrigger(value);
+
+  const getSchemeClass = () => {
+    if (!value) return '';
+    if (colorScheme === 'delivery') return 'has-delivery-value';
+    if (colorScheme === 'est') return 'has-est-value';
+    if (colorScheme === 'neutral') return 'has-neutral-value';
+    return 'has-value'; // default red deadline
+  };
 
   const renderPopoverCard = () => (
     <div
@@ -362,7 +383,7 @@ export default function DateTimePickerPopover({
             type="button"
             className="btn-v btn-v-ghost v-dt-clear-btn"
             onClick={handleClear}
-            title="Clear Deadline"
+            title="Clear Date"
           >
             <Trash2 size={12} /> Clear
           </button>
@@ -373,7 +394,10 @@ export default function DateTimePickerPopover({
             type="button"
             className="btn-v btn-v-secondary"
             style={{ height: 28, padding: '0 0.55rem', fontSize: '0.72rem' }}
-            onClick={() => setIsOpen(false)}
+            onClick={() => {
+              if (onCancel) onCancel();
+              setIsOpen(false);
+            }}
           >
             Cancel
           </button>
@@ -391,18 +415,62 @@ export default function DateTimePickerPopover({
   );
 
   return (
-    <div className="v-dt-popover-wrapper" ref={containerRef} style={{ position: 'relative', display: 'inline-block' }}>
+    <div
+      className="v-dt-popover-wrapper"
+      ref={containerRef}
+      style={{
+        position: 'relative',
+        display: variant === 'input' ? 'block' : 'inline-block',
+        width: variant === 'input' ? '100%' : 'auto',
+      }}
+    >
       {disabled ? (
-        <span style={{ color: value ? '#ef4444' : 'var(--accents-5)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
-          {displayTriggerText || '—'}
-        </span>
+        variant === 'input' ? (
+          <div className="v-input disabled-dt-input" style={{ opacity: 0.6, cursor: 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>{displayTriggerText || placeholder}</span>
+            <CalendarIcon size={14} color="var(--accents-4)" />
+          </div>
+        ) : (
+          <span style={{ color: value ? '#ef4444' : 'var(--accents-5)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
+            {displayTriggerText || '—'}
+          </span>
+        )
+      ) : variant === 'input' ? (
+        <button
+          ref={buttonRef}
+          type="button"
+          className={`v-input v-dt-form-input-btn ${value ? 'has-value-input' : ''}`}
+          onClick={handleToggle}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.65rem',
+            textAlign: 'left',
+            cursor: 'pointer',
+            background: 'var(--input-bg)',
+            border: value ? '1px solid var(--border-highlight)' : '1px solid var(--border-default)',
+            color: value ? 'var(--foreground)' : 'var(--accents-4)',
+            padding: '0.45rem 0.75rem',
+            borderRadius: 6,
+            fontSize: '0.82rem',
+            fontFamily: 'var(--font-mono, monospace)',
+          }}
+          title={value ? `${placeholder}: ${displayTriggerText}` : placeholder}
+        >
+          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: '0.25rem' }}>
+            {displayTriggerText || placeholder}
+          </span>
+          <CalendarIcon size={14} color={value ? '#38bdf8' : 'var(--accents-4)'} style={{ flexShrink: 0, marginLeft: 'auto' }} />
+        </button>
       ) : (
         <button
           ref={buttonRef}
           type="button"
-          className={`v-dt-trigger-btn ${value ? 'has-value' : ''}`}
+          className={`v-dt-trigger-btn ${getSchemeClass()}`}
           onClick={handleToggle}
-          title={value ? `Deadline: ${displayTriggerText}` : 'Set Deadline'}
+          title={value ? `${placeholder}: ${displayTriggerText}` : placeholder}
         >
           <CalendarIcon size={12} />
           <span>{displayTriggerText || placeholder}</span>

@@ -124,6 +124,9 @@ export default function VercelDashboard() {
   const [savingCStatusId, setSavingCStatusId] = useState(null);
   const [savedCStatusSuccessId, setSavedCStatusSuccessId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [autoOpenDeliveryPickerId, setAutoOpenDeliveryPickerId] = useState(null);
+  const [pendingDeliveryChange, setPendingDeliveryChange] = useState(null);
+  const [autoOpenModalDeliveryPicker, setAutoOpenModalDeliveryPicker] = useState(false);
 
   // Auth Modal States
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -1193,12 +1196,19 @@ export default function VercelDashboard() {
       showToast('Members can only change status for orders assigned to them', 'error');
       return;
     }
-    const prevStatus = prevProject ? prevProject.orderStatus : 'Wip';
     const isIssue = newStatus.toLowerCase() === 'issue';
+    const isDelivered = newStatus === 'Delivered' || newStatus === 'Done';
 
+    if (isDelivered) {
+      setPendingDeliveryChange({ projectId, isTeam: false, targetStatus: newStatus });
+      setAutoOpenDeliveryPickerId(projectId);
+      return;
+    }
+
+    const prevStatus = prevProject ? prevProject.orderStatus : 'Wip';
     const payload = {
       orderStatus: newStatus,
-      marketplaceStatus: newStatus === 'Done' || newStatus === 'Delivered' ? 'Delivered' : 'Wip',
+      marketplaceStatus: 'Wip',
     };
 
     if (isIssue) {
@@ -1648,6 +1658,14 @@ export default function VercelDashboard() {
         return;
       }
       const isIssue = newStatus.toLowerCase() === 'issue';
+      const isDelivered = newStatus === 'Delivered' || newStatus === 'Done';
+
+      if (isDelivered) {
+        setPendingDeliveryChange({ projectId: id, isTeam: true, targetStatus: newStatus });
+        setAutoOpenDeliveryPickerId(id);
+        return;
+      }
+
       const payload = { orderStatus: newStatus };
 
       if (isIssue) {
@@ -1833,16 +1851,197 @@ export default function VercelDashboard() {
       if (data.success) {
         setTeamProjects((prev) => prev.map((p) => (p._id === id ? data.data : p)));
         setProjects((prev) => prev.map((p) => (p._id === id ? { ...p, deadline: newDeadline } : p)));
-        showToast(newDeadline ? `Deadline updated` : 'Deadline cleared');
+        showToast(newDeadline ? `Team deadline updated` : 'Team deadline cleared');
         fetchProjects();
-        fetchTeamProjects();
       } else {
         throw new Error(data.error || 'Update failed');
       }
     } catch (e) {
       showToast('Failed to update team deadline', 'error');
-      fetchTeamProjects();
       fetchProjects();
+      fetchTeamProjects();
+    }
+  };
+
+  const handleQuickUpdateDeliveryDate = async (projectId, newDate) => {
+    const prevProject = projects.find((p) => p._id === projectId) || teamProjects.find((p) => p._id === projectId);
+    if (!canEditOrderStatus(prevProject)) {
+      showToast('Members can only update delivery date for orders assigned to them', 'error');
+      return;
+    }
+
+    const isPendingThisProject = pendingDeliveryChange && pendingDeliveryChange.projectId === projectId;
+    const targetStatus = isPendingThisProject ? pendingDeliveryChange.targetStatus : null;
+
+    const payload = { deliveryDate: newDate };
+    if (targetStatus) {
+      payload.orderStatus = targetStatus;
+      payload.marketplaceStatus = 'Delivered';
+      if (prevProject?.orderStatus === 'Issue') {
+        payload.currentStatus = 'All Sorted';
+      }
+    }
+
+    setPendingDeliveryChange(null);
+    setAutoOpenDeliveryPickerId(null);
+
+    setProjects((prev) =>
+      prev.map((p) => (p._id === projectId ? { ...p, ...payload } : p))
+    );
+    setTeamProjects((prev) =>
+      prev.map((p) => (p._id === projectId ? { ...p, ...payload } : p))
+    );
+
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProjects((prev) => prev.map((p) => (p._id === projectId ? data.data : p)));
+        setTeamProjects((prev) => prev.map((p) => (p._id === projectId ? { ...p, ...payload } : p)));
+        if (targetStatus) {
+          showToast(`Order updated to ${targetStatus} with delivery date!`);
+        } else {
+          showToast(newDate ? `Delivery date updated` : 'Delivery date cleared');
+        }
+      } else {
+        throw new Error(data.error || 'Update failed');
+      }
+    } catch (e) {
+      showToast('Failed to update delivery date', 'error');
+      fetchProjects();
+      fetchTeamProjects();
+    }
+  };
+
+  const handleQuickUpdateEstDeliveryDate = async (projectId, newEstDate) => {
+    const prevProject = projects.find((p) => p._id === projectId) || teamProjects.find((p) => p._id === projectId);
+    if (!canEditOrderStatus(prevProject)) {
+      showToast('Members can only update estimated delivery date for orders assigned to them', 'error');
+      return;
+    }
+    const payload = { estimatedDeliveryDate: newEstDate };
+
+    setProjects((prev) =>
+      prev.map((p) => (p._id === projectId ? { ...p, estimatedDeliveryDate: newEstDate } : p))
+    );
+    setTeamProjects((prev) =>
+      prev.map((p) => (p._id === projectId ? { ...p, estimatedDeliveryDate: newEstDate } : p))
+    );
+
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProjects((prev) => prev.map((p) => (p._id === projectId ? data.data : p)));
+        setTeamProjects((prev) => prev.map((p) => (p._id === projectId ? { ...p, estimatedDeliveryDate: newEstDate } : p)));
+        showToast(newEstDate ? `Estimated delivery date updated` : 'Estimated delivery date cleared');
+      } else {
+        throw new Error(data.error || 'Update failed');
+      }
+    } catch (e) {
+      showToast('Failed to update estimated delivery date', 'error');
+      fetchProjects();
+      fetchTeamProjects();
+    }
+  };
+
+  const handleQuickUpdateTeamDeliveryDate = async (id, newDate) => {
+    const prevProject = teamProjects.find((p) => p._id === id) || projects.find((p) => p._id === id);
+    if (!canEditOrderStatus(prevProject)) {
+      showToast('Members can only update delivery date for orders assigned to them', 'error');
+      return;
+    }
+
+    const isPendingThisProject = pendingDeliveryChange && pendingDeliveryChange.projectId === id;
+    const targetStatus = isPendingThisProject ? pendingDeliveryChange.targetStatus : null;
+
+    const payload = { deliveryDate: newDate };
+    if (targetStatus) {
+      payload.orderStatus = targetStatus;
+      payload.marketplaceStatus = 'Delivered';
+      if (prevProject?.orderStatus === 'Issue') {
+        payload.currentStatus = 'All Sorted';
+      }
+    }
+
+    setPendingDeliveryChange(null);
+    setAutoOpenDeliveryPickerId(null);
+
+    setTeamProjects((prev) =>
+      prev.map((p) => (p._id === id ? { ...p, ...payload } : p))
+    );
+    setProjects((prev) =>
+      prev.map((p) => (p._id === id ? { ...p, ...payload } : p))
+    );
+
+    try {
+      const res = await fetch(`/api/team-projects/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTeamProjects((prev) => prev.map((p) => (p._id === id ? data.data : p)));
+        setProjects((prev) => prev.map((p) => (p._id === id ? { ...p, ...payload } : p)));
+        if (targetStatus) {
+          showToast(`Team order updated to ${targetStatus} with delivery date!`);
+        } else {
+          showToast(newDate ? `Team delivery date updated` : 'Team delivery date cleared');
+        }
+        fetchProjects();
+      } else {
+        throw new Error(data.error || 'Update failed');
+      }
+    } catch (e) {
+      showToast('Failed to update team delivery date', 'error');
+      fetchProjects();
+      fetchTeamProjects();
+    }
+  };
+
+  const handleQuickUpdateTeamEstDeliveryDate = async (id, newEstDate) => {
+    const prevProject = teamProjects.find((p) => p._id === id) || projects.find((p) => p._id === id);
+    if (!canEditOrderStatus(prevProject)) {
+      showToast('Members can only update estimated delivery date for orders assigned to them', 'error');
+      return;
+    }
+    const payload = { estimatedDeliveryDate: newEstDate };
+
+    setTeamProjects((prev) =>
+      prev.map((p) => (p._id === id ? { ...p, estimatedDeliveryDate: newEstDate } : p))
+    );
+    setProjects((prev) =>
+      prev.map((p) => (p._id === id ? { ...p, estimatedDeliveryDate: newEstDate } : p))
+    );
+
+    try {
+      const res = await fetch(`/api/team-projects/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTeamProjects((prev) => prev.map((p) => (p._id === id ? data.data : p)));
+        setProjects((prev) => prev.map((p) => (p._id === id ? { ...p, estimatedDeliveryDate: newEstDate } : p)));
+        showToast(newEstDate ? `Team estimated delivery date updated` : 'Team estimated delivery date cleared');
+        fetchProjects();
+      } else {
+        throw new Error(data.error || 'Update failed');
+      }
+    } catch (e) {
+      showToast('Failed to update team estimated delivery date', 'error');
+      fetchProjects();
+      fetchTeamProjects();
     }
   };
 
@@ -3430,8 +3629,8 @@ export default function VercelDashboard() {
                                 <td className="mono-text" style={{ fontWeight: 600 }}>${gross.toFixed(2)}</td>
                                 <td className="mono-text" style={{ color: '#10b981', fontWeight: 600 }}>${net.toFixed(2)}</td>
                                 {workspaceMode === 'team' && (
-                                  <td style={{ maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={members.join(', ')}>
-                                    <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  <td title={members.join(', ')}>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                                       {members.length > 0 ? (
                                         members.map((m) => (
                                           <span key={m} style={{ fontSize: '0.7rem', background: 'var(--accents-1)', border: '1px solid var(--border-subtle)', padding: '0.1rem 0.4rem', borderRadius: 999, whiteSpace: 'nowrap' }}>
@@ -3460,8 +3659,9 @@ export default function VercelDashboard() {
                                             fontFamily: 'inherit',
                                             fontSize: '0.73rem',
                                             fontWeight: 600,
-                                            width: `${Math.max(3, (p.orderStatus || 'Wip').length + 2.2)}ch`,
-                                            paddingRight: 0,
+                                            width: `${(p.orderStatus || 'Wip').length + 0.6}ch`,
+                                            padding: 0,
+                                            boxSizing: 'content-box',
                                           }}
                                           value={p.orderStatus || 'Wip'}
                                           onChange={(e) => handleQuickUpdateTeamStatus(p._id, e.target.value)}
@@ -3585,15 +3785,36 @@ export default function VercelDashboard() {
                                   <DateTimePickerPopover
                                     value={p.deadline || ''}
                                     disabled={!canEditOrderStatus(p)}
+                                    colorScheme="deadline"
                                     onSave={(newVal) => handleQuickUpdateTeamDeadline(p._id, newVal)}
                                     placeholder="Set Deadline"
                                   />
                                 </td>
-                                <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
-                                  {p.estimatedDeliveryDate || '-'}
+                                <td className="mono-text">
+                                  <DateTimePickerPopover
+                                    value={p.estimatedDeliveryDate || ''}
+                                    disabled={!canEditOrderStatus(p)}
+                                    colorScheme="est"
+                                    onSave={(newVal) => handleQuickUpdateTeamEstDeliveryDate(p._id, newVal)}
+                                    placeholder="Set Est. Date"
+                                  />
                                 </td>
-                                <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
-                                  {p.deliveryDate || '-'}
+                                <td className="mono-text">
+                                  <DateTimePickerPopover
+                                    value={p.deliveryDate || ''}
+                                    disabled={!canEditOrderStatus(p)}
+                                    colorScheme="delivery"
+                                    autoOpen={autoOpenDeliveryPickerId === p._id}
+                                    onSave={(newVal) => {
+                                      handleQuickUpdateTeamDeliveryDate(p._id, newVal);
+                                      setAutoOpenDeliveryPickerId(null);
+                                    }}
+                                    onCancel={() => {
+                                      setPendingDeliveryChange(null);
+                                      setAutoOpenDeliveryPickerId(null);
+                                    }}
+                                    placeholder="Set Delivery Date"
+                                  />
                                 </td>
                                 <td>
                                   <span style={{ fontSize: '0.75rem', color: 'var(--accents-5)' }}>
@@ -3858,15 +4079,36 @@ export default function VercelDashboard() {
                                   <DateTimePickerPopover
                                     value={p.deadline || ''}
                                     disabled={!canEditOrderStatus(p)}
+                                    colorScheme="deadline"
                                     onSave={(newVal) => handleQuickUpdateDeadline(p._id, newVal)}
                                     placeholder="Set Deadline"
                                   />
                                 </td>
-                                <td className="mono-text" style={{ color: p.timeSchedule === 'Late' ? '#ee0000' : 'var(--accents-5)' }}>
-                                  {p.estimatedDeliveryDate || '-'}
+                                <td className="mono-text">
+                                  <DateTimePickerPopover
+                                    value={p.estimatedDeliveryDate || ''}
+                                    disabled={!canEditOrderStatus(p)}
+                                    colorScheme="est"
+                                    onSave={(newVal) => handleQuickUpdateEstDeliveryDate(p._id, newVal)}
+                                    placeholder="Set Est. Date"
+                                  />
                                 </td>
-                                <td className="mono-text" style={{ color: 'var(--accents-5)' }}>
-                                  {p.deliveryDate || '-'}
+                                <td className="mono-text">
+                                  <DateTimePickerPopover
+                                    value={p.deliveryDate || ''}
+                                    disabled={!canEditOrderStatus(p)}
+                                    colorScheme="delivery"
+                                    autoOpen={autoOpenDeliveryPickerId === p._id}
+                                    onSave={(newVal) => {
+                                      handleQuickUpdateDeliveryDate(p._id, newVal);
+                                      setAutoOpenDeliveryPickerId(null);
+                                    }}
+                                    onCancel={() => {
+                                      setPendingDeliveryChange(null);
+                                      setAutoOpenDeliveryPickerId(null);
+                                    }}
+                                    placeholder="Set Delivery Date"
+                                  />
                                 </td>
                                 <td>
                                   <span style={{ fontSize: '0.75rem', color: p.timeSchedule === 'Late' ? '#f5a623' : 'var(--accents-5)' }}>
@@ -4126,16 +4368,15 @@ export default function VercelDashboard() {
                   <div className="v-form-grid-3">
                     <div className="v-form-group">
                       <label>Assign Date *</label>
-                      <input
-                        type="date"
-                        className="v-input"
-                        value={formData.assignDate}
-                        onChange={(e) => {
-                          const val = e.target.value;
+                      <DateTimePickerPopover
+                        value={formData.assignDate || ''}
+                        variant="input"
+                        colorScheme="neutral"
+                        placeholder="Select Assign Date"
+                        onSave={(val) => {
                           const autoM = getMonthFromDate(val, formData.month);
                           setFormData({ ...formData, assignDate: val, month: autoM });
                         }}
-                        required
                       />
                     </div>
                     <div className="v-form-group">
@@ -4174,7 +4415,28 @@ export default function VercelDashboard() {
                     </div>
                     <div className="v-form-group">
                       <label>Order Status</label>
-                      <select className="v-select" value={formData.orderStatus} onChange={(e) => setFormData({ ...formData, orderStatus: e.target.value })}>
+                      <select
+                        className="v-select"
+                        value={formData.orderStatus}
+                        onChange={(e) => {
+                          const newSt = e.target.value;
+                          const isDelivered = newSt === 'Delivered' || newSt === 'Done';
+                          let newDelDate = formData.deliveryDate;
+                          if (isDelivered && !newDelDate) {
+                            const now = new Date();
+                            const y = now.getFullYear();
+                            const m = String(now.getMonth() + 1).padStart(2, '0');
+                            const d = String(now.getDate()).padStart(2, '0');
+                            const h = String(now.getHours()).padStart(2, '0');
+                            const min = String(now.getMinutes()).padStart(2, '0');
+                            newDelDate = `${y}-${m}-${d}T${h}:${min}`;
+                          }
+                          setFormData({ ...formData, orderStatus: newSt, deliveryDate: newDelDate });
+                          if (isDelivered) {
+                            setAutoOpenModalDeliveryPicker(true);
+                          }
+                        }}
+                      >
                         <option value="Wip">Wip</option>
                         <option value="Delivered">Delivered</option>
                         <option value="Done">Done</option>
@@ -4189,15 +4451,37 @@ export default function VercelDashboard() {
 
                     <div className="v-form-group">
                       <label>Deadline (Date & Time)</label>
-                      <input type="datetime-local" className="v-input" value={formData.deadline || ''} onChange={(e) => setFormData({ ...formData, deadline: e.target.value })} />
+                      <DateTimePickerPopover
+                        value={formData.deadline || ''}
+                        variant="input"
+                        colorScheme="deadline"
+                        placeholder="Set Deadline"
+                        onSave={(val) => setFormData({ ...formData, deadline: val })}
+                      />
                     </div>
                     <div className="v-form-group">
                       <label>Estimated Delivery Date</label>
-                      <input type="date" className="v-input" value={formData.estimatedDeliveryDate} onChange={(e) => setFormData({ ...formData, estimatedDeliveryDate: e.target.value })} />
+                      <DateTimePickerPopover
+                        value={formData.estimatedDeliveryDate || ''}
+                        variant="input"
+                        colorScheme="est"
+                        placeholder="Set Estimated Delivery Date"
+                        onSave={(val) => setFormData({ ...formData, estimatedDeliveryDate: val })}
+                      />
                     </div>
                     <div className="v-form-group">
                       <label>Actual Delivery Date</label>
-                      <input type="date" className="v-input" value={formData.deliveryDate} onChange={(e) => setFormData({ ...formData, deliveryDate: e.target.value })} />
+                      <DateTimePickerPopover
+                        value={formData.deliveryDate || ''}
+                        variant="input"
+                        colorScheme="delivery"
+                        placeholder="Set Actual Delivery Date"
+                        autoOpen={autoOpenModalDeliveryPicker}
+                        onSave={(val) => {
+                          setFormData({ ...formData, deliveryDate: val });
+                          setAutoOpenModalDeliveryPicker(false);
+                        }}
+                      />
                     </div>
                     <div className="v-form-group">
                       <label>Order Type</label>
